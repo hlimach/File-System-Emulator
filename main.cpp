@@ -1,9 +1,3 @@
-//
-//  main.cpp
-//  OS
-//
-//  Created by Haleema Ramzan on 11/25/20.
-//
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
@@ -11,9 +5,9 @@
 #include <stack>
 #include <string>
 
-#define PAGESIZE 256
-#define MEMSIZE 16777216
-#define NUMSECTORS 65536
+#define PAGESIZE 256		// size of each page in memory
+#define MEMSIZE 16777216	// total memory size - 16Mb
+#define NUMPAGES 65536	// total pages in memory
 using namespace std;
 
 const char* start;
@@ -30,9 +24,9 @@ map <string, int*> root;
 	and returns a pointer to that sector 
 */
 char* getSector(int x) {
-	char* sectorNo;
-	sectorNo = (char*) start + (PAGESIZE * x);
-	return sectorNo;
+
+	return (char*) start + (PAGESIZE * x);
+
 }
 
 
@@ -43,8 +37,9 @@ char* getSector(int x) {
 	returns the page number as integer
 */
 int getEntry(int* x) {
-	int entry = (x - (int*) start) / PAGESIZE;
-	return entry;
+
+	return (x - (int*) start) / PAGESIZE;
+
 }
 
 
@@ -54,12 +49,14 @@ int getEntry(int* x) {
 	function
 */
 string setFilename() {
+
 	string filename;
 
 	cout << "Enter File name: ";
 	cin >> filename;
 
 	return filename;
+
 }
 
 
@@ -68,13 +65,14 @@ string setFilename() {
 	explain
 	function
 */
-bool isNumber(string s)
-{
+bool isNumber(string s) {
+
 	for (int i = 0; i < s.length(); i++)
 		if (isdigit(s[i]) == false)
 			return false;
 
 	return true;
+
 }
 
 
@@ -84,6 +82,7 @@ bool isNumber(string s)
 	function
 */
 void create() {
+
 	string filename = setFilename();
 
 	int freeSect = freeList.top();
@@ -91,6 +90,7 @@ void create() {
 
 	char* sector = getSector(freeSect);
 	root[filename] = (int*) sector;
+
 }
 
 
@@ -101,6 +101,7 @@ void create() {
 	returns the file size in bytes
 */
 int getFileSize(string filename) {
+
 	int* pageTable = root[filename];
 	char* page = NULL;
 	int size = 0, i = 0;
@@ -119,6 +120,7 @@ int getFileSize(string filename) {
 
 
 	return size;
+
 }
 
 
@@ -128,6 +130,7 @@ int getFileSize(string filename) {
 	function
 */
 void deleteFile(string filename) {
+
 	int* pageTable = root[filename];
 	int pageNumber;
 	int i;
@@ -153,6 +156,7 @@ void deleteFile(string filename) {
 
 	freeList.push(getEntry(pageTable));
 	cout << freeList.top() << endl;
+
 }
 
 
@@ -219,7 +223,7 @@ void write() {
 	}
 
 	cout << input.length() << endl;
-	int numberOfSectors,limit,appendPoint,appendPage,appendSector,remainder,countSectors;
+	int numberOfSectors, limit, appendPoint, appendPage, appendSector, remainder, countSectors;
 
 	switch (mode) {
 	case('w'):
@@ -313,8 +317,10 @@ void write() {
 			}
 		}
 		break;
+
 	default:
 		break;
+
 	}
 
 }
@@ -367,11 +373,11 @@ void read(string filename, int startFrom) {
 	char* page = NULL;
 
 	// calculate which page number in the page table the entry will belong to
-	int pageNum = (startFrom / PAGESIZE) + 1;
+	int pageNum = (startFrom / PAGESIZE) + 1; // 2
 
 
 	// calculate this pages' index in the page table
-	int i = (pageNum * 2) - 2;
+	int i = (pageNum * 2) - 2; // 2
 
 
 	/*
@@ -384,7 +390,7 @@ void read(string filename, int startFrom) {
 	while (*(pageTable + totalPages + 1) == 0)
 		totalPages += 2;
 
-	totalPages = (totalPages + 2) / 2;
+	totalPages = (totalPages + 2) / 2; //4
 
 
 	// obtain this page to start reading from it
@@ -393,7 +399,7 @@ void read(string filename, int startFrom) {
 
 	if (pageNum != totalPages) {
 
-		for (int j = startFrom; j < PAGESIZE; j++)
+		for (int j = startFrom - ((pageNum - 1) * PAGESIZE); j < PAGESIZE; j++)
 		cout << *(page + j);
 
 
@@ -444,7 +450,7 @@ int main(int argc, const char* argv[]) {
 
 	start = (char*)malloc(MEMSIZE);
 
-	for (int i = NUMSECTORS; i >= 0; i--)
+	for (int i = NUMPAGES; i >= 0; i--)
 		freeList.push(i);
 	string filename;
 	bool loop = true;
@@ -467,61 +473,72 @@ int main(int argc, const char* argv[]) {
 
 
 		switch (command) {
-		case(1):
-			create();
-			break;
-		case(2):
 
-			filename = setFilename();
-			deleteFile(filename);
+			case(1):
+				create();
+				break;
 
-			break;
-		case(3):
-			open();
-			break;
-		case(4):
-			close();
-			break;
-		case(5):
-			list();
-			break;
-		case(6):
-			read();
-			break;
-		case(7):
+			case(2):
 
-			filename = setFilename();
-			size = getFileSize(filename);
+				filename = setFilename();
+				deleteFile(filename);
 
-			while (true) {
-				cout << "Enter starting byte number (within file size:" << size <<  " bytes) : ";
-				cin >> startFrom;
+				break;
 
-				if (isNumber(startFrom)) {
+			case(3):
+				open();
+				break;
 
-					if (stoi(startFrom) <= size) {
-						read(filename, stoi(startFrom));
-						break;
-					} 
-					else 
+			case(4):
+				close();
+				break;
+
+			case(5):
+				list();
+				break;
+
+			case(6):
+				read();
+				break;
+
+			case(7):
+
+				filename = setFilename();
+				size = getFileSize(filename);
+
+				while (true) {
+					cout << "Enter starting byte number (within file size:" << size <<  " bytes) : ";
+					cin >> startFrom;
+
+					if (isNumber(startFrom)) {
+
+						if (stoi(startFrom) <= size) {
+							read(filename, stoi(startFrom));
+							break;
+						} 
+						else 
+							cout << "Enter a valid byte number!" << endl;
+						
+					}
+					else
 						cout << "Enter a valid byte number!" << endl;
-					
+
 				}
-				else
-					cout << "Enter a valid byte number!" << endl;
 
-			}
+				break;
 
-			break;
-		case(8):
-			write();
-			break;
-		case(9):
-			loop = false;
-			break;
-		default:
-			cout << "Please enter a valid integer command!" << endl;
-			break;
+			case(8):
+				write();
+				break;
+
+			case(9):
+				loop = false;
+				break;
+
+			default:
+				cout << "Please enter a valid integer command!" << endl;
+				break;
+
 		}
 	}
 
