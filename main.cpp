@@ -219,13 +219,13 @@ void write() {
 	}
 
 	cout << input.length() << endl;
-	int numberOfSectors = input.length() / PAGESIZE + 1;
-	int limit = input.length() % PAGESIZE;
-	cout << limit << endl;
+	int numberOfSectors,limit,appendPoint,appendPage,appendSector,remainder,countSectors;
 
 	switch (mode) {
 	case('w'):
 
+		numberOfSectors = input.length() / PAGESIZE + 1;
+		limit = input.length() % PAGESIZE;
 		for (int i = 0; i < numberOfSectors * 2; i += 2) {
 
 			*(pageTable + i) = freeList.top();
@@ -244,21 +244,75 @@ void write() {
 
 			if (i != numberOfSectors * 2 - 2) {
 				for (int j = 0; j < PAGESIZE; j++) {
-					cout << input[((i / 2) * PAGESIZE) + j] << endl;
 					*(page + j) = input[((i / 2) * PAGESIZE) + j];
 				}
 			}
 			else {
 				for (int j = 0; j < limit; j++) {
-					cout << input[((i / 2) * PAGESIZE) + j] << endl;
 					*(page + j) = input[((i / 2) * PAGESIZE) + j];
 				}
 			}
 		}
 
-		for (int k = 0; k < 10; k++)
-			cout << *(pageTable + k) << endl;
+		break;
+	
+	case('a'):
 
+		int i;
+		countSectors = 0;
+		
+		for (i = 0; *(pageTable + i + 1) == 0; i += 2) {
+			countSectors++;
+		
+		}
+		countSectors++;
+		appendPoint = *(pageTable + i + 1);
+		appendPage = *(pageTable + i);
+
+		page = getSector(appendPage);
+		
+		for (int j = appendPoint; j < PAGESIZE; j++) {
+			*(page + j) = input[j - appendPoint];
+		}
+		
+		*(pageTable + i + 1) = NULL;
+		remainder = PAGESIZE - appendPoint;
+
+		numberOfSectors = (input.length() - remainder) / PAGESIZE + 1;
+		limit = (input.length() - remainder) % PAGESIZE;
+		numberOfSectors = numberOfSectors + countSectors;
+		appendSector = i;
+		for (i = appendSector + 2; i < numberOfSectors * 2; i += 2) {
+
+			*(pageTable + i) = freeList.top();
+
+			if (i == numberOfSectors * 2 - 2)
+				* (pageTable + i + 1) = limit;
+			else
+				*(pageTable + i + 1) = 0;
+
+			freeList.pop();
+		}
+		
+		//writing
+		
+		for (i = appendSector+2; i < numberOfSectors * 2; i += 2) {
+
+			page = getSector(*(pageTable + i));
+
+			if (i != numberOfSectors * 2 - 2) {
+				for (int j = 0; j < PAGESIZE; j++) {
+					cout << j << endl;
+					*(page + j) = input[(((i - appendSector - 2) / 2) * PAGESIZE) + j + (remainder)];
+				}
+			}
+			else {
+				for (int j = 0; j < limit; j++) {
+					*(page + j) = input[(((i-appendSector-2) / 2) * PAGESIZE) + j + (remainder)];
+				}
+			}
+		}
+		break;
 	default:
 		break;
 	}
