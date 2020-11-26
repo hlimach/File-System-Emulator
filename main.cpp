@@ -11,15 +11,18 @@
 #include <stack>
 #include <string>
 
-#define SECTORSIZE 256
+#define PAGESIZE 256
 #define MEMSIZE 16777216
 #define NUMSECTORS 65536
 using namespace std;
 
 const char* start;
-stack <int> freeList;
-map <string, int*> root;
 
+// freeList holds ineger values of all sectors that are unused
+stack <int> freeList;
+
+// holds values in pairs of filename against pointer to its page table
+map <string, int*> root;
 
 
 /* 
@@ -28,18 +31,19 @@ map <string, int*> root;
 */
 char* getSector(int x) {
 	char* sectorNo;
-	sectorNo = (char*) start + (SECTORSIZE * x);
+	sectorNo = (char*) start + (PAGESIZE * x);
 	return sectorNo;
 }
 
 
 
 /* 
-	explain
-	function
+	function getEntry takes a pointer as argument
+	it finds the page number where this pointer will be found
+	returns the page number as integer
 */
 int getEntry(int* x) {
-	int entry = (x - (int*) start) / SECTORSIZE;
+	int entry = (x - (int*) start) / PAGESIZE;
 	return entry;
 }
 
@@ -64,6 +68,21 @@ string setFilename() {
 	explain
 	function
 */
+bool isNumber(string s)
+{
+	for (int i = 0; i < s.length(); i++)
+		if (isdigit(s[i]) == false)
+			return false;
+
+	return true;
+}
+
+
+
+/* 
+	explain
+	function
+*/
 void create() {
 	string filename = setFilename();
 
@@ -72,6 +91,34 @@ void create() {
 
 	char* sector = getSector(freeSect);
 	root[filename] = (int*) sector;
+}
+
+
+
+/* 
+	function getFileSize takes in filename as argument 
+	accesses the files' page table and iterates it
+	returns the file size in bytes
+*/
+int getFileSize(string filename) {
+	int* pageTable = root[filename];
+	char* page = NULL;
+	int size = 0, i = 0;
+
+
+	// loop runs until the limit field found to be non-zero (last sector)
+    while (*(pageTable + i + 1) == 0) {
+        size += PAGESIZE;
+        i += 2;
+    }
+
+
+	// i is now at the last entry of the files' page table
+	// limit value obtained and added to size
+	size += *(pageTable + i + 1);
+
+
+	return size;
 }
 
 
@@ -86,19 +133,23 @@ void deleteFile(string filename) {
 	int i;
 	stack <int> temp;
 
+
 	for (i = 0; *(pageTable + i + 1) == 0; i += 2) {
 		pageNumber = *(pageTable + i);
 		temp.push(pageNumber);
 	}
 
+
 	pageNumber = *(pageTable + i);
 	temp.push(pageNumber);
+
 
 	while (!temp.empty()) {
 
 		freeList.push(temp.top());
 		temp.pop();
 	}
+
 
 	freeList.push(getEntry(pageTable));
 	cout << freeList.top() << endl;
@@ -142,7 +193,6 @@ void list() {
 */
 void write() {
 	char mode;
-	int writePtr = 0;
 	cout << "Enter mode: ";
 	cin >> mode;
 
@@ -169,8 +219,8 @@ void write() {
 	}
 
 	cout << input.length() << endl;
-	int numberOfSectors = input.length() / SECTORSIZE + 1;
-	int limit = input.length() % SECTORSIZE;
+	int numberOfSectors = input.length() / PAGESIZE + 1;
+	int limit = input.length() % PAGESIZE;
 	cout << limit << endl;
 
 	switch (mode) {
@@ -193,15 +243,15 @@ void write() {
 			page = getSector(*(pageTable + i));
 
 			if (i != numberOfSectors * 2 - 2) {
-				for (int j = 0; j < SECTORSIZE; j++) {
-					cout << input[((i / 2) * SECTORSIZE) + j] << endl;
-					*(page + j) = input[((i / 2) * SECTORSIZE) + j];
+				for (int j = 0; j < PAGESIZE; j++) {
+					cout << input[((i / 2) * PAGESIZE) + j] << endl;
+					*(page + j) = input[((i / 2) * PAGESIZE) + j];
 				}
 			}
 			else {
 				for (int j = 0; j < limit; j++) {
-					cout << input[((i / 2) * SECTORSIZE) + j] << endl;
-					*(page + j) = input[((i / 2) * SECTORSIZE) + j];
+					cout << input[((i / 2) * PAGESIZE) + j] << endl;
+					*(page + j) = input[((i / 2) * PAGESIZE) + j];
 				}
 			}
 		}
@@ -222,25 +272,34 @@ void write() {
 	function
 */
 void read() {
-	cout << "in read" << endl;
 	string filename = setFilename();
 	int* pageTable = root[filename];
 	char* page = NULL;
 	int i;
 
+
+	// loop runs until the limit field found to be non-zero (last sector)
 	for (i = 0; *(pageTable + i + 1) == 0; i += 2) {
 		page = getSector(*(pageTable + i));
-		for (int j = 0; j < SECTORSIZE; j++)
+
+
+		// loops inside the sector pointed to by char pointer 'page'
+		for (int j = 0; j < PAGESIZE; j++)
 			cout << *(page + j);
+
 	}
 
+
+	// i is now at the last entry of the files' page table so its limit value is obtained
 	int limit = *(pageTable + i + 1);
+
+	// pointer to the last page is obtained 
 	page = getSector(*(pageTable + i));
 
+	// loops over the last page until the limit that was previously obtained
 	for (int j = 0; j < limit; j++)
 		cout << *(page + j);
 
-	cout << "printed" << endl;
 }
 
 
@@ -249,23 +308,76 @@ void read() {
 	explain
 	function
 */
-void read(int startFrom) {
-	setFilename();
-}
+void read(string filename, int startFrom) {
+	int* pageTable = root[filename];
+	char* page = NULL;
+
+	// calculate which page number in the page table the entry will belong to
+	int pageNum = (startFrom / PAGESIZE) + 1;
 
 
+	// calculate this pages' index in the page table
+	int i = (pageNum * 2) - 2;
 
-/* 
-	explain
-	function
-*/
-bool isNumber(string s)
-{
-	for (int i = 0; i < s.length(); i++)
-		if (isdigit(s[i]) == false)
-			return false;
 
-	return true;
+	/*
+		calculate the total number of pages of the file
+		loop runs until last page found
+		2 entire of last page added, and divided to get count
+	*/
+	int totalPages = 0;
+
+	while (*(pageTable + totalPages + 1) == 0)
+		totalPages += 2;
+
+	totalPages = (totalPages + 2) / 2;
+
+
+	// obtain this page to start reading from it
+	page = getSector(*(pageTable + i));
+
+
+	if (pageNum != totalPages) {
+
+		for (int j = startFrom; j < PAGESIZE; j++)
+		cout << *(page + j);
+
+
+		// go to next page and loop until the limit field found to be non-zero (last page)
+		for (i += 2; *(pageTable + i + 1) == 0; i += 2) {
+			page = getSector(*(pageTable + i));
+
+
+			// loops inside the sector pointed to by char pointer 'page'
+			for (int j = 0; j < PAGESIZE; j++)
+				cout << *(page + j);
+
+		}
+
+
+		// i is now at the last entry of the files' page table. 
+		// It's limit value and pointer to the last page is obtained
+		int limit = *(pageTable + i + 1);
+		page = getSector(*(pageTable + i));
+
+		// loops over the last page until the limit that was previously obtained
+		for (int j = 0; j < limit; j++)
+			cout << *(page + j);
+
+	}
+	else {
+
+		// obtain this pages' limit
+		int limit = *(pageTable + i + 1);
+
+
+		// start reading from given byte upto the page limit
+		for (int j = startFrom - ((totalPages - 1) * PAGESIZE); j < limit; j++)
+			cout << *(page + j);
+
+	}
+
+	
 }
 
 
@@ -283,7 +395,7 @@ int main(int argc, const char* argv[]) {
 	string filename;
 	bool loop = true;
 	while (loop) {
-		int command, readByte;
+		int command, size;
 		string startFrom;
 
 		cout << "Please enter one of the following command integer:" << endl;
@@ -305,8 +417,10 @@ int main(int argc, const char* argv[]) {
 			create();
 			break;
 		case(2):
+
 			filename = setFilename();
 			deleteFile(filename);
+
 			break;
 		case(3):
 			open();
@@ -321,16 +435,27 @@ int main(int argc, const char* argv[]) {
 			read();
 			break;
 		case(7):
+
+			filename = setFilename();
+			size = getFileSize(filename);
+
 			while (true) {
-				cout << "Enter starting byte number: ";
+				cout << "Enter starting byte number (within file size:" << size <<  " bytes) : ";
 				cin >> startFrom;
 
 				if (isNumber(startFrom)) {
-					read(stoi(startFrom));
-					break;
+
+					if (stoi(startFrom) <= size) {
+						read(filename, stoi(startFrom));
+						break;
+					} 
+					else 
+						cout << "Enter a valid byte number!" << endl;
+					
 				}
 				else
 					cout << "Enter a valid byte number!" << endl;
+
 			}
 
 			break;
