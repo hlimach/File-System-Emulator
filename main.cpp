@@ -17,24 +17,38 @@
 using namespace std;
 
 const char* start;
-stack<int> freeList;
-map<string, int*> root;
-struct memory {
-	unsigned address : 24; //24 bits unsigned value - 16Mb total memory
-	unsigned sectorAdd : 8; //8 bits unsigned value - 256 bytes per sector
-};
+stack <int> freeList;
+map <string, int*> root;
 
+
+
+/* 
+	function getSector takes a sector's integer value 
+	and returns a pointer to that sector 
+*/
 char* getSector(int x) {
 	char* sectorNo;
-	sectorNo = (char*)start + (SECTORSIZE * x);
+	sectorNo = (char*) start + (SECTORSIZE * x);
 	return sectorNo;
 }
 
+
+
+/* 
+	explain
+	function
+*/
 int getEntry(int* x) {
-	int entry = (x - (int*)start) / SECTORSIZE;
+	int entry = (x - (int*) start) / SECTORSIZE;
 	return entry;
 }
 
+
+
+/* 
+	explain
+	function
+*/
 string setFilename() {
 	string filename;
 
@@ -44,25 +58,39 @@ string setFilename() {
 	return filename;
 }
 
-void create() {
 
+
+/* 
+	explain
+	function
+*/
+void create() {
 	string filename = setFilename();
+
 	int freeSect = freeList.top();
 	freeList.pop();
+
 	char* sector = getSector(freeSect);
-	root[filename] = (int*)sector;
+	root[filename] = (int*) sector;
 }
 
 
+
+/* 
+	explain
+	function
+*/
 void deleteFile(string filename) {
 	int* pageTable = root[filename];
 	int pageNumber;
 	int i;
 	stack <int> temp;
+
 	for (i = 0; *(pageTable + i + 1) == 0; i += 2) {
 		pageNumber = *(pageTable + i);
 		temp.push(pageNumber);
 	}
+
 	pageNumber = *(pageTable + i);
 	temp.push(pageNumber);
 
@@ -71,22 +99,47 @@ void deleteFile(string filename) {
 		freeList.push(temp.top());
 		temp.pop();
 	}
+
 	freeList.push(getEntry(pageTable));
 	cout << freeList.top() << endl;
 }
 
+
+
+/* 
+	explain
+	function
+*/
 void open() {
 	setFilename();
 }
 
+
+
+/* 
+	explain
+	function
+*/
 void close() {
 	setFilename();
 }
 
+
+
+/* 
+	explain
+	function
+*/
 void list() {
 	setFilename();
 }
 
+
+
+/* 
+	explain
+	function
+*/
 void write() {
 	char mode;
 	int writePtr = 0;
@@ -106,8 +159,7 @@ void write() {
 	string input, line;
 
 	int count = 0;
-	while (getline(cin, line))
-	{
+	while (getline(cin, line)) {
 		if (line == "-1")
 			break;
 		input += line;
@@ -115,18 +167,14 @@ void write() {
 			input += "\n";
 		count++;
 	}
+
 	cout << input.length() << endl;
 	int numberOfSectors = input.length() / SECTORSIZE + 1;
 	int limit = input.length() % SECTORSIZE;
 	cout << limit << endl;
 
-	switch (mode)
-	{
+	switch (mode) {
 	case('w'):
-		//deleteFile(filename);
-		//create(filename);
-
-
 
 		for (int i = 0; i < numberOfSectors * 2; i += 2) {
 
@@ -139,6 +187,7 @@ void write() {
 
 			freeList.pop();
 		}
+
 		for (int i = 0; i < numberOfSectors * 2; i += 2) {
 
 			page = getSector(*(pageTable + i));
@@ -156,38 +205,60 @@ void write() {
 				}
 			}
 		}
-		for (int k = 0; k < 10; k++) {
+
+		for (int k = 0; k < 10; k++)
 			cout << *(pageTable + k) << endl;
-		}
 
 	default:
 		break;
 	}
 
 }
+
+
+
+/* 
+	explain
+	function
+*/
 void read() {
 	cout << "in read" << endl;
 	string filename = setFilename();
 	int* pageTable = root[filename];
 	char* page = NULL;
 	int i;
+
 	for (i = 0; *(pageTable + i + 1) == 0; i += 2) {
 		page = getSector(*(pageTable + i));
 		for (int j = 0; j < SECTORSIZE; j++)
 			cout << *(page + j);
 	}
+
 	int limit = *(pageTable + i + 1);
 	page = getSector(*(pageTable + i));
+
 	for (int j = 0; j < limit; j++)
 		cout << *(page + j);
+
 	cout << "printed" << endl;
 }
 
+
+
+/* 
+	explain
+	function
+*/
 void read(int startFrom) {
 	setFilename();
 }
 
 
+
+/* 
+	explain
+	function
+*/
 bool isNumber(string s)
 {
 	for (int i = 0; i < s.length(); i++)
@@ -197,6 +268,12 @@ bool isNumber(string s)
 	return true;
 }
 
+
+
+/* 
+	explain
+	function
+*/
 int main(int argc, const char* argv[]) {
 
 	start = (char*)malloc(MEMSIZE);
@@ -272,7 +349,7 @@ int main(int argc, const char* argv[]) {
 
 
 
-	free((char*)start);
+	free((char*) start);
 
 	return 0;
 }
