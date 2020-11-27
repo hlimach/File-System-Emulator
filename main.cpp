@@ -7,18 +7,19 @@
 #include <sstream>
 #include <vector>
 
-#define PAGESIZE 256		// size of each page in memory
-#define MEMSIZE 16777216	// total memory size - 16Mb
-#define NUMPAGES 65536	// total pages in memory
+#define PAGESIZE 256		//	size of each page in memory
+#define MEMSIZE 16777216	//	total memory size - 16Mb
+#define NUMPAGES 65536		//	total pages in memory
 using namespace std;
 
 const char* start;
 
-// freeList holds ineger values of all sectors that are unused
+//	freeList holds ineger values of all sectors that are unused
 stack <int> freeList;
 
-// holds values in pairs of filename against pointer to its page table
+//	holds values in pairs of filename against pointer to its page table
 map <string, int*> root;
+
 
 
 /* 
@@ -35,7 +36,7 @@ char* getSector(int x) {
 
 /* 
 	function getEntry takes a pointer as argument
-	it finds the page number where this pointer will be found
+	it finds the page number in which this pointer is located
 	returns the page number as integer
 */
 int getEntry(int* x) {
@@ -46,20 +47,237 @@ int getEntry(int* x) {
 
 
 
-/* 
-	explain
-	function
-*/
-string setFilename() {
-
+class File {
+private:
 	string filename;
+	int* pageTable;
+	char* page;
 
-	cout << "Enter File name: ";
-	cin >> filename;
+public:
+	File(string name) {
+		filename = name;
 
-	return filename;
+		pageTable = root[filename];
+		page = NULL;
+	}
 
-}
+
+	/* 
+		explain
+		function
+	*/
+	void read() {
+		int i;
+
+
+		// loop runs until the limit field found to be non-zero (last sector)
+		for (i = 0; *(pageTable + i + 1) == 0; i += 2) {
+			page = getSector(*(pageTable + i));
+
+
+			// loops inside the sector pointed to by char pointer 'page'
+			for (int j = 0; j < PAGESIZE; j++)
+				cout << *(page + j);
+
+		}
+
+
+		// i is now at the last entry of the files' page table so its limit value is obtained
+		int limit = *(pageTable + i + 1);
+
+		// pointer to the last page is obtained 
+		page = getSector(*(pageTable + i));
+
+		// loops over the last page until the limit that was previously obtained
+		for (int j = 0; j < limit; j++)
+			cout << *(page + j);
+
+	}
+
+
+
+	/* 
+		explain
+		function
+	*/
+	void readUpto(int readUpto) {
+		//	which page number in the page table the byte will belong to
+		int pageNum = (readUpto / PAGESIZE) + 1;
+
+		int i, pagesDone = 0;
+
+		//	iterates all pages before this page and outputs their content
+		for (i = 0; i < (pageNum * 2) - 2; i += 2) {
+
+			page = getSector(*(pageTable + i));
+
+			for (int j = 0; j < PAGESIZE; j++)
+				cout << *(page + j);
+
+			pagesDone++;
+		}
+
+		//	gets last page and reads upto the specified byte
+		page = getSector(*(pageTable + i));
+
+		for (int j = 0; j < (readUpto - (PAGESIZE * pagesDone)); j++)
+			cout << *(page + j);
+
+		cout << endl;
+	}
+
+
+
+	/* 
+		explain
+		function
+	*/
+	void write() {
+		char mode;
+		cout << "Enter mode: ";
+		cin >> mode;
+
+		while (mode != 'a' && mode != 'w') {
+			cout << "Enter a valid mode!" << endl;
+			cout << "Enter mode: ";
+			cin >> mode;
+		}
+
+		string input, line;
+
+		int count = 0;
+		while (getline(cin, line)) {
+			if (line == "-1")
+				break;
+			input += line;
+			if (count != 0)
+				input += "\n";
+			count++;
+		}
+
+		cout << input.length() << endl;
+		int numberOfSectors, limit, appendPoint, appendPage, appendSector, remainder, countSectors;
+
+		switch (mode) {
+		case('w'):
+
+			numberOfSectors = input.length() / PAGESIZE + 1;
+			limit = input.length() % PAGESIZE;
+			for (int i = 0; i < numberOfSectors * 2; i += 2) {
+
+				*(pageTable + i) = freeList.top();
+
+				if (i == numberOfSectors * 2 - 2)
+					* (pageTable + i + 1) = limit;
+				else
+					*(pageTable + i + 1) = NULL;
+
+				freeList.pop();
+			}
+
+			for (int i = 0; i < numberOfSectors * 2; i += 2) {
+
+				page = getSector(*(pageTable + i));
+
+				if (i != numberOfSectors * 2 - 2) {
+					for (int j = 0; j < PAGESIZE; j++) {
+						*(page + j) = input[((i / 2) * PAGESIZE) + j];
+					}
+				}
+				else {
+					for (int j = 0; j < limit; j++) {
+						*(page + j) = input[((i / 2) * PAGESIZE) + j];
+					}
+				}
+			}
+
+			break;
+		
+		case('a'):
+
+			int i;
+			countSectors = 0;
+			
+			for (i = 0; *(pageTable + i + 1) == 0; i += 2) {
+				countSectors++;
+			
+			}
+			countSectors++;
+			appendPoint = *(pageTable + i + 1);
+			appendPage = *(pageTable + i);
+
+			page = getSector(appendPage);
+			
+			for (int j = appendPoint; j < PAGESIZE; j++) {
+				*(page + j) = input[j - appendPoint];
+			}
+			
+			*(pageTable + i + 1) = NULL;
+			remainder = PAGESIZE - appendPoint;
+
+			numberOfSectors = (input.length() - remainder) / PAGESIZE + 1;
+			limit = (input.length() - remainder) % PAGESIZE;
+			numberOfSectors = numberOfSectors + countSectors;
+			appendSector = i;
+			for (i = appendSector + 2; i < numberOfSectors * 2; i += 2) {
+
+				*(pageTable + i) = freeList.top();
+
+				if (i == numberOfSectors * 2 - 2)
+					* (pageTable + i + 1) = limit;
+				else
+					*(pageTable + i + 1) = 0;
+
+				freeList.pop();
+			}
+			
+			//writing
+			
+			for (i = appendSector+2; i < numberOfSectors * 2; i += 2) {
+
+				page = getSector(*(pageTable + i));
+
+				if (i != numberOfSectors * 2 - 2) {
+					for (int j = 0; j < PAGESIZE; j++) {
+						cout << j << endl;
+						*(page + j) = input[(((i - appendSector - 2) / 2) * PAGESIZE) + j + (remainder)];
+					}
+				}
+				else {
+					for (int j = 0; j < limit; j++) {
+						*(page + j) = input[(((i-appendSector-2) / 2) * PAGESIZE) + j + (remainder)];
+					}
+				}
+			}
+			break;
+
+		default:
+			break;
+
+		}
+	}
+
+
+
+	/* 
+		explain
+		function
+	*/
+	void writeAt(int writeAt) {
+
+	}
+
+
+
+	/* 
+		explain
+		function
+	*/
+	void truncate(int size) {
+
+	}
+
+};
 
 
 
@@ -83,9 +301,7 @@ bool isNumber(string s) {
 	explain
 	function
 */
-void create() {
-
-	string filename = setFilename();
+void create(string filename) {
 
 	int freeSect = freeList.top();
 	freeList.pop();
@@ -167,279 +383,9 @@ void deleteFile(string filename) {
 	explain
 	function
 */
-void open() {
-	setFilename();
-}
-
-
-
-/* 
-	explain
-	function
-*/
-void close() {
-	setFilename();
-}
-
-
-
-/* 
-	explain
-	function
-*/
 void list() {
-	setFilename();
-}
-
-
-
-/* 
-	explain
-	function
-*/
-void write() {
-	char mode;
-	cout << "Enter mode: ";
-	cin >> mode;
-
-	while (mode != 'a' && mode != 'w') {
-		cout << "Enter a valid mode!" << endl;
-		cout << "Enter mode: ";
-		cin >> mode;
-	}
-
-	string filename = setFilename();
-	int* pageTable = root[filename];
-	char* page = NULL;
-
-	string input, line;
-
-	int count = 0;
-	while (getline(cin, line)) {
-		if (line == "-1")
-			break;
-		input += line;
-		if (count != 0)
-			input += "\n";
-		count++;
-	}
-
-	cout << input.length() << endl;
-	int numberOfSectors, limit, appendPoint, appendPage, appendSector, remainder, countSectors;
-
-	switch (mode) {
-	case('w'):
-
-		numberOfSectors = input.length() / PAGESIZE + 1;
-		limit = input.length() % PAGESIZE;
-		for (int i = 0; i < numberOfSectors * 2; i += 2) {
-
-			*(pageTable + i) = freeList.top();
-
-			if (i == numberOfSectors * 2 - 2)
-				* (pageTable + i + 1) = limit;
-			else
-				*(pageTable + i + 1) = NULL;
-
-			freeList.pop();
-		}
-
-		for (int i = 0; i < numberOfSectors * 2; i += 2) {
-
-			page = getSector(*(pageTable + i));
-
-			if (i != numberOfSectors * 2 - 2) {
-				for (int j = 0; j < PAGESIZE; j++) {
-					*(page + j) = input[((i / 2) * PAGESIZE) + j];
-				}
-			}
-			else {
-				for (int j = 0; j < limit; j++) {
-					*(page + j) = input[((i / 2) * PAGESIZE) + j];
-				}
-			}
-		}
-
-		break;
-	
-	case('a'):
-
-		int i;
-		countSectors = 0;
-		
-		for (i = 0; *(pageTable + i + 1) == 0; i += 2) {
-			countSectors++;
-		
-		}
-		countSectors++;
-		appendPoint = *(pageTable + i + 1);
-		appendPage = *(pageTable + i);
-
-		page = getSector(appendPage);
-		
-		for (int j = appendPoint; j < PAGESIZE; j++) {
-			*(page + j) = input[j - appendPoint];
-		}
-		
-		*(pageTable + i + 1) = NULL;
-		remainder = PAGESIZE - appendPoint;
-
-		numberOfSectors = (input.length() - remainder) / PAGESIZE + 1;
-		limit = (input.length() - remainder) % PAGESIZE;
-		numberOfSectors = numberOfSectors + countSectors;
-		appendSector = i;
-		for (i = appendSector + 2; i < numberOfSectors * 2; i += 2) {
-
-			*(pageTable + i) = freeList.top();
-
-			if (i == numberOfSectors * 2 - 2)
-				* (pageTable + i + 1) = limit;
-			else
-				*(pageTable + i + 1) = 0;
-
-			freeList.pop();
-		}
-		
-		//writing
-		
-		for (i = appendSector+2; i < numberOfSectors * 2; i += 2) {
-
-			page = getSector(*(pageTable + i));
-
-			if (i != numberOfSectors * 2 - 2) {
-				for (int j = 0; j < PAGESIZE; j++) {
-					cout << j << endl;
-					*(page + j) = input[(((i - appendSector - 2) / 2) * PAGESIZE) + j + (remainder)];
-				}
-			}
-			else {
-				for (int j = 0; j < limit; j++) {
-					*(page + j) = input[(((i-appendSector-2) / 2) * PAGESIZE) + j + (remainder)];
-				}
-			}
-		}
-		break;
-
-	default:
-		break;
-
-	}
-
-}
-
-
-
-/* 
-	explain
-	function
-*/
-void read() {
-	string filename = setFilename();
-	int* pageTable = root[filename];
-	char* page = NULL;
-	int i;
-
-
-	// loop runs until the limit field found to be non-zero (last sector)
-	for (i = 0; *(pageTable + i + 1) == 0; i += 2) {
-		page = getSector(*(pageTable + i));
-
-
-		// loops inside the sector pointed to by char pointer 'page'
-		for (int j = 0; j < PAGESIZE; j++)
-			cout << *(page + j);
-
-	}
-
-
-	// i is now at the last entry of the files' page table so its limit value is obtained
-	int limit = *(pageTable + i + 1);
-
-	// pointer to the last page is obtained 
-	page = getSector(*(pageTable + i));
-
-	// loops over the last page until the limit that was previously obtained
-	for (int j = 0; j < limit; j++)
-		cout << *(page + j);
-
-}
-
-
-
-/* 
-	explain
-	function
-*/
-void read(string filename, int startFrom) {
-	int* pageTable = root[filename];
-	char* page = NULL;
-
-	// calculate which page number in the page table the entry will belong to
-	int pageNum = (startFrom / PAGESIZE) + 1; // 2
-
-
-	// calculate this pages' index in the page table
-	int i = (pageNum * 2) - 2; // 2
-
-
-	/*
-		calculate the total number of pages of the file
-		loop runs until last page found
-		2 entire of last page added, and divided to get count
-	*/
-	int totalPages = 0;
-
-	while (*(pageTable + totalPages + 1) == 0)
-		totalPages += 2;
-
-	totalPages = (totalPages + 2) / 2; //4
-
-
-	// obtain this page to start reading from it
-	page = getSector(*(pageTable + i));
-
-
-	if (pageNum != totalPages) {
-
-		for (int j = startFrom - ((pageNum - 1) * PAGESIZE); j < PAGESIZE; j++)
-		cout << *(page + j);
-
-
-		// go to next page and loop until the limit field found to be non-zero (last page)
-		for (i += 2; *(pageTable + i + 1) == 0; i += 2) {
-			page = getSector(*(pageTable + i));
-
-
-			// loops inside the sector pointed to by char pointer 'page'
-			for (int j = 0; j < PAGESIZE; j++)
-				cout << *(page + j);
-
-		}
-
-
-		// i is now at the last entry of the files' page table. 
-		// It's limit value and pointer to the last page is obtained
-		int limit = *(pageTable + i + 1);
-		page = getSector(*(pageTable + i));
-
-		// loops over the last page until the limit that was previously obtained
-		for (int j = 0; j < limit; j++)
-			cout << *(page + j);
-
-	}
-	else {
-
-		// obtain this pages' limit
-		int limit = *(pageTable + i + 1);
-
-
-		// start reading from given byte upto the page limit
-		for (int j = startFrom - ((totalPages - 1) * PAGESIZE); j < limit; j++)
-			cout << *(page + j);
-
-	}
-
-	
+	cout << "in list()" << endl;
+	//setFilename();
 }
 
 
@@ -465,7 +411,7 @@ void help() {
 	cout << "trun\t\tReduce opened file to given size\t\t\t\t\t\ttrun 1280" << endl;
 
 
-	cout << "cl\t\t\tClose an opened file\t\t\t\t\t\t\t\t\tcl foo" << endl;
+	cout << "close\t\tClose the opened file\t\t\t\t\t\t\t\t\tclose" << endl;
 	cout << "del\t\t\tDelete a file at the specified path\t\t\t\t\t\tdel ./folder/foo" << endl;
 	cout << "mv\t\t\tMove file from one location to another\t\t\t\t\tmv ./subf/filename ../sf/" << endl;
 	cout << "map\t\t\tDisplay memory map\t\t\t\t\t\t\t\t\t\tmap" << endl;
@@ -484,26 +430,26 @@ void help() {
 */
 vector<string> getCommand() {
 
-	string command, s;
-    cout << "> ";
-    cin >> command;
-
-
+    string command, s;
     vector<string> tokens;
+    
+    
+    cout << "> ";
+    getline(cin, command);
+    
+    
     stringstream ss(command);
-
-
     while (getline(ss, s, ' ')) {
-            
-        if (s == " ")
+        
+        if (s == "")
             continue;
-            
+        
         tokens.push_back(s);
-            
+        
     }
-
-
-	return tokens;
+    
+    
+    return tokens;
 
 }
 
@@ -511,8 +457,9 @@ vector<string> getCommand() {
 
 
 /* 
-	explain
-	function
+	processCommand takes in commands vector as arugment
+	forwards the commands to their respective functions
+	and returns boolean to main to update running status of program
 */
 bool processCommand(vector<string> tokens) {
 
@@ -520,40 +467,58 @@ bool processCommand(vector<string> tokens) {
 	bool loop = true;
 
 
-	if (tokens[0] == "ls") {
-		//ls();
-	} else if (tokens[0] == "cd") {
-		//changeDir();
-	} else if (tokens[0] == "open") {
-		/*
-	    inside open object:
-	    write
-	    write_at
-	    read
-	    read_from
-	    truncate
-	    */
-		//open();
-	} else if (tokens[0] == "cl") {
-		//close();
-	} else if (tokens[0] == "cr") {
-		create();
-	} else if (tokens[0] == "mv") {
-		//move();
-	} else if (tokens[0] == "del") {
-		filename = setFilename();
-		deleteFile(filename);
-	} else if (tokens[0] == "mkdir") {
-		//makeDir();
-	} else if (tokens[0] == "map") {
-		//memMap();
-	} else if (tokens[0] == "help") {
-		help();
-	} else if (tokens[0] == "end") {
-		loop = false;
-	} else {
-		cout << "Invalid command. Type help for user guide." << endl;
-	}
+	if (tokens[0] == "open") {
+
+        File openedFile(tokens[1]);
+        bool inLoop = true;
+
+
+        while (inLoop) {
+	        vector<string> tokens = getCommand();
+
+	        if (tokens[0] == "wr") {
+	            openedFile.write();
+	        } else if (tokens[0] == "wrat") {
+	            openedFile.writeAt(stoi(tokens[1]));
+	        } else if (tokens[0] == "rd") {
+	            openedFile.read();
+	        } else if (tokens[0] == "rf") {
+	            openedFile.readUpto(stoi(tokens[1]));
+	        } else if (tokens[0] == "trun") {
+	            openedFile.truncate(stoi(tokens[1]));
+	        } else if (tokens[0] == "close") {
+	            cout << "File closed." << endl;
+	            inLoop = false;
+	        } else if (tokens[0] == "end") {
+	            cout << "Close file before ending program." << endl;
+	        } else if (tokens[0] == "help") {
+	        	help();
+	    	} else {
+	            cout << "Invalid command. Type help for user guide." << endl;
+	        }	
+    	}
+
+    } else if (tokens[0] == "ls") {
+        //ls();
+    } else if (tokens[0] == "cd") {
+        //changeDir();
+    } else if (tokens[0] == "cr") {
+        create(tokens[1]);
+    } else if (tokens[0] == "mv") {
+        //move();
+    } else if (tokens[0] == "del") {
+        deleteFile(tokens[1]);
+    } else if (tokens[0] == "mkdir") {
+        //makeDir();
+    } else if (tokens[0] == "map") {
+        //memMap();
+    } else if (tokens[0] == "help") {
+        help();
+    } else if (tokens[0] == "end") {
+        loop = false;
+    } else {
+        cout << "Invalid command. Type help for user guide." << endl;
+    }
 
 
 	return loop;
@@ -598,7 +563,7 @@ int main(int argc, const char* argv[]) {
 
 	// while (loop) {
 	// 	int command, size;
-	// 	string startFrom;
+	// 	string readUpto;
 
 	// 	cout << "Please enter one of the following command integer:" << endl;
 	// 	cout << "1: Create(filename) \t\t\tCreate a text file of name <filename>" << endl;
@@ -607,7 +572,7 @@ int main(int argc, const char* argv[]) {
 	// 	cout << "4: Close(filename) \t\t\t\tClose an opened text file of name <filename>" << endl;
 	// 	cout << "5: List files \t\t\t\t\tList all the files in the current directory" << endl;
 	// 	cout << "6: Read(filename) \t\t\t\tRead a text file of name <filename> from start" << endl;
-	// 	cout << "7: Read(filename, startFrom) \tRead a text file of name <filename> from the byte number given by <startFrom>" << endl;
+	// 	cout << "7: Read(filename, readUpto) \tRead a text file of name <filename> from the byte number given by <readUpto>" << endl;
 	// 	cout << "8: Write(filename,mode) \t\tWrite to text file of name <filename> with the given mode\n\t\t\t\t\t\t\t\tMode: a (append), w (write)" << endl;
 	// 	cout << "9: End Program" << endl;
 	// 	cout << "\nEnter command: ";
@@ -650,12 +615,12 @@ int main(int argc, const char* argv[]) {
 
 	// 			while (true) {
 	// 				cout << "Enter starting byte number (within file size:" << size <<  " bytes) : ";
-	// 				cin >> startFrom;
+	// 				cin >> readUpto;
 
-	// 				if (isNumber(startFrom)) {
+	// 				if (isNumber(readUpto)) {
 
-	// 					if (stoi(startFrom) <= size) {
-	// 						read(filename, stoi(startFrom));
+	// 					if (stoi(readUpto) <= size) {
+	// 						read(filename, stoi(readUpto));
 	// 						break;
 	// 					} 
 	// 					else 
