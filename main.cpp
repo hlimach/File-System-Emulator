@@ -4,6 +4,8 @@
 #include <map>
 #include <stack>
 #include <string>
+#include <sstream>
+#include <vector>
 
 #define PAGESIZE 256		// size of each page in memory
 #define MEMSIZE 16777216	// total memory size - 16Mb
@@ -446,110 +448,238 @@ void read(string filename, int startFrom) {
 	explain
 	function
 */
-int main(int argc, const char* argv[]) {
+void help() {
 
-	start = (char*)malloc(MEMSIZE);
+	cout << "-------------------------------------------User Guide-------------------------------------------" << endl;
+	cout << "Command\t\tDescription\t\t\t\t\t\t\t\t\t\t\t\tSyntax" << endl;
+	cout << "mkdir\t\tMake new directory in given path\t\t\t\t\t\tmkdir ../folder/subf/DirName" << endl;
+	cout << "ls\t\t\tList files in current directory\t\t\t\t\t\t\tls" << endl;
+	cout << "cd\t\t\tChange directory to given path\t\t\t\t\t\t\tcd ../folder/subf/" << endl;
+	cout << "cr\t\t\tCreate a new file at current working directory\t\t\tcr foo" << endl;
+	cout << "open\t\tOpen the specified file\t\t\t\t\t\t\t\t\topen foo" << endl;
 
-	for (int i = NUMPAGES; i >= 0; i--)
-		freeList.push(i);
-	string filename;
-	bool loop = true;
-	while (loop) {
-		int command, size;
-		string startFrom;
-
-		cout << "Please enter one of the following command integer:" << endl;
-		cout << "1: Create(filename) \t\t\tCreate a text file of name <filename>" << endl;
-		cout << "2: Delete(filename) \t\t\tDelete a text file of name <filename>" << endl;
-		cout << "3: Open(filename) \t\t\t\tOpen a text file of name <filename>" << endl;
-		cout << "4: Close(filename) \t\t\t\tClose an opened text file of name <filename>" << endl;
-		cout << "5: List files \t\t\t\t\tList all the files in the current directory" << endl;
-		cout << "6: Read(filename) \t\t\t\tRead a text file of name <filename> from start" << endl;
-		cout << "7: Read(filename, startFrom) \tRead a text file of name <filename> from the byte number given by <startFrom>" << endl;
-		cout << "8: Write(filename,mode) \t\tWrite to text file of name <filename> with the given mode\n\t\t\t\t\t\t\t\tMode: a (append), w (write)" << endl;
-		cout << "9: End Program" << endl;
-		cout << "\nEnter command: ";
-		cin >> command;
+	cout << "wr\t\t\tWrite by appending to opened file\t\t\t\t\t\twr" << endl;
+	cout << "wrat\t\tWrite starting from given byte in opened file\t\t\twrat 207" << endl;
+	cout << "rd\t\t\tReturns entire content of opened file\t\t\t\t\trd" << endl;
+	cout << "rf\t\t\tReads from start upto given number of characters\t\trf 312" << endl;
+	cout << "trun\t\tReduce opened file to given size\t\t\t\t\t\ttrun 1280" << endl;
 
 
-		switch (command) {
+	cout << "cl\t\t\tClose an opened file\t\t\t\t\t\t\t\t\tcl foo" << endl;
+	cout << "del\t\t\tDelete a file at the specified path\t\t\t\t\t\tdel ./folder/foo" << endl;
+	cout << "mv\t\t\tMove file from one location to another\t\t\t\t\tmv ./subf/filename ../sf/" << endl;
+	cout << "map\t\t\tDisplay memory map\t\t\t\t\t\t\t\t\t\tmap" << endl;
+	cout << "end\t\t\tTerminate program\t\t\t\t\t\t\t\t\t\tend" << endl;
 
-			case(1):
-				create();
-				break;
 
-			case(2):
-
-				filename = setFilename();
-				deleteFile(filename);
-
-				break;
-
-			case(3):
-				open();
-				break;
-
-			case(4):
-				close();
-				break;
-
-			case(5):
-				list();
-				break;
-
-			case(6):
-				read();
-				break;
-
-			case(7):
-
-				filename = setFilename();
-				size = getFileSize(filename);
-
-				while (true) {
-					cout << "Enter starting byte number (within file size:" << size <<  " bytes) : ";
-					cin >> startFrom;
-
-					if (isNumber(startFrom)) {
-
-						if (stoi(startFrom) <= size) {
-							read(filename, stoi(startFrom));
-							break;
-						} 
-						else 
-							cout << "Enter a valid byte number!" << endl;
-						
-					}
-					else
-						cout << "Enter a valid byte number!" << endl;
-
-				}
-
-				break;
-
-			case(8):
-				write();
-				break;
-
-			case(9):
-				loop = false;
-				break;
-
-			default:
-				cout << "Please enter a valid integer command!" << endl;
-				break;
-
-		}
-	}
+}
 
 
 
+/* 
+	function getCommand takes no arguments in
+	asks for user input (command to be run)
+	takes the entered string and breaks it up by space char
+	returns vector of strings containing command words
+*/
+vector<string> getCommand() {
 
-	free((char*) start);
+	string command, s;
+    cout << "> ";
+    cin >> command;
 
-	return 0;
+
+    vector<string> tokens;
+    stringstream ss(command);
+
+
+    while (getline(ss, s, ' ')) {
+            
+        if (s == " ")
+            continue;
+            
+        tokens.push_back(s);
+            
+    }
+
+
+	return tokens;
+
 }
 
 
 
 
+/* 
+	explain
+	function
+*/
+bool processCommand(vector<string> tokens) {
+
+	string filename;
+	bool loop = true;
+
+
+	if (tokens[0] == "ls") {
+		//ls();
+	} else if (tokens[0] == "cd") {
+		//changeDir();
+	} else if (tokens[0] == "open") {
+		/*
+	    inside open object:
+	    write
+	    write_at
+	    read
+	    read_from
+	    truncate
+	    */
+		//open();
+	} else if (tokens[0] == "cl") {
+		//close();
+	} else if (tokens[0] == "cr") {
+		create();
+	} else if (tokens[0] == "mv") {
+		//move();
+	} else if (tokens[0] == "del") {
+		filename = setFilename();
+		deleteFile(filename);
+	} else if (tokens[0] == "mkdir") {
+		//makeDir();
+	} else if (tokens[0] == "map") {
+		//memMap();
+	} else if (tokens[0] == "help") {
+		help();
+	} else if (tokens[0] == "end") {
+		loop = false;
+	} else {
+		cout << "Invalid command. Type help for user guide." << endl;
+	}
+
+
+	return loop;
+
+}
+
+
+
+/* 
+	explain
+	function
+*/
+int main(int argc, const char* argv[]) {
+
+	start = (char*) malloc(MEMSIZE);
+
+
+	for (int i = NUMPAGES; i >= 0; i--)
+		freeList.push(i);
+
+
+	bool loop = true;
+
+	while (loop) {
+
+		// take user input and store each word in vector
+		vector<string> tokens = getCommand();
+
+ 
+		// process command and call the respective function
+		loop = processCommand(tokens);
+
+	}
+
+
+	free((char*) start);
+
+	return 0;
+
+}
+	
+
+	// while (loop) {
+	// 	int command, size;
+	// 	string startFrom;
+
+	// 	cout << "Please enter one of the following command integer:" << endl;
+	// 	cout << "1: Create(filename) \t\t\tCreate a text file of name <filename>" << endl;
+	// 	cout << "2: Delete(filename) \t\t\tDelete a text file of name <filename>" << endl;
+	// 	cout << "3: Open(filename) \t\t\t\tOpen a text file of name <filename>" << endl;
+	// 	cout << "4: Close(filename) \t\t\t\tClose an opened text file of name <filename>" << endl;
+	// 	cout << "5: List files \t\t\t\t\tList all the files in the current directory" << endl;
+	// 	cout << "6: Read(filename) \t\t\t\tRead a text file of name <filename> from start" << endl;
+	// 	cout << "7: Read(filename, startFrom) \tRead a text file of name <filename> from the byte number given by <startFrom>" << endl;
+	// 	cout << "8: Write(filename,mode) \t\tWrite to text file of name <filename> with the given mode\n\t\t\t\t\t\t\t\tMode: a (append), w (write)" << endl;
+	// 	cout << "9: End Program" << endl;
+	// 	cout << "\nEnter command: ";
+	// 	cin >> command;
+
+
+	// 	switch (command) {
+
+	// 		case(1):
+	// 			create();
+	// 			break;
+
+	// 		case(2):
+
+	// 			filename = setFilename();
+	// 			deleteFile(filename);
+
+	// 			break;
+
+	// 		case(3):
+	// 			open();
+	// 			break;
+
+	// 		case(4):
+	// 			close();
+	// 			break;
+
+	// 		case(5):
+	// 			list();
+	// 			break;
+
+	// 		case(6):
+	// 			read();
+	// 			break;
+
+	// 		case(7):
+
+	// 			filename = setFilename();
+	// 			size = getFileSize(filename);
+
+	// 			while (true) {
+	// 				cout << "Enter starting byte number (within file size:" << size <<  " bytes) : ";
+	// 				cin >> startFrom;
+
+	// 				if (isNumber(startFrom)) {
+
+	// 					if (stoi(startFrom) <= size) {
+	// 						read(filename, stoi(startFrom));
+	// 						break;
+	// 					} 
+	// 					else 
+	// 						cout << "Enter a valid byte number!" << endl;
+						
+	// 				}
+	// 				else
+	// 					cout << "Enter a valid byte number!" << endl;
+
+	// 			}
+
+	// 			break;
+
+	// 		case(8):
+	// 			write();
+	// 			break;
+
+	// 		case(9):
+	// 			loop = false;
+	// 			break;
+
+	// 		default:
+	// 			cout << "Please enter a valid integer command!" << endl;
+	// 			break;
+
+	// 	}
+	// }
