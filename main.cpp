@@ -45,8 +45,6 @@ int getEntry(int* x) {
 
 }
 
-
-
 class File {
 private:
 	string filename;
@@ -100,29 +98,38 @@ public:
 		explain
 		function
 	*/
-	void readUpto(int readUpto) {
+	void readUpto(int startFrom, int readUpTo) {
 		//	which page number in the page table the byte will belong to
-		int pageNum = (readUpto / PAGESIZE) + 1;
-
-		int i, pagesDone = 0;
+		int startPage = (startFrom / PAGESIZE);
+		int startByte = startFrom % PAGESIZE;
+		int endPage = (startFrom + readUpTo) / PAGESIZE;
+		int limit = (startFrom + readUpTo) % PAGESIZE;
+		int i;;
 
 		//	iterates all pages before this page and outputs their content
-		for (i = 0; i < (pageNum * 2) - 2; i += 2) {
+		for (i = startPage * 2; i < (endPage * 2); i += 2) {
 
 			page = getSector(*(pageTable + i));
 
-			for (int j = 0; j < PAGESIZE; j++)
+			for (int j = startByte; j < PAGESIZE; j++)
 				cout << *(page + j);
 
-			pagesDone++;
 		}
 
 		//	gets last page and reads upto the specified byte
 		page = getSector(*(pageTable + i));
 
-		for (int j = 0; j < (readUpto - (PAGESIZE * pagesDone)); j++)
-			cout << *(page + j);
+		if (startPage == endPage) {
 
+			for (int j = startByte; j < limit; j++)
+				cout << *(page + j);
+
+		}
+		else {
+
+			for (int j = 0; j < limit; j++)
+				cout << *(page + j);
+		}
 		cout << endl;
 	}
 
@@ -279,7 +286,55 @@ public:
 
 };
 
+class Folder {
+public:
+	string dirName;
+	vector<Folder* > subdir;
+	vector<string> files;
+	Folder* parent;
 
+	Folder(string name) {
+	
+		dirName = name;
+		parent = NULL;
+	
+	}
+};
+
+Folder* rootFolder = new Folder("root");
+Folder* current;
+
+void createFolder(string folderName) {
+
+	current->subdir.push_back(new Folder(folderName));
+	current->subdir.back()->parent = current;
+	cout << "Directory created!" << endl;
+
+}
+
+void listDir() {
+
+	cout << "Here is the list of files and folders in this directory" << endl;
+	
+	for (int i = 0; i < current->subdir.size(); i++)
+		cout << current->subdir[i]->dirName << "\t\t";
+	
+	for (int i = 0; i < current->files.size(); i++)
+		cout << current->subdir[i] << "\t";
+}
+
+void changeDir(string subDirName) {
+
+	int i;
+
+	for (i = 0; i < current->subdir.size(); i++) {
+		if (current->subdir[i]->dirName == subDirName)
+			break;
+	}
+
+	current = current->subdir[i];
+
+}
 
 /* 
 	explain
@@ -396,27 +451,51 @@ void list() {
 */
 void help() {
 
+	//for macos
+
+	// cout << "-------------------------------------------User Guide-------------------------------------------" << endl;
+	// cout << "Command\t\tDescription\t\t\t\t\t\t\t\t\t\t\t\tSyntax" << endl;
+	// cout << "mkdir\t\tMake new directory in given path\t\t\t\t\t\tmkdir ../folder/subf/DirName" << endl;
+	// cout << "ls\t\t\tList files in current directory\t\t\t\t\t\t\tls" << endl;
+	// cout << "cd\t\t\tChange directory to given path\t\t\t\t\t\t\tcd ../folder/subf/" << endl;
+	// cout << "cr\t\t\tCreate a new file at current working directory\t\t\tcr foo" << endl;
+	// cout << "open\t\tOpen the specified file\t\t\t\t\t\t\t\t\topen foo" << endl;
+
+	// cout << "wr\t\t\tWrite by appending to opened file\t\t\t\t\t\twr" << endl;
+	// cout << "wrat\t\tWrite starting from given byte in opened file\t\t\twrat 207" << endl;
+	// cout << "rd\t\t\tReturns entire content of opened file\t\t\t\t\trd" << endl;
+	// cout << "rf\t\t\tReads from start upto given number of characters\t\trf 312" << endl;
+	// cout << "trun\t\tReduce opened file to given size\t\t\t\t\t\ttrun 1280" << endl;
+
+
+	// cout << "close\t\tClose the opened file\t\t\t\t\t\t\t\t\tclose" << endl;
+	// cout << "del\t\t\tDelete a file at the specified path\t\t\t\t\t\tdel ./folder/foo" << endl;
+	// cout << "mv\t\t\tMove file from one location to another\t\t\t\t\tmv ./subf/filename ../sf/" << endl;
+	// cout << "map\t\t\tDisplay memory map\t\t\t\t\t\t\t\t\t\tmap" << endl;
+	// cout << "end\t\t\tTerminate program\t\t\t\t\t\t\t\t\t\tend" << endl;
+
+	//for windows
+
 	cout << "-------------------------------------------User Guide-------------------------------------------" << endl;
-	cout << "Command\t\tDescription\t\t\t\t\t\t\t\t\t\t\t\tSyntax" << endl;
-	cout << "mkdir\t\tMake new directory in given path\t\t\t\t\t\tmkdir ../folder/subf/DirName" << endl;
-	cout << "ls\t\t\tList files in current directory\t\t\t\t\t\t\tls" << endl;
-	cout << "cd\t\t\tChange directory to given path\t\t\t\t\t\t\tcd ../folder/subf/" << endl;
-	cout << "cr\t\t\tCreate a new file at current working directory\t\t\tcr foo" << endl;
-	cout << "open\t\tOpen the specified file\t\t\t\t\t\t\t\t\topen foo" << endl;
+	cout << "Command\t\t\tDescription\t\t\t\t\t\tSyntax" << endl;
+	cout << "mkdir\t\t\tMake new directory in given path\t\t\tmkdir ../folder/subf/DirName" << endl;
+	cout << "ls\t\t\tList files in current directory\t\t\t\tls" << endl;
+	cout << "cd\t\t\tChange directory to given path\t\t\t\tcd ../folder/subf/" << endl;
+	cout << "cr\t\t\tCreate a new file at current working directory\t\tcr foo" << endl;
+	cout << "open\t\t\tOpen the specified file\t\t\t\t\topen foo" << endl;
 
-	cout << "wr\t\t\tWrite by appending to opened file\t\t\t\t\t\twr" << endl;
-	cout << "wrat\t\tWrite starting from given byte in opened file\t\t\twrat 207" << endl;
-	cout << "rd\t\t\tReturns entire content of opened file\t\t\t\t\trd" << endl;
-	cout << "rf\t\t\tReads from start upto given number of characters\t\trf 312" << endl;
-	cout << "trun\t\tReduce opened file to given size\t\t\t\t\t\ttrun 1280" << endl;
+	cout << "wr\t\t\twrite by appending to opened file\t\t\twr" << endl;
+	cout << "wrat\t\t\twrite starting from given byte in opened file\t\twrat 207" << endl;
+	cout << "rd\t\t\treturns entire content of opened file\t\t\trd" << endl;
+	cout << "rf\t\t\treads from start upto given number of characters\trf 312" << endl;
+	cout << "trun\t\t\treduce opened file to given size\t\t\trun 1280" << endl;
 
 
-	cout << "close\t\tClose the opened file\t\t\t\t\t\t\t\t\tclose" << endl;
-	cout << "del\t\t\tDelete a file at the specified path\t\t\t\t\t\tdel ./folder/foo" << endl;
-	cout << "mv\t\t\tMove file from one location to another\t\t\t\t\tmv ./subf/filename ../sf/" << endl;
-	cout << "map\t\t\tDisplay memory map\t\t\t\t\t\t\t\t\t\tmap" << endl;
-	cout << "end\t\t\tTerminate program\t\t\t\t\t\t\t\t\t\tend" << endl;
-
+	cout << "close\t\t\tClose the opened file\t\t\t\t\tclose" << endl;
+	cout << "del\t\t\tDelete a file at the specified path\t\t\tdel ./folder/foo" << endl;
+	cout << "mv\t\t\tMove file from one location to another\t\t\tmv ./subf/filename ../sf/" << endl;
+	cout << "map\t\t\tDisplay memory map\t\t\t\t\tmap" << endl;
+	cout << "end\t\t\tTerminate program\t\t\t\t\tend" << endl;
 
 }
 
@@ -483,7 +562,7 @@ bool processCommand(vector<string> tokens) {
 	        } else if (tokens[0] == "rd") {
 	            openedFile.read();
 	        } else if (tokens[0] == "rf") {
-	            openedFile.readUpto(stoi(tokens[1]));
+	            openedFile.readUpto(stoi(tokens[1]),stoi(tokens[2]));
 	        } else if (tokens[0] == "trun") {
 	            openedFile.truncate(stoi(tokens[1]));
 	        } else if (tokens[0] == "close") {
@@ -499,9 +578,9 @@ bool processCommand(vector<string> tokens) {
     	}
 
     } else if (tokens[0] == "ls") {
-        //ls();
+        listDir();
     } else if (tokens[0] == "cd") {
-        //changeDir();
+        changeDir(tokens[1]);
     } else if (tokens[0] == "cr") {
         create(tokens[1]);
     } else if (tokens[0] == "mv") {
@@ -509,7 +588,7 @@ bool processCommand(vector<string> tokens) {
     } else if (tokens[0] == "del") {
         deleteFile(tokens[1]);
     } else if (tokens[0] == "mkdir") {
-        //makeDir();
+        createFolder(tokens[1]);
     } else if (tokens[0] == "map") {
         //memMap();
     } else if (tokens[0] == "help") {
@@ -532,7 +611,8 @@ bool processCommand(vector<string> tokens) {
 	function
 */
 int main(int argc, const char* argv[]) {
-
+	
+	current = rootFolder;
 	start = (char*) malloc(MEMSIZE);
 
 
