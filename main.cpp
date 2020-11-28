@@ -17,8 +17,8 @@ const char* start;
 //	freeList holds ineger values of all sectors that are unused
 stack <int> freeList;
 
-//	returns PageTable pointr for file with name in current directory
-int* getPtr(string name);
+//	returns position for file with name in current directory
+int getFileNo(string);
 
 
 //tokenizes a given string with respect to delimeter
@@ -74,6 +74,26 @@ public:
 	}
 };
 
+class Folder {
+public:
+	string dirName;
+	vector<Folder* > subdir;
+	vector<FileNode*> files;
+	Folder* parent;
+
+	Folder(string name) {
+	
+		dirName = name;
+		parent = NULL;
+	
+	}
+};
+
+Folder* rootFolder = new Folder("root");
+Folder* current, * tempFolder;
+int filePosDir;
+
+
 class File {
 private:
 	string filename;
@@ -84,7 +104,7 @@ public:
 	File(string name) {
 		filename = name;
 
-		pageTable = getPtr(filename);
+		pageTable = current->files[filePosDir]->pgTblPtr;
 		page = NULL;
 	}
 
@@ -169,26 +189,26 @@ public:
 	*/
 	void write() {
 		
-		char mode;
-		cout << "enter mode:" << endl;
-		cin >> mode;
 		string input, line;
 
-		int count = 0;
 		while (getline(cin, line)) {
 			if (line == "-1")
 				break;
 			input += line;
-			if (count != 0)
-				input += "\n";
-			count++;
+			input += "\n";
 		}
 
 		cout << input.length() << endl;
 		int numberOfSectors = 0, limit, appendPoint, appendPage, appendSector, remainder, countSectors;
 
-		switch (mode) {
-		case('w'):
+		if (pageTable == NULL) {
+
+			int freeSect = freeList.top();
+			freeList.pop();
+
+			char* sector = getSector(freeSect);
+			current->files[filePosDir]->pgTblPtr = (int *)sector;
+			pageTable = current->files[filePosDir]->pgTblPtr;
 
 			numberOfSectors = input.length() / PAGESIZE + 1;
 			limit = input.length() % PAGESIZE;
@@ -220,9 +240,9 @@ public:
 					}
 				}
 			}
-			break;
+			
 
-		case('a'):
+		}else {
 			
 			int i;
 			countSectors = 0;
@@ -291,7 +311,7 @@ public:
 					}
 				}
 			}
-			break;
+			
 		}	
 	}
 
@@ -312,49 +332,31 @@ public:
 		function
 	*/
 	void truncate(int size) {
-		int truncSectors, truncLimit,i,temp,count=0;
-		truncSectors = size / PAGESIZE + 1;
+		
+		int truncSectors, truncLimit, i;
+		truncSectors = size / PAGESIZE;
 		truncLimit = size % PAGESIZE;
-		bool check;
+		bool isLastSect = false;
 
-		for (i = 0; *(pageTable + i + 1) == 0; i += 2) {
-			count++;
-			if ( count == truncSectors) {
-				*(pageTable + i + 1) = truncLimit;
-				check = 1;
-			}
-			else if( count > truncSectors){
-				freeList.push(*(pageTable + i));
-			}
-			
+		if (*(pageTable + truncSectors * 2 + 1) != 0)
+			isLastSect = true;
+
+		*(pageTable + truncSectors * 2 + 1) = truncLimit;	
+
+		for (i = truncSectors*2 + 2; *(pageTable + i + 1) == 0; i += 2) {
+
+			freeList.push(*(pageTable + i));
+
 		}
 		
-		if (check) {
+		if (!isLastSect) {
 			freeList.push(*(pageTable + i));
-		} else {	
-			*(pageTable + i) = truncLimit;
 		}
 	}
 
 };
 
-class Folder {
-public:
-	string dirName;
-	vector<Folder* > subdir;
-	vector<FileNode*> files;
-	Folder* parent;
 
-	Folder(string name) {
-	
-		dirName = name;
-		parent = NULL;
-	
-	}
-};
-
-Folder* rootFolder = new Folder("root");
-Folder* current, * tempFolder;
 
 void createFolder(string path) {
 
@@ -392,6 +394,8 @@ void listDir() {
 	
 	for (int i = 0; i < current->files.size(); i++)
 		cout << current->files[i]->name << "\t";
+
+	cout << endl;	
 }
 
 void changeDir(string path) {
@@ -438,23 +442,17 @@ bool isNumber(string s) {
 */
 void create(string filename) {
 
-	int freeSect = freeList.top();
-	freeList.pop();
-
-	char* sector = getSector(freeSect);
 	current->files.push_back(new FileNode(filename));
-	current->files.back()->pgTblPtr = (int*)sector;
-
 }
 
-int* getPtr(string name) {
+int getfileNo(string name) {
 	
 	int i;
 	for (i = 0; i < current->files.size(); i++) {
 		if (current->files[i]->name == name)
 			break;
 	}
-	return current->files[i]->pgTblPtr;
+	return i;
 }
 
 /* 
@@ -464,7 +462,7 @@ int* getPtr(string name) {
 */
 int getFileSize(string filename) {
 
-	int* pageTable = getPtr(filename);
+	int* pageTable = current->files[filePosDir]->pgTblPtr;
 	char* page = NULL;
 	int size = 0, i = 0;
 
@@ -493,7 +491,7 @@ int getFileSize(string filename) {
 */
 void deleteFile(string filename) {
 
-	int* pageTable = getPtr(filename);
+	int* pageTable = current->files[filePosDir]->pgTblPtr;
 	int pageNumber;
 	int i;
 	stack <int> temp;
@@ -520,19 +518,6 @@ void deleteFile(string filename) {
 	cout << freeList.top() << endl;
 
 }
-
-
-
-/* 
-	explain
-	function
-*/
-void list() {
-	cout << "in list()" << endl;
-	//setFilename();
-}
-
-
 
 /* 
 	explain
@@ -626,6 +611,7 @@ bool processCommand(vector<string> tokens) {
 	if (tokens[0] == "open") {
 
         File openedFile(tokens[1]);
+		filePosDir = getfileNo(tokens[1]);
         bool inLoop = true;
 
 
