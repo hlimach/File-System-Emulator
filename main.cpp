@@ -21,6 +21,24 @@ stack <int> freeList;
 map <string, int*> root;
 
 
+//tokenizes a given string with respect to delimeter
+vector<string> tokenize(string command, char delimiter) {
+	
+	string s;
+	stringstream ss(command);
+	vector<string> tokens;
+	
+	while (getline(ss, s, delimiter)) {
+
+		if (s == "")
+			continue;
+
+		tokens.push_back(s);
+
+	}
+	return tokens;
+
+}
 
 /* 
 	function getSector takes a sector's integer value 
@@ -302,13 +320,32 @@ public:
 };
 
 Folder* rootFolder = new Folder("root");
-Folder* current;
+Folder* current, * tempFolder;
 
-void createFolder(string folderName) {
+void createFolder(string path) {
 
-	current->subdir.push_back(new Folder(folderName));
-	current->subdir.back()->parent = current;
-	cout << "Directory created!" << endl;
+	tempFolder = current;
+	vector<string> tokens = tokenize(path, '/');
+	int j;
+	
+	for (int i = 0; i < tokens.size() - 1; i++) {
+		if (tokens[i] == "..")
+			tempFolder = tempFolder->parent;
+		else {
+
+			for (j = 0; j < tempFolder->subdir.size(); j++) {
+				if (tempFolder->subdir[j]->dirName == tokens[i])
+					break;
+			}
+
+			tempFolder = tempFolder->subdir[j];
+
+		}
+	
+	}
+	tempFolder->subdir.push_back(new Folder(tokens.back()));
+	tempFolder->subdir.back()->parent = tempFolder;
+	
 
 }
 
@@ -323,16 +360,25 @@ void listDir() {
 		cout << current->subdir[i] << "\t";
 }
 
-void changeDir(string subDirName) {
+void changeDir(string path) {
 
-	int i;
+	vector<string> tokens = tokenize(path, '/');
+	int j;
+	
+	for (int i = 0; i < tokens.size(); i++) {
+		if (tokens[i] == "..")
+			current = current->parent;
+		else {
 
-	for (i = 0; i < current->subdir.size(); i++) {
-		if (current->subdir[i]->dirName == subDirName)
-			break;
+			for (j = 0; j < current->subdir.size(); j++) {
+				if (current->subdir[j]->dirName == tokens[i])
+					break;
+			}
+
+			current = current->subdir[j];
+
+		}
 	}
-
-	current = current->subdir[i];
 
 }
 
@@ -509,26 +555,14 @@ void help() {
 */
 vector<string> getCommand() {
 
-    string command, s;
-    vector<string> tokens;
-    
-    
-    cout << "> ";
-    getline(cin, command);
-    
-    
-    stringstream ss(command);
-    while (getline(ss, s, ' ')) {
-        
-        if (s == "")
-            continue;
-        
-        tokens.push_back(s);
-        
-    }
-    
-    
-    return tokens;
+	string command;
+
+
+	cout << "> ";
+	getline(cin, command);
+
+
+	return tokenize(command,' ');
 
 }
 
