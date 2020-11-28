@@ -113,8 +113,7 @@ public:
 
 
 	/* 
-		explain
-		function
+		function readupto takes two arguments starrting bite and size of bytes to be read.
 	*/
 	void readUpto(int startFrom, int readUpTo) {
 		//	which page number in the page table the byte will belong to
