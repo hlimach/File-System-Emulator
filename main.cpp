@@ -157,15 +157,6 @@ public:
 		function
 	*/
 	void write() {
-		char mode;
-		cout << "Enter mode: ";
-		cin >> mode;
-
-		while (mode != 'a' && mode != 'w') {
-			cout << "Enter a valid mode!" << endl;
-			cout << "Enter mode: ";
-			cin >> mode;
-		}
 
 		string input, line;
 
@@ -181,9 +172,6 @@ public:
 
 		cout << input.length() << endl;
 		int numberOfSectors, limit, appendPoint, appendPage, appendSector, remainder, countSectors;
-
-		switch (mode) {
-		case('w'):
 
 			numberOfSectors = input.length() / PAGESIZE + 1;
 			limit = input.length() % PAGESIZE;
@@ -214,12 +202,28 @@ public:
 					}
 				}
 			}
+	}
 
-			break;
-		
-		case('a'):
+	/* 
+		explain
+		function
+	*/
+	void writeAt(int writeAt) {
+
+			string input, line;
+
+			int count = 0;
+			while (getline(cin, line)) {
+				if (line == "-1")
+					break;
+				input += line;
+				if (count != 0)
+					input += "\n";
+				count++;
+			}
 
 			int i;
+			int numberOfSectors, limit, appendPoint, appendPage, appendSector, remainder, countSectors;
 			countSectors = 0;
 			
 			for (i = 0; *(pageTable + i + 1) == 0; i += 2) {
@@ -273,22 +277,6 @@ public:
 					}
 				}
 			}
-			break;
-
-		default:
-			break;
-
-		}
-	}
-
-
-
-	/* 
-		explain
-		function
-	*/
-	void writeAt(int writeAt) {
-
 	}
 
 
@@ -298,7 +286,29 @@ public:
 		function
 	*/
 	void truncate(int size) {
-
+		int truncSectors, truncLimit;
+		truncSectors = size / PAGESIZE + 1;
+		truncLimit = size % PAGESIZE;
+		int i,temp,count=0,check=0;
+		for (i = 0; *(pageTable + i + 1) == 0; i += 2) {
+			count++;
+			if ( count == truncSectors) {
+				temp = *(pageTable + i + 1);
+				*(pageTable + i + 1) = truncLimit;
+				check = 1;
+			}
+			else if( count > truncSectors){
+				freeList.push(*(pageTable + i));
+			}
+			
+		}
+		if (check == 1) {
+			freeList.push(*(pageTable + i));
+		}
+		if (check == 0 && (*(pageTable + i + 1) != 0)) {	
+			temp = *(pageTable + i);
+			*(pageTable + i) = truncLimit;
+		}
 	}
 
 };
