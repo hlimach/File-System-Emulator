@@ -17,8 +17,8 @@ const char* start;
 //	freeList holds ineger values of all sectors that are unused
 stack <int> freeList;
 
-//	holds values in pairs of filename against pointer to its page table
-map <string, int*> root;
+//	returns PageTable pointr for file with name in current directory
+int* getPtr(string name);
 
 
 //tokenizes a given string with respect to delimeter
@@ -63,6 +63,17 @@ int getEntry(int* x) {
 
 }
 
+class FileNode {
+public:
+	string name;
+	int* pgTblPtr;
+
+	FileNode(string fileName){
+		name = fileName;
+		pgTblPtr = NULL;
+	}
+};
+
 class File {
 private:
 	string filename;
@@ -73,7 +84,7 @@ public:
 	File(string name) {
 		filename = name;
 
-		pageTable = root[filename];
+		pageTable = getPtr(filename);
 		page = NULL;
 	}
 
@@ -157,7 +168,10 @@ public:
 		function
 	*/
 	void write() {
-
+		
+		char mode;
+		cout << "enter mode:" << endl;
+		cin >> mode;
 		string input, line;
 
 		int count = 0;
@@ -171,10 +185,14 @@ public:
 		}
 
 		cout << input.length() << endl;
-		int numberOfSectors, limit, appendPoint, appendPage, appendSector, remainder, countSectors;
+		int numberOfSectors = 0, limit, appendPoint, appendPage, appendSector, remainder, countSectors;
+
+		switch (mode) {
+		case('w'):
 
 			numberOfSectors = input.length() / PAGESIZE + 1;
 			limit = input.length() % PAGESIZE;
+			
 			for (int i = 0; i < numberOfSectors * 2; i += 2) {
 
 				*(pageTable + i) = freeList.top();
@@ -202,44 +220,40 @@ public:
 					}
 				}
 			}
-	}
+			break;
 
-	/* 
-		explain
-		function
-	*/
-	void writeAt(int writeAt) {
-
-			string input, line;
-
-			int count = 0;
-			while (getline(cin, line)) {
-				if (line == "-1")
-					break;
-				input += line;
-				if (count != 0)
-					input += "\n";
-				count++;
-			}
-
-			int i;
-			int numberOfSectors, limit, appendPoint, appendPage, appendSector, remainder, countSectors;
-			countSectors = 0;
+		case('a'):
 			
+			int i;
+			countSectors = 0;
+
 			for (i = 0; *(pageTable + i + 1) == 0; i += 2) {
 				countSectors++;
-			
+
 			}
 			countSectors++;
 			appendPoint = *(pageTable + i + 1);
 			appendPage = *(pageTable + i);
 
 			page = getSector(appendPage);
-			
-			for (int j = appendPoint; j < PAGESIZE; j++) {
-				*(page + j) = input[j - appendPoint];
+
+			if (input.length() < (PAGESIZE - appendPoint)) {
+
+				for (int j = 0; j < input.length(); j++) {
+					*(page + appendPoint + j) = input[j];
+				}
+				appendPoint += input.length();
+				*(pageTable + i + 1) = appendPoint;
+
+				return;
 			}
+			else {
 			
+				for (int j = appendPoint; j < PAGESIZE; j++) {
+					*(page + j) = input[j - appendPoint];
+				}
+			
+			}
 			*(pageTable + i + 1) = NULL;
 			remainder = PAGESIZE - appendPoint;
 
@@ -258,10 +272,10 @@ public:
 
 				freeList.pop();
 			}
-			
+
 			//writing
-			
-			for (i = appendSector+2; i < numberOfSectors * 2; i += 2) {
+
+			for (i = appendSector + 2; i < numberOfSectors * 2; i += 2) {
 
 				page = getSector(*(pageTable + i));
 
@@ -273,10 +287,22 @@ public:
 				}
 				else {
 					for (int j = 0; j < limit; j++) {
-						*(page + j) = input[(((i-appendSector-2) / 2) * PAGESIZE) + j + (remainder)];
+						*(page + j) = input[(((i - appendSector - 2) / 2) * PAGESIZE) + j + (remainder)];
 					}
 				}
 			}
+			break;
+		}	
+	}
+
+	/* 
+		explain
+		function
+	*/
+	void writeAt(int writeAt) {
+
+			truncate(writeAt);
+			write();
 	}
 
 
@@ -286,14 +312,14 @@ public:
 		function
 	*/
 	void truncate(int size) {
-		int truncSectors, truncLimit;
+		int truncSectors, truncLimit,i,temp,count=0;
 		truncSectors = size / PAGESIZE + 1;
 		truncLimit = size % PAGESIZE;
-		int i,temp,count=0,check=0;
+		bool check;
+
 		for (i = 0; *(pageTable + i + 1) == 0; i += 2) {
 			count++;
 			if ( count == truncSectors) {
-				temp = *(pageTable + i + 1);
 				*(pageTable + i + 1) = truncLimit;
 				check = 1;
 			}
@@ -302,11 +328,10 @@ public:
 			}
 			
 		}
-		if (check == 1) {
+		
+		if (check) {
 			freeList.push(*(pageTable + i));
-		}
-		if (check == 0 && (*(pageTable + i + 1) != 0)) {	
-			temp = *(pageTable + i);
+		} else {	
 			*(pageTable + i) = truncLimit;
 		}
 	}
@@ -317,7 +342,7 @@ class Folder {
 public:
 	string dirName;
 	vector<Folder* > subdir;
-	vector<string> files;
+	vector<FileNode*> files;
 	Folder* parent;
 
 	Folder(string name) {
@@ -366,7 +391,7 @@ void listDir() {
 		cout << current->subdir[i]->dirName << "\t\t";
 	
 	for (int i = 0; i < current->files.size(); i++)
-		cout << current->subdir[i] << "\t";
+		cout << current->files[i]->name << "\t";
 }
 
 void changeDir(string path) {
@@ -417,11 +442,20 @@ void create(string filename) {
 	freeList.pop();
 
 	char* sector = getSector(freeSect);
-	root[filename] = (int*) sector;
+	current->files.push_back(new FileNode(filename));
+	current->files.back()->pgTblPtr = (int*)sector;
 
 }
 
-
+int* getPtr(string name) {
+	
+	int i;
+	for (i = 0; i < current->files.size(); i++) {
+		if (current->files[i]->name == name)
+			break;
+	}
+	return current->files[i]->pgTblPtr;
+}
 
 /* 
 	function getFileSize takes in filename as argument 
@@ -430,7 +464,7 @@ void create(string filename) {
 */
 int getFileSize(string filename) {
 
-	int* pageTable = root[filename];
+	int* pageTable = getPtr(filename);
 	char* page = NULL;
 	int size = 0, i = 0;
 
@@ -459,7 +493,7 @@ int getFileSize(string filename) {
 */
 void deleteFile(string filename) {
 
-	int* pageTable = root[filename];
+	int* pageTable = getPtr(filename);
 	int pageNumber;
 	int i;
 	stack <int> temp;
