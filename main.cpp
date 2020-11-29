@@ -14,16 +14,18 @@ using namespace std;
 
 const char* start;
 
+
 //	freeList holds ineger values of all sectors that are unused
 stack <int> freeList;
+
 
 //	returns position for file with name in current directory
 int getFileNo(string);
 
 
-//tokenizes a given string with respect to delimeter
+//	tokenizes a given string with respect to delimeter
 vector<string> tokenize(string command, char delimiter) {
-	
+
 	string s;
 	stringstream ss(command);
 	vector<string> tokens;
@@ -36,9 +38,11 @@ vector<string> tokenize(string command, char delimiter) {
 		tokens.push_back(s);
 
 	}
-	return tokens;
 
+	return tokens;
 }
+
+
 
 /* 
 	function getSector takes a sector's integer value 
@@ -63,6 +67,11 @@ int getEntry(int* x) {
 
 }
 
+
+
+/*
+	explain function
+*/
 class FileNode {
 public:
 	string name;
@@ -74,10 +83,15 @@ public:
 	}
 };
 
+
+
+/*
+	explain class
+*/
 class Folder {
 public:
 	string dirName;
-	vector<Folder* > subdir;
+	vector<Folder*> subdir;
 	vector<FileNode*> files;
 	Folder* parent;
 
@@ -89,33 +103,67 @@ public:
 	}
 };
 
+
+// the default starting folder 
 Folder* rootFolder = new Folder("root");
-Folder* current, * tempFolder;
+
+
+// keeps track of current position in directory
+Folder  *current, *tempFolder;
+FileNode *tempFile;
 int filePosDir;
+bool fileFound = false;
 
 
+/*
+	File class object is created once the file is opened.
+
+	A file can only be altered (read/ write/ truncate) if its object is created.
+
+	The functions for alteration are all methods of this class to limit accessibility.
+
+	Modes for opening file are read and write:
+
+	Read allows user to view entire content of file, or can specify which byte to view from.
+
+	Write allows user to fill up a new file, append to existing content, start overwriting from specified byte, or truncate size.
+*/
 class File {
 private:
-	string filename;
+	string filename, mode;
 	int* pageTable;
 	char* page;
 
 public:
-	File(string name) {
-		filename = name;
+	File(string name, string md) {
 
-		pageTable = current->files[filePosDir]->pgTblPtr;
-		page = NULL;
-	}
+        for (int i = 0; i < current->files.size(); i++) {
+            if (current->files[i]->name == name) {
+                fileFound = true;
+                filename = name;
+                mode = md;
+                pageTable = current->files[i]->pgTblPtr;
+                page = NULL;
+            }
+        }
+        
+        if (!fileFound) {
+            cout << "The file does not exist." << endl;
+        }
+        
+    }
 
 
 	/* 
-		explain
-		function
+		Function read prints out entire content of file
 	*/
 	void read() {
 		int i;
 
+		if (pageTable == NULL) {
+			cout << "The file has no content to display." << endl;
+			return;
+		}
 
 		// loop runs until the limit field found to be non-zero (last sector)
 		for (i = 0; *(pageTable + i + 1) == 0; i += 2) {
@@ -128,7 +176,6 @@ public:
 
 		}
 
-
 		// i is now at the last entry of the files' page table so its limit value is obtained
 		int limit = *(pageTable + i + 1);
 
@@ -139,12 +186,14 @@ public:
 		for (int j = 0; j < limit; j++)
 			cout << *(page + j);
 
+		cout << endl;
 	}
 
 
 
 	/* 
-		function readupto takes two arguments starrting bite and size of bytes to be read.
+		function readupto takes two arguments starting bite and size of bytes to be read, and
+		prints out the content within that limit.
 	*/
 	void readUpto(int startFrom, int readUpTo) {
 		//	which page number in the page table the byte will belong to
@@ -178,14 +227,15 @@ public:
 			for (int j = 0; j < limit; j++)
 				cout << *(page + j);
 		}
+
 		cout << endl;
 	}
 
 
 
 	/* 
-		explain
-		function
+		function write checks if file is empty or not. If it a new file then it starts to write from the start,
+		else it starts to append from the last byte of file.
 	*/
 	void write() {
 		
@@ -242,7 +292,7 @@ public:
 			}
 			
 
-		}else {
+		} else {
 			
 			int i;
 			countSectors = 0;
@@ -274,6 +324,7 @@ public:
 				}
 			
 			}
+
 			*(pageTable + i + 1) = NULL;
 			remainder = PAGESIZE - appendPoint;
 
@@ -315,21 +366,23 @@ public:
 		}	
 	}
 
+
+
 	/* 
-		explain
-		function
+		function writeAt takes in positional byte as argumnent where the over writing should begin from, 
+		truncates the file to that size and starts writing from that position.
 	*/
 	void writeAt(int writeAt) {
+		truncate(writeAt);
 
-			truncate(writeAt);
-			write();
+		write();
 	}
 
 
 
 	/* 
-		explain
-		function
+		function truncate takes in size as integer to which the file size must be reduced to,
+		and updates the file to be that size and deletes the rest of it.
 	*/
 	void truncate(int size) {
 		
@@ -354,10 +407,21 @@ public:
 		}
 	}
 
+
+
+	/* 
+		function readupto takes two arguments starting bite and size of bytes to be read, and
+		prints out the content within that limit.
+	*/
+	void moveWithin() {}
+
 };
 
 
 
+/*
+	explain class
+*/
 void createFolder(string path) {
 
 	tempFolder = current;
@@ -382,9 +446,13 @@ void createFolder(string path) {
 	tempFolder->subdir.push_back(new Folder(tokens.back()));
 	tempFolder->subdir.back()->parent = tempFolder;
 	
-
 }
 
+
+
+/*
+	explain function
+*/
 void listDir() {
 
 	cout << "Here is the list of files and folders in this directory" << endl;
@@ -398,6 +466,11 @@ void listDir() {
 	cout << endl;	
 }
 
+
+
+/*
+	explain function
+*/
 void changeDir(string path) {
 
 	vector<string> tokens = tokenize(path, '/');
@@ -420,9 +493,10 @@ void changeDir(string path) {
 
 }
 
-/* 
-	explain
-	function
+
+
+/*
+	explain function
 */
 bool isNumber(string s) {
 
@@ -436,15 +510,18 @@ bool isNumber(string s) {
 
 
 
-/* 
-	explain
-	function
+/*
+	explain function
 */
 void create(string filename) {
-
 	current->files.push_back(new FileNode(filename));
 }
 
+
+
+/*
+	explain function
+*/
 int getfileNo(string name) {
 	
 	int i;
@@ -452,12 +529,15 @@ int getfileNo(string name) {
 		if (current->files[i]->name == name)
 			break;
 	}
+
 	return i;
 }
 
+
+
 /* 
 	function getFileSize takes in filename as argument 
-	accesses the files' page table and iterates it
+	accesses the files' page table and iterates it fully
 	returns the file size in bytes
 */
 int getFileSize(string filename) {
@@ -485,9 +565,130 @@ int getFileSize(string filename) {
 
 
 
-/* 
-	explain
-	function
+bool found = true;
+
+void locateFile(vector<string> tokens, bool destFile) {
+
+    for (int i = 0; i < tokens.size(); i++) {
+
+        if (tokens[i] == "..") {
+            tempFolder = current->parent;
+        } else if (tokens[i] == ".") {
+            tempFolder = current;
+        } else {
+
+            if (i != tokens.size() - 1) {
+                bool checkFolder = false;
+
+                for (int j = 0; j < tempFolder->subdir.size(); j++) {
+                    if (tempFolder->subdir[j]->dirName == tokens[i]) {
+                        checkFolder = true;
+                        filePosDir = j;
+                        tempFolder = tempFolder->subdir[j];
+                        break;
+                    }
+                }
+
+                if (!checkFolder) {
+                    cout << "Invalid path. A folder in the specified path does not exist." << endl;
+                    found = false;
+                    return;// !found;
+                }
+
+            } else {
+                bool checkFile = false;
+
+                for (int j = 0; j < tempFolder->files.size(); j++) {
+                    if (tempFolder->files[j]->name == tokens[i]) {
+                        checkFile = true;
+                        tempFile = tempFolder->files[j];
+                        return;// found;
+                    }
+                }
+
+                // in case it is a destination file and it does not exist yet
+                if (!checkFile && destFile) {
+                    cout << "Creating destination file..." << endl;
+                    current = tempFolder;
+                    create(tokens[tokens.size() - 1]);
+                    filePosDir = current->files.size() - 1;
+                    tempFile = current->files[filePosDir];
+                    return;// found;
+                }
+
+                // in case it is a source file and is not found
+                else if (!checkFile && !destFile) {
+                    cout << "The specified file does not exist." << endl;
+                    found = false;
+                    return;// !found;
+                }
+                
+            }
+
+        }
+    }
+}
+
+
+
+
+/*
+    takes in two arguments source file path and destination file path
+    copies the source file to destination file
+*/
+void move(string srcPath, string destPath) {
+
+    vector<string> tokenSrcFile = tokenize(srcPath, '/');
+    vector<string> tokenDestFile = tokenize(destPath, '/');
+
+    int srcPos, destPos;
+    FileNode *srcFile, *destFile;
+    Folder *srcFolder, *destFolder;
+
+    locateFile(tokenSrcFile, false);
+    bool srcFileFound = found;
+    if (srcFileFound) {
+        srcFile = tempFile;
+        srcFolder = tempFolder;
+        srcPos = filePosDir;
+    }
+    else
+        return;
+
+
+    locateFile(tokenDestFile, true);
+    bool destFileFound = found;
+    if (destFileFound) {
+        destFile = tempFile;
+        destFolder = tempFolder;
+        destPos = filePosDir;
+    }
+    else
+        return;
+
+
+    if (srcFile != destFile) {
+        if (destFile->pgTblPtr != NULL) {
+            current = destFolder;
+            File openFile(tokenDestFile[tokenDestFile.size() - 1], "write");
+            openFile.truncate(0);
+        }
+        
+        destFile->pgTblPtr = srcFile->pgTblPtr;
+        srcFile->pgTblPtr = NULL;
+        (srcFolder->files).erase(srcFolder->files.begin() + srcPos);
+
+
+    } else {
+        cout << "Invalid Arguments. To move within a file, plese open the file first." << endl;
+        return;
+    }
+
+}
+
+
+/*
+	explain function
 */
 void deleteFile(string filename) {
 
@@ -517,11 +718,14 @@ void deleteFile(string filename) {
 	freeList.push(getEntry(pageTable));
 	cout << freeList.top() << endl;
 
+	current->files.erase(current->files.begin() + filePosDir);
+
 }
 
-/* 
-	explain
-	function
+
+
+/*
+	explain function
 */
 void help() {
 
@@ -585,10 +789,8 @@ vector<string> getCommand() {
 
 	string command;
 
-
 	cout << "> ";
 	getline(cin, command);
-
 
 	return tokenize(command,' ');
 
@@ -610,10 +812,13 @@ bool processCommand(vector<string> tokens) {
 
 	if (tokens[0] == "open") {
 
-        File openedFile(tokens[1]);
+        File openedFile(tokens[1], tokens[2]);
+
+        if (!fileFound)
+        	return loop;
+
 		filePosDir = getfileNo(tokens[1]);
         bool inLoop = true;
-
 
         while (inLoop) {
 	        vector<string> tokens = getCommand();
@@ -647,7 +852,7 @@ bool processCommand(vector<string> tokens) {
     } else if (tokens[0] == "cr") {
         create(tokens[1]);
     } else if (tokens[0] == "mv") {
-        //move();
+        move(tokens[1], tokens[2]);
     } else if (tokens[0] == "del") {
         deleteFile(tokens[1]);
     } else if (tokens[0] == "mkdir") {
@@ -662,9 +867,7 @@ bool processCommand(vector<string> tokens) {
         cout << "Invalid command. Type help for user guide." << endl;
     }
 
-
 	return loop;
-
 }
 
 
@@ -676,6 +879,7 @@ bool processCommand(vector<string> tokens) {
 int main(int argc, const char* argv[]) {
 	
 	current = rootFolder;
+	tempFolder = rootFolder;
 	start = (char*) malloc(MEMSIZE);
 
 
@@ -702,92 +906,3 @@ int main(int argc, const char* argv[]) {
 	return 0;
 
 }
-	
-
-	// while (loop) {
-	// 	int command, size;
-	// 	string readUpto;
-
-	// 	cout << "Please enter one of the following command integer:" << endl;
-	// 	cout << "1: Create(filename) \t\t\tCreate a text file of name <filename>" << endl;
-	// 	cout << "2: Delete(filename) \t\t\tDelete a text file of name <filename>" << endl;
-	// 	cout << "3: Open(filename) \t\t\t\tOpen a text file of name <filename>" << endl;
-	// 	cout << "4: Close(filename) \t\t\t\tClose an opened text file of name <filename>" << endl;
-	// 	cout << "5: List files \t\t\t\t\tList all the files in the current directory" << endl;
-	// 	cout << "6: Read(filename) \t\t\t\tRead a text file of name <filename> from start" << endl;
-	// 	cout << "7: Read(filename, readUpto) \tRead a text file of name <filename> from the byte number given by <readUpto>" << endl;
-	// 	cout << "8: Write(filename,mode) \t\tWrite to text file of name <filename> with the given mode\n\t\t\t\t\t\t\t\tMode: a (append), w (write)" << endl;
-	// 	cout << "9: End Program" << endl;
-	// 	cout << "\nEnter command: ";
-	// 	cin >> command;
-
-
-	// 	switch (command) {
-
-	// 		case(1):
-	// 			create();
-	// 			break;
-
-	// 		case(2):
-
-	// 			filename = setFilename();
-	// 			deleteFile(filename);
-
-	// 			break;
-
-	// 		case(3):
-	// 			open();
-	// 			break;
-
-	// 		case(4):
-	// 			close();
-	// 			break;
-
-	// 		case(5):
-	// 			list();
-	// 			break;
-
-	// 		case(6):
-	// 			read();
-	// 			break;
-
-	// 		case(7):
-
-	// 			filename = setFilename();
-	// 			size = getFileSize(filename);
-
-	// 			while (true) {
-	// 				cout << "Enter starting byte number (within file size:" << size <<  " bytes) : ";
-	// 				cin >> readUpto;
-
-	// 				if (isNumber(readUpto)) {
-
-	// 					if (stoi(readUpto) <= size) {
-	// 						read(filename, stoi(readUpto));
-	// 						break;
-	// 					} 
-	// 					else 
-	// 						cout << "Enter a valid byte number!" << endl;
-						
-	// 				}
-	// 				else
-	// 					cout << "Enter a valid byte number!" << endl;
-
-	// 			}
-
-	// 			break;
-
-	// 		case(8):
-	// 			write();
-	// 			break;
-
-	// 		case(9):
-	// 			loop = false;
-	// 			break;
-
-	// 		default:
-	// 			cout << "Please enter a valid integer command!" << endl;
-	// 			break;
-
-	// 	}
-	// }
