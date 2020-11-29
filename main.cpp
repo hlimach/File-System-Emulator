@@ -19,10 +19,6 @@ const char* start;
 stack <int> freeList;
 
 
-//	returns position for file with name in current directory
-int getFileNo(string);
-
-
 //	tokenizes a given string with respect to delimeter
 vector<string> tokenize(string command, char delimiter) {
 
@@ -40,6 +36,7 @@ vector<string> tokenize(string command, char delimiter) {
 	}
 
 	return tokens;
+
 }
 
 
@@ -112,7 +109,72 @@ Folder* rootFolder = new Folder("root");
 Folder  *current, *tempFolder;
 FileNode *tempFile;
 int filePosDir;
-bool fileFound = false;
+bool fileFound, found;
+
+
+
+/*
+	explain function
+*/
+int getFileNo(string name) {
+	
+	int i;
+	bool found = false;
+
+	for (i = 0; i < current->files.size(); i++) {
+		if (current->files[i]->name == name) {
+			found = true;
+			break;
+		}
+	}
+
+	if (found)
+		return i;
+	else 
+		return -1;
+
+}
+
+
+
+/* 
+	function getFileSize takes in filename as argument 
+	accesses the files' page table and iterates it fully
+	returns the file size in bytes
+*/
+int getFileSize(string filename) {
+
+	if (getFileNo(filename) == -1) {
+		return -1;
+
+	} else {
+		int* pageTable = current->files[getFileNo(filename)]->pgTblPtr;
+
+		if (pageTable == NULL) {
+			return 0;
+		}
+
+		char* page = NULL;
+		int size = 0, i = 0;
+
+
+		// loop runs until the limit field found to be non-zero (last sector)
+	    while (*(pageTable + i + 1) == 0) {
+	        size += PAGESIZE;
+	        i += 2;
+	    }
+
+
+		// i is now at the last entry of the files' page table
+		// limit value obtained and added to size
+		size += *(pageTable + i + 1);
+
+
+		return size;
+	}
+
+}
+
 
 
 /*
@@ -133,14 +195,16 @@ private:
 	string filename, mode;
 	int* pageTable;
 	char* page;
+	int filesize;
 
 public:
 	File(string name, string md) {
-
+		fileFound = false;
         for (int i = 0; i < current->files.size(); i++) {
             if (current->files[i]->name == name) {
                 fileFound = true;
                 filename = name;
+                filesize = getFileSize(filename);
                 mode = md;
                 pageTable = current->files[i]->pgTblPtr;
                 page = NULL;
@@ -149,6 +213,8 @@ public:
         
         if (!fileFound) {
             cout << "The file does not exist." << endl;
+        } else {
+        	cout << "File opened: " << filename << ", size: " << filesize << " bytes." << endl;
         }
         
     }
@@ -196,12 +262,23 @@ public:
 		prints out the content within that limit.
 	*/
 	void readUpto(int startFrom, int readUpTo) {
+
+		if (pageTable == NULL) {
+			cout << "The file has no content to display." << endl;
+			return;
+		}
+
+		if (readUpTo - startFrom > filesize) {
+			cout << "Out of bound exception. Given limit exceeds total file limit at " << filesize << " bytes." << endl;
+			return;
+		}
+
 		//	which page number in the page table the byte will belong to
 		int startPage = (startFrom / PAGESIZE);
 		int startByte = startFrom % PAGESIZE;
 		int endPage = (startFrom + readUpTo) / PAGESIZE;
 		int limit = (startFrom + readUpTo) % PAGESIZE;
-		int i;;
+		int i;
 
 		//	iterates all pages before this page and outputs their content
 		for (i = startPage * 2; i < (endPage * 2); i += 2) {
@@ -373,8 +450,19 @@ public:
 		truncates the file to that size and starts writing from that position.
 	*/
 	void writeAt(int writeAt) {
-		truncate(writeAt);
 
+		if (pageTable == NULL) {
+			cout << "Invalid command. Cannot call 'Write At' on an empty file." << endl;
+			return;
+		}
+
+		if (writeAt > filesize) {
+			cout << "Out of bound exception. Given byte is greater than file size of" << filesize << " bytes." << endl;
+			return;
+		}
+
+
+		truncate(writeAt);
 		write();
 	}
 
@@ -385,6 +473,11 @@ public:
 		and updates the file to be that size and deletes the rest of it.
 	*/
 	void truncate(int size) {
+
+		if (size > filesize) {
+			cout << "Out of bound exception. Given byte is greater than file size of" << filesize << " bytes." << endl;
+			return;
+		}
 		
 		int truncSectors, truncLimit, i;
 		truncSectors = size / PAGESIZE;
@@ -410,13 +503,76 @@ public:
 
 
 	/* 
-		function readupto takes two arguments starting bite and size of bytes to be read, and
-		prints out the content within that limit.
+		Move within is a cut paste function within the file. It takes 3 arguments from (starting byte), 
+		size (how many bytes to be cut starting from), and to (where the chunk should be pasted).
 	*/
-	void moveWithin() {}
+	void moveWithin(int from, int size, int to) {
+		//the chunk specified is copied into a string var
+		// the other text is copied 
+		if (pageTable == NULL) {
+			cout << "Invalid command. Cannot call 'Write At' on an empty file." << endl;
+			return;
+		}
+
+		if (from + size > filesize) {
+			cout << "Out of bound exception. Specified chunk exceeds out of file size of" << filesize << " bytes." << endl;
+			return;
+		}
+
+		char *startPage, *endPage;
+		int startPg = (from / PAGESIZE + 1) * 2 - 2;
+		int endPg = ((from + to) / PAGESIZE + 1) * 2 - 2;
+
+
+	}
 
 };
 
+
+
+/*
+*/
+bool fileExists(string filename) {
+    for (int j = 0; j < tempFolder->files.size(); j++) {
+        if (tempFolder->files[j]->name == filename) {
+            tempFile = tempFolder->files[j];
+            return true;// found;
+        }
+    }
+    return false;
+}
+
+
+
+/*
+*/
+bool folderExists(string dirName) {
+    for (int j = 0; j < tempFolder->subdir.size(); j++) {
+        if (tempFolder->subdir[j]->dirName == dirName) {
+            filePosDir = j;
+            tempFolder = tempFolder->subdir[j];
+            return true;
+        }
+    }
+    return false;
+}
+
+
+
+/*
+	function checkDuplicate takes in name as an arguemnt and checks in the 
+	current working directory for a file or folder with same name
+	if either one exists, the function returns true.
+*/
+bool checkDuplicate(string name) {
+	bool sameFile = fileExists(name);
+	bool sameFolder = folderExists(name);
+
+	if (sameFile || sameFolder)
+		return true;
+	else
+		return false;
+}
 
 
 /*
@@ -424,28 +580,41 @@ public:
 */
 void createFolder(string path) {
 
+	bool createable = true;
 	tempFolder = current;
 	vector<string> tokens = tokenize(path, '/');
-	int j;
+
+	if (tokens.size() == 0) {
+		cout << "Invalid path entered." << endl;
+		return;
+	}
 	
 	for (int i = 0; i < tokens.size() - 1; i++) {
+
 		if (tokens[i] == "..")
 			tempFolder = tempFolder->parent;
+
 		else {
 
-			for (j = 0; j < tempFolder->subdir.size(); j++) {
-				if (tempFolder->subdir[j]->dirName == tokens[i])
-					break;
-			}
+			bool folderFound = folderExists(tokens[i]);
 
-			tempFolder = tempFolder->subdir[j];
+			if (!folderFound) {
+				createable = false;
+				break;
+			}
 
 		}
 	
 	}
-	tempFolder->subdir.push_back(new Folder(tokens.back()));
-	tempFolder->subdir.back()->parent = tempFolder;
-	
+
+	if (createable && !checkDuplicate(tokens.back())) {
+
+		tempFolder->subdir.push_back(new Folder(tokens.back()));
+		tempFolder->subdir.back()->parent = tempFolder;
+
+	} else
+		cout << "Error: cannot create directory in specified path." << endl;
+
 }
 
 
@@ -455,41 +624,58 @@ void createFolder(string path) {
 */
 void listDir() {
 
-	cout << "Here is the list of files and folders in this directory" << endl;
+	if (current->subdir.size() == 0 && current->files.size() == 0) {
+		cout << "Directory is empty." << endl;
+		return;
+	}
 	
+	cout << "Folders: ";
 	for (int i = 0; i < current->subdir.size(); i++)
-		cout << current->subdir[i]->dirName << "\t\t";
+		cout << current->subdir[i]->dirName << "\t";
+	cout << endl;
 	
+	cout << "Files: ";
 	for (int i = 0; i < current->files.size(); i++)
 		cout << current->files[i]->name << "\t";
-
 	cout << endl;	
 }
 
 
 
 /*
-	explain function
 */
 void changeDir(string path) {
 
+	bool changable = true;
 	vector<string> tokens = tokenize(path, '/');
+
+	if (tokens.size() == 0) {
+		cout << "Invalid path entered." << endl;
+		return;
+	}
+
 	int j;
+	tempFolder = current;
 	
 	for (int i = 0; i < tokens.size(); i++) {
+
 		if (tokens[i] == "..")
-			current = current->parent;
+			tempFolder = tempFolder->parent;
+
 		else {
+			bool folderFound = folderExists(tokens[i]);
 
-			for (j = 0; j < current->subdir.size(); j++) {
-				if (current->subdir[j]->dirName == tokens[i])
-					break;
+			if (!folderFound) {
+				changable = false;
+				break;
 			}
-
-			current = current->subdir[j];
-
 		}
 	}
+
+	if (changable)
+		current = tempFolder;
+	else
+		cout << "Error: cannot change directory to specified path." << endl;
 
 }
 
@@ -511,63 +697,21 @@ bool isNumber(string s) {
 
 
 /*
-	explain function
 */
 void create(string filename) {
-	current->files.push_back(new FileNode(filename));
-}
 
-
-
-/*
-	explain function
-*/
-int getfileNo(string name) {
-	
-	int i;
-	for (i = 0; i < current->files.size(); i++) {
-		if (current->files[i]->name == name)
-			break;
-	}
-
-	return i;
-}
-
-
-
-/* 
-	function getFileSize takes in filename as argument 
-	accesses the files' page table and iterates it fully
-	returns the file size in bytes
-*/
-int getFileSize(string filename) {
-
-	int* pageTable = current->files[filePosDir]->pgTblPtr;
-	char* page = NULL;
-	int size = 0, i = 0;
-
-
-	// loop runs until the limit field found to be non-zero (last sector)
-    while (*(pageTable + i + 1) == 0) {
-        size += PAGESIZE;
-        i += 2;
-    }
-
-
-	// i is now at the last entry of the files' page table
-	// limit value obtained and added to size
-	size += *(pageTable + i + 1);
-
-
-	return size;
+	if (!checkDuplicate(filename))
+		current->files.push_back(new FileNode(filename));
+	else
+		cout << "A file or folder of same name already exists." << endl;
 
 }
 
 
-
-bool found = true;
 
 void locateFile(vector<string> tokens, bool destFile) {
+
+	found = true;
 
     for (int i = 0; i < tokens.size(); i++) {
 
@@ -578,57 +722,44 @@ void locateFile(vector<string> tokens, bool destFile) {
         } else {
 
             if (i != tokens.size() - 1) {
-                bool checkFolder = false;
-
-                for (int j = 0; j < tempFolder->subdir.size(); j++) {
-                    if (tempFolder->subdir[j]->dirName == tokens[i]) {
-                        checkFolder = true;
-                        filePosDir = j;
-                        tempFolder = tempFolder->subdir[j];
-                        break;
-                    }
-                }
+                bool checkFolder = folderExists(tokens[i]);
 
                 if (!checkFolder) {
                     cout << "Invalid path. A folder in the specified path does not exist." << endl;
                     found = false;
-                    return;// !found;
+                    return;
                 }
 
             } else {
-                bool checkFile = false;
+                bool checkFile = fileExists(tokens[i]);
 
-                for (int j = 0; j < tempFolder->files.size(); j++) {
-                    if (tempFolder->files[j]->name == tokens[i]) {
-                        checkFile = true;
-                        tempFile = tempFolder->files[j];
-                        return;// found;
-                    }
-                }
+                // in case it is found
+                if (checkFile) 
+                	return;
 
                 // in case it is a destination file and it does not exist yet
-                if (!checkFile && destFile) {
+                else if (!checkFile && destFile) {
                     cout << "Creating destination file..." << endl;
                     current = tempFolder;
                     create(tokens[tokens.size() - 1]);
                     filePosDir = current->files.size() - 1;
                     tempFile = current->files[filePosDir];
-                    return;// found;
+                    return;
                 }
 
                 // in case it is a source file and is not found
                 else if (!checkFile && !destFile) {
                     cout << "The specified file does not exist." << endl;
                     found = false;
-                    return;// !found;
+                    return;
                 }
                 
             }
 
         }
     }
-}
 
+}
 
 
 
@@ -687,39 +818,44 @@ void move(string srcPath, string destPath) {
 }
 
 
+
 /*
 	explain function
 */
 void deleteFile(string filename) {
 
-	int* pageTable = current->files[filePosDir]->pgTblPtr;
-	int pageNumber;
-	int i;
-	stack <int> temp;
+	if (getFileNo(filename) == -1) {
+		cout << "Error: file does not exist" << endl;
+		
+	} else {
+		int* pageTable = current->files[getFileNo(filename)]->pgTblPtr;
+		int pageNumber;
+		int i;
+		stack <int> temp;
 
 
-	for (i = 0; *(pageTable + i + 1) == 0; i += 2) {
+		for (i = 0; *(pageTable + i + 1) == 0; i += 2) {
+			pageNumber = *(pageTable + i);
+			temp.push(pageNumber);
+		}
+
+
 		pageNumber = *(pageTable + i);
 		temp.push(pageNumber);
+
+
+		while (!temp.empty()) {
+
+			freeList.push(temp.top());
+			temp.pop();
+		}
+
+
+		freeList.push(getEntry(pageTable));
+		cout << freeList.top() << endl;
+
+		current->files.erase(current->files.begin() + filePosDir);
 	}
-
-
-	pageNumber = *(pageTable + i);
-	temp.push(pageNumber);
-
-
-	while (!temp.empty()) {
-
-		freeList.push(temp.top());
-		temp.pop();
-	}
-
-
-	freeList.push(getEntry(pageTable));
-	cout << freeList.top() << endl;
-
-	current->files.erase(current->files.begin() + filePosDir);
-
 }
 
 
@@ -798,7 +934,6 @@ vector<string> getCommand() {
 
 
 
-
 /* 
 	processCommand takes in commands vector as arugment
 	forwards the commands to their respective functions
@@ -810,58 +945,67 @@ bool processCommand(vector<string> tokens) {
 	bool loop = true;
 
 
-	if (tokens[0] == "open") {
+	if (tokens.size() == 3 && tokens[0] == "open") {
 
-        File openedFile(tokens[1], tokens[2]);
+		File openedFile(tokens[1], tokens[2]);
 
         if (!fileFound)
         	return loop;
 
-		filePosDir = getfileNo(tokens[1]);
+		filePosDir = getFileNo(tokens[1]);
         bool inLoop = true;
 
         while (inLoop) {
 	        vector<string> tokens = getCommand();
 
-	        if (tokens[0] == "wr") {
+	        if (tokens.size() == 1 && tokens[0] == "wr")
 	            openedFile.write();
-	        } else if (tokens[0] == "wrat") {
+
+	        else if (tokens.size() == 2 && tokens[0] == "wrat" && isNumber(tokens[1]))
 	            openedFile.writeAt(stoi(tokens[1]));
-	        } else if (tokens[0] == "rd") {
+
+	        else if (tokens.size() == 1 && tokens[0] == "rd")
 	            openedFile.read();
-	        } else if (tokens[0] == "rf") {
-	            openedFile.readUpto(stoi(tokens[1]),stoi(tokens[2]));
-	        } else if (tokens[0] == "trun") {
+
+	        else if (tokens.size() == 3 && tokens[0] == "rf" && isNumber(tokens[1]) && isNumber(tokens[2]))
+	            openedFile.readUpto(stoi(tokens[1]), stoi(tokens[2]));
+
+	        else if (tokens.size() == 2 && tokens[0] == "trun" && isNumber(tokens[1]))
 	            openedFile.truncate(stoi(tokens[1]));
-	        } else if (tokens[0] == "close") {
+
+	        else if (tokens.size() == 1 && tokens[0] == "close") {
 	            cout << "File closed." << endl;
 	            inLoop = false;
-	        } else if (tokens[0] == "end") {
-	            cout << "Close file before ending program." << endl;
-	        } else if (tokens[0] == "help") {
-	        	help();
-	    	} else {
-	            cout << "Invalid command. Type help for user guide." << endl;
-	        }	
-    	}
+	        }
 
-    } else if (tokens[0] == "ls") {
+	        else if (tokens.size() == 1 && tokens[0] == "end")
+	            cout << "Close file before ending program." << endl;
+
+	        else if (tokens.size() == 1 && tokens[0] == "help")
+	        	help();
+
+	    	else
+	            cout << "Invalid command. Type help for user guide." << endl;
+	    }   	
+		
+
+    } else if (tokens.size() == 1 && tokens[0] == "ls") {
         listDir();
-    } else if (tokens[0] == "cd") {
+    } else if (tokens.size() == 2 && tokens[0] == "cd") {
         changeDir(tokens[1]);
-    } else if (tokens[0] == "cr") {
+    } else if (tokens.size() == 2 && tokens[0] == "cr") {
         create(tokens[1]);
-    } else if (tokens[0] == "mv") {
+    } else if (tokens.size() == 3 && tokens[0] == "mv") {
         move(tokens[1], tokens[2]);
-    } else if (tokens[0] == "del") {
+    } else if (tokens.size() == 2 && tokens[0] == "del") {
         deleteFile(tokens[1]);
-    } else if (tokens[0] == "mkdir") {
+    } else if (tokens.size() == 2 && tokens[0] == "mkdir") {
         createFolder(tokens[1]);
-    } else if (tokens[0] == "map") {
+    } else if (tokens.size() == 1 && tokens[0] == "map") {
         //memMap();
-    } else if (tokens[0] == "help") {
+    } else if (tokens.size() == 1 && tokens[0] == "help") {
         help();
-    } else if (tokens[0] == "end") {
+    } else if (tokens.size() == 1 && tokens[0] == "end") {
         loop = false;
     } else {
         cout << "Invalid command. Type help for user guide." << endl;
