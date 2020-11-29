@@ -224,6 +224,12 @@ public:
 		Function read prints out entire content of file
 	*/
 	void read() {
+
+		if (mode != "read") {
+			cout << "Please open file in \"read\" mode for this function" << endl;
+			return;
+		}
+
 		int i;
 
 		if (pageTable == NULL) {
@@ -261,17 +267,24 @@ public:
 		function readupto takes two arguments starting bite and size of bytes to be read, and
 		prints out the content within that limit.
 	*/
-	void readUpto(int startFrom, int readUpTo) {
+	string readUpto(int startFrom, int readUpTo) {
+
+		if (mode != "read") {
+			cout << "Please open file in \"read\" mode for this function" << endl;
+			return "";
+		}
 
 		if (pageTable == NULL) {
 			cout << "The file has no content to display." << endl;
-			return;
+			return "";
 		}
 
 		if (readUpTo - startFrom > filesize) {
 			cout << "Out of bound exception. Given limit exceeds total file limit at " << filesize << " bytes." << endl;
-			return;
+			return "";
 		}
+
+		string readUptoText = "";
 
 		//	which page number in the page table the byte will belong to
 		int startPage = (startFrom / PAGESIZE);
@@ -286,7 +299,7 @@ public:
 			page = getSector(*(pageTable + i));
 
 			for (int j = startByte; j < PAGESIZE; j++)
-				cout << *(page + j);
+				readUptoText += *(page + j);
 
 		}
 
@@ -296,25 +309,20 @@ public:
 		if (startPage == endPage) {
 
 			for (int j = startByte; j < limit; j++)
-				cout << *(page + j);
+				readUptoText += *(page + j);
 
 		}
 		else {
 
 			for (int j = 0; j < limit; j++)
-				cout << *(page + j);
+				readUptoText += *(page + j);
 		}
 
-		cout << endl;
+		return readUptoText;
+
 	}
 
-
-
-	/* 
-		function write checks if file is empty or not. If it a new file then it starts to write from the start,
-		else it starts to append from the last byte of file.
-	*/
-	void write() {
+	string getInput() {
 		
 		string input, line;
 
@@ -323,6 +331,20 @@ public:
 				break;
 			input += line;
 			input += "\n";
+		}
+
+		return input;
+	}
+
+	/* 
+		function write checks if file is empty or not. If it a new file then it starts to write from the start,
+		else it starts to append from the last byte of file.
+	*/
+	void write(string input) {
+		
+		if (mode != "write") {
+			cout << "Please open file in \"write\" mode for this function" << endl;
+			return;
 		}
 
 		cout << input.length() << endl;
@@ -441,6 +463,8 @@ public:
 			}
 			
 		}	
+		filesize = getFileSize(filename);
+		cout<<"Updated file size: "<< filesize << endl;
 	}
 
 
@@ -449,7 +473,12 @@ public:
 		function writeAt takes in positional byte as argumnent where the over writing should begin from, 
 		truncates the file to that size and starts writing from that position.
 	*/
-	void writeAt(int writeAt) {
+	void writeAt(string data,int writeAt) {
+
+		if (mode != "write") {
+			cout << "Please open file in \"write\" mode for this function" << endl;
+			return;
+		}
 
 		if (pageTable == NULL) {
 			cout << "Invalid command. Cannot call 'Write At' on an empty file." << endl;
@@ -462,8 +491,8 @@ public:
 		}
 
 
-		truncate(writeAt);
-		write();
+		truncate(writeAt-1);
+		write(data);
 	}
 
 
@@ -473,6 +502,11 @@ public:
 		and updates the file to be that size and deletes the rest of it.
 	*/
 	void truncate(int size) {
+
+		if (mode != "write") {
+			cout << "Please open file in \"write\" mode for this function" << endl;
+			return;
+		}
 
 		if (size > filesize) {
 			cout << "Out of bound exception. Given byte is greater than file size of" << filesize << " bytes." << endl;
@@ -498,6 +532,7 @@ public:
 		if (!isLastSect) {
 			freeList.push(*(pageTable + i));
 		}
+		filesize = getFileSize(filename);
 	}
 
 
@@ -507,8 +542,15 @@ public:
 		size (how many bytes to be cut starting from), and to (where the chunk should be pasted).
 	*/
 	void moveWithin(int from, int size, int to) {
-		//the chunk specified is copied into a string var
-		// the other text is copied 
+
+		filesize = getFileSize(filename);
+
+		if (mode != "write") {
+			cout << "Please open file in \"write\" mode for this function" << endl;
+			return;
+		}
+
+		
 		if (pageTable == NULL) {
 			cout << "Invalid command. Cannot call 'Write At' on an empty file." << endl;
 			return;
@@ -519,9 +561,24 @@ public:
 			return;
 		}
 
-		char *startPage, *endPage;
-		int startPg = (from / PAGESIZE + 1) * 2 - 2;
-		int endPg = ((from + to) / PAGESIZE + 1) * 2 - 2;
+		mode = "read";
+		if (to > from) {
+			string cutText = readUpto(from - 1, size);
+			string middleText = readUpto(from + size - 1, to - (from + size));
+			string endText = readUpto(to - 1, filesize - to);
+			string writeData = middleText + cutText + endText;
+			mode = "write";
+			writeAt(writeData, from);
+		}
+		else {
+			string cutText = readUpto(from-1, size);
+			string topText = readUpto(to - 1, from - to);
+			string endText = readUpto(from + size - 1, filesize - from - size);
+			string writeData = cutText + topText + endText;
+			mode = "write";
+			writeAt(writeData, to);
+		}
+		return;
 
 
 	}
@@ -945,7 +1002,7 @@ bool processCommand(vector<string> tokens) {
 	bool loop = true;
 
 
-	if (tokens.size() == 3 && tokens[0] == "open") {
+		if (tokens.size() == 3 && tokens[0] == "open" && (tokens[2] == "write" || tokens[2] == "read")) {
 
 		File openedFile(tokens[1], tokens[2]);
 
@@ -959,19 +1016,22 @@ bool processCommand(vector<string> tokens) {
 	        vector<string> tokens = getCommand();
 
 	        if (tokens.size() == 1 && tokens[0] == "wr")
-	            openedFile.write();
+	        	openedFile.write(openedFile.getInput());
 
 	        else if (tokens.size() == 2 && tokens[0] == "wrat" && isNumber(tokens[1]))
-	            openedFile.writeAt(stoi(tokens[1]));
+				openedFile.writeAt(openedFile.getInput(), stoi(tokens[1]));
 
 	        else if (tokens.size() == 1 && tokens[0] == "rd")
 	            openedFile.read();
 
 	        else if (tokens.size() == 3 && tokens[0] == "rf" && isNumber(tokens[1]) && isNumber(tokens[2]))
-	            openedFile.readUpto(stoi(tokens[1]), stoi(tokens[2]));
+	            cout << openedFile.readUpto(stoi(tokens[1]), stoi(tokens[2])) << endl;
 
 	        else if (tokens.size() == 2 && tokens[0] == "trun" && isNumber(tokens[1]))
 	            openedFile.truncate(stoi(tokens[1]));
+			
+			else if (tokens.size() == 4 && tokens[0] == "mvin" && isNumber(tokens[1]) && isNumber(tokens[2]) && isNumber(tokens[3]))
+				openedFile.moveWithin(stoi(tokens[1]), stoi(tokens[2]), stoi(tokens[3]));
 
 	        else if (tokens.size() == 1 && tokens[0] == "close") {
 	            cout << "File closed." << endl;
@@ -1027,12 +1087,13 @@ int main(int argc, const char* argv[]) {
 	start = (char*) malloc(MEMSIZE);
 
 
-	for (int i = NUMPAGES; i >= 0; i--)
+	for (int i = NUMPAGES - 1; i >= 0; i--)
 		freeList.push(i);
 
 
 	bool loop = true;
-
+	cout<<"Memory available: "<< freeList.size() * PAGESIZE << "/"<< MEMSIZE << "bytes" <<endl;
+	
 	while (loop) {
 
 		// take user input and store each word in vector
