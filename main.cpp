@@ -6,10 +6,12 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <fstream>
 
 #define PAGESIZE 256						//	size of each page in memory
 #define MEMSIZE 8388608						//	total memory size - 8Mb
 #define NUMPAGES (MEMSIZE / PAGESIZE)		//	total pages in memory
+#define DATPATH "F:/nust/sem 5/Operating Systems/OS_Proj/solution.dat" //path for .datfile
 using namespace std;
 
 const char* start;
@@ -98,7 +100,9 @@ FileNode *tempFile;
 int filePosDir;
 bool fileFound, found;
 
-
+// stream and string for writing in .dat file
+ofstream dat;
+string out = "";
 
 /*
 	returns the file number of given name in current directory 
@@ -1217,6 +1221,129 @@ void memMap(Folder* dir) {
 	
 }
 
+
+
+/*
+	function getChildren accepts argument of folder node
+	concatenate info about all child nodes of given folder node
+	into string "out" which will be written in .dat file
+*/
+void getChildren(Folder* dir) {
+	current = dir;
+	tempFolder = dir;
+
+	for (int i = 0; i < dir->subdir.size(); i++) {
+		out += "D\t" + pathFromRoot(dir->subdir[i]) + "\n";
+	}
+	for (int i = 0; i < dir->files.size(); i++) {
+		out += "F\t" + pathFromRoot(dir) + "/" + dir->files[i]->name + "\n";
+
+		if (dir->files[i]->pgTblPtr != NULL) {
+			File openFile(dir->files[i]->name, "read",false);
+			out += "-1\n";
+			out += openFile.readUpto(0, getFileSize(dir->files[i]->name));
+			out += "-1\n";
+		}
+	}
+
+}
+
+
+
+/*
+	function end writes the tree into .dat file
+*/
+void end(Folder* dir) {
+
+	getChildren(dir);
+	for (int i = 0; i < dir->subdir.size(); i++)
+		end(dir->subdir[i]);
+
+}
+
+
+
+/*
+	function readDat reads .dat file and makes the tree structure for files and directories
+*/
+void readDat() {
+
+	ifstream datIn;
+	vector<string> lineTokens,fileFolder,tokenizedFileName, folderPath;
+	string line, fileName, content;
+
+	datIn.open(DATPATH);
+
+	while (getline(datIn, line))
+	{
+		current = rootFolder;
+
+		if (line[0] == 'D') {
+
+			lineTokens = tokenize(line, '\t');
+			folderPath = tokenize(lineTokens[1], '/');
+
+			//Remove "root" from path since current directory is already root
+			folderPath.erase(folderPath.begin());
+			line = "";
+
+			//serializing tokens of path to string
+			for (int i = 0; i < folderPath.size(); i++) {
+				line += folderPath[i] + "/";
+			}
+
+			createFolder(line);
+			line = "";
+		
+		} else if(line[0] == 'F') {
+
+			lineTokens = tokenize(line, '\t');
+			fileFolder = tokenize(lineTokens[1], '/');
+			
+			fileName = fileFolder.back();
+
+			//remove .txt from file name
+			tokenizedFileName = tokenize(fileName, '.');
+			fileName = tokenizedFileName[0];
+
+			//remove root and filename from path to get file directory
+			fileFolder.pop_back();
+			fileFolder.erase(fileFolder.begin());
+			line = "";
+
+			//serializing tokens of path to string
+			if (fileFolder.size() != 0) {
+				for (int i = 0; i < fileFolder.size(); i++) {
+					line += fileFolder[i] + "/";
+				}
+				changeDir(line);
+			}
+			tempFolder = current;
+			//create file in durectory
+			create(fileName);
+			line = "";
+		
+		}// condition if data is to be written in file
+		else if (line[0] == '-') {
+			//concatenate content until -1 is encountered again
+			while (getline(datIn, line)) {
+				if (line[0] == '-')
+					break;
+				content += line + "\n";
+			}
+			current = tempFolder;
+
+			//open file and write content
+			File openedFile(fileName+".txt", "write", false);
+			openedFile.write(content);
+		}
+	}
+	current = rootFolder;
+	datIn.close();
+}
+
+
+
 /*
 	list down commands to help user
 */
@@ -1358,11 +1485,19 @@ bool processCommand(vector<string> tokens) {
     else if (tokens.size() == 1 && tokens[0] == "map") 
         memMap(rootFolder);
 
+	else if (tokens.size() == 1 && tokens[0] == "rdat")  
+		readDat();	
+
     else if (tokens.size() == 1 && tokens[0] == "help")
         help();
 
-    else if (tokens.size() == 1 && tokens[0] == "end")
+    else if (tokens.size() == 1 && tokens[0] == "end"){
+		dat.open(DATPATH);
+		end(rootFolder);
+		dat << out;
+		dat.close();
       	loop = false;
+	}
 
     else
         cout << "Invalid command. Type help for user guide." << endl;
