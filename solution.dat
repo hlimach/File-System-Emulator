@@ -1,0 +1,9 @@
+D	root/sharique
+F	root/file1.txt
+D	root/sharique/haleem
+D	root/sharique/maha
+F	root/sharique/haleem/file2.txt
+-1
+this is in file 2
+-1
+F	root/sharique/maha/file3.txt
