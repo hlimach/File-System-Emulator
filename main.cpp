@@ -7,8 +7,8 @@
 #include <sstream>
 #include <vector>
 
-#define PAGESIZE 256		//	size of each page in memory
-#define MEMSIZE 8388608	//	total memory size - 8Mb
+#define PAGESIZE 256						//	size of each page in memory
+#define MEMSIZE 8388608						//	total memory size - 8Mb
 #define NUMPAGES (MEMSIZE / PAGESIZE)		//	total pages in memory
 using namespace std;
 
@@ -88,11 +88,11 @@ public:
 };
 
 
-// the default starting folder 
+//	the default starting folder 
 Folder* rootFolder = new Folder("root");
 
 
-// keeps track of current position in directory
+//	keeps track of current position in directory
 Folder  *current, *tempFolder;
 FileNode *tempFile;
 int filePosDir;
@@ -145,15 +145,15 @@ int getFileSize(string filename) {
 		int size = 0, i = 0;
 
 
-		// loop runs until the limit field found to be non-zero (last sector)
+		//	loop runs until the limit field found to be non-zero (last sector)
 	    while (*(pageTable + i + 1) == -1) {
 	        size += PAGESIZE;
 	        i += 2;
 	    }
 
 
-		// i is now at the last entry of the files' page table
-		// limit value obtained and added to size
+		//	i is now at the last entry of the files' page table
+		//	limit value obtained and added to size
 		size += *(pageTable + i + 1);
 
 
@@ -170,13 +170,15 @@ int getFileSize(string filename) {
 	returns the true if file exists
 */
 bool fileExists(string filename) {
+
     for (int j = 0; j < tempFolder->files.size(); j++) {
         if (tempFolder->files[j]->name == filename) {
         	filePosDir = j;
             tempFile = tempFolder->files[j];
-            return true;// found;
+            return true;
         }
     }
+
     return false;
 }
 
@@ -188,12 +190,14 @@ bool fileExists(string filename) {
 	returns the true if folder exists
 */
 bool folderExists(string dirName) {
+
     for (int j = 0; j < tempFolder->subdir.size(); j++) {
         if (tempFolder->subdir[j]->dirName == dirName) {
             tempFolder = tempFolder->subdir[j];
             return true;
         }
     }
+
     return false;
 }
 
@@ -221,7 +225,7 @@ private:
 	int filesize;
 
 public:
-	File(string name, string md) {
+	File(string name, string md, bool info) {
 		fileFound = fileExists(name);
 
 		if(fileFound) {
@@ -230,7 +234,9 @@ public:
             mode = md;
             pageTable = current->files[getFileNo(filename)]->pgTblPtr;
             page = NULL;
-            cout << "File opened: " << filename << ", mode: " << mode << ", size: " << filesize << " bytes." << endl;
+
+            if (info)
+            	cout << "File opened: " << filename << ", mode: " << mode << ", size: " << filesize << " bytes." << endl;
 		} 
         else 
             cout << "The file does not exist." << endl;
@@ -253,13 +259,19 @@ public:
     }
 
 
+
+    void resetPageTablePtr () {
+    	pageTable = current->files[getFileNo(filename)]->pgTblPtr;
+    }
+
+
 	/* 
 		Function read prints out entire content of file
 	*/
 	void read() {
 
 		if (mode != "read") {
-			cout << "Please open file in \"read\" mode for this function" << endl;
+			cout << "Please open file in \"read\" mode for this function." << endl;
 			return;
 		}
 
@@ -270,28 +282,37 @@ public:
 			return;
 		}
 
-		// loop runs until the limit field found to be non-zero (last sector)
+		//	loop runs until the limit field found to be non-zero (last sector)
 		for (i = 0; *(pageTable + i + 1) == -1; i += 2) {
+
 			page = getSector(*(pageTable + i));
 
 
-			// loops inside the sector pointed to by char pointer 'page'
+			//	loops inside the sector pointed to by char pointer 'page'
 			for (int j = 0; j < PAGESIZE; j++)
 				cout << *(page + j);
 
+			if (i == (PAGESIZE / 2 - 4) && *(pageTable + i + 3) == PAGESIZE) {
+				pageTable = (int *) getSector(*(pageTable + i + 2));
+				i = 0;
+			}
+
+
 		}
 
-		// i is now at the last entry of the files' page table so its limit value is obtained
+		//	i is now at the last entry of the files' page table so its limit value is obtained
 		int limit = *(pageTable + i + 1);
 
-		// pointer to the last page is obtained 
+		//	pointer to the last page is obtained 
 		page = getSector(*(pageTable + i));
 
-		// loops over the last page until the limit that was previously obtained
+		//	loops over the last page until the limit that was previously obtained
 		for (int j = 0; j < limit; j++)
 			cout << *(page + j);
 
 		cout << endl;
+		resetPageTablePtr();
+	
 	}
 
 
@@ -303,7 +324,7 @@ public:
 	string readUpto(int startFrom, int readUpTo) {
 
 		if (mode != "read") {
-			cout << "Please open file in \"read\" mode for this function" << endl;
+			cout << "Please open file in \"read\" mode for this function." << endl;
 			return "";
 		}
 
@@ -326,13 +347,24 @@ public:
 		int limit = (startFrom + readUpTo) % PAGESIZE;
 		int i;
 
-		//	iterates all pages before this page and outputs their content
-		for (i = startPage * 2; i < (endPage * 2); i += 2) {
+		if (limit == 0)
+			limit = PAGESIZE - 1;
 
-			page = getSector(*(pageTable + i));
+		short int k = startPage * 2;
+		//	iterates all pages before this page and outputs their content
+		for (i = k; i < (endPage * 2); i += 2) {
+
+			page = getSector(*(pageTable + k));
 
 			for (int j = startByte; j < PAGESIZE; j++)
 				readUptoText += *(page + j);
+
+			if (k == ((PAGESIZE / 2) - 4) && *(pageTable + k + 3) == PAGESIZE) {
+				pageTable = (int *) getSector(*(pageTable + k + 2));
+				k = 0;
+			}
+
+			k += 2;
 
 		}
 
@@ -351,6 +383,7 @@ public:
 				readUptoText += *(page + j);
 		}
 
+		resetPageTablePtr();
 		return readUptoText;
 
 	}
@@ -380,20 +413,23 @@ public:
 	void write(string input) {
 		
 		if (mode != "write") {
-			cout << "Please open file in \"write\" mode for this function" << endl;
+			cout << "Please open file in \"write\" mode for this function." << endl;
 			return;
 		}
 		
 
-		int numberOfSectors = 0 , appendSector, remainder, countSectors;
-		short int limit,appendPage,appendPoint;
+		int numberOfSectors = 0, appendSector, remainder, countSectors;
+		short int limit, appendPage, appendPoint;
+
+
 		if (pageTable == NULL) {
 
-			if(input.size()> (freeList.size()*PAGESIZE)){
-				cout << "Out of memory...Please reduce input size or delete other files"<<endl;
+			if (input.size() > (freeList.size() * PAGESIZE)){
+				cout << "Out of memory. Please reduce input size or delete other files." << endl;
 				return;
 			}
-			//If it is a new file 
+
+			//	If it is a new file 
 			short int freeSect = freeList.top();
 			freeList.pop();
 
@@ -403,36 +439,74 @@ public:
 
 			numberOfSectors = input.length() / PAGESIZE + 1;
 			limit = input.length() % PAGESIZE;
-			
-			//fill in page table with page number and limit
+
+			if (limit == 0)
+				limit = PAGESIZE - 1;
+
+			/*	
+				pageTable will have 2 bytes per entry (pagenum, limit) so total 4
+				total entries in pgtable will be 256 / 2 but jumps twice so 128
+				if the number of entries are greater than 126
+				then the last two entries will be new linked pageTable extension
+			*/
+
+			short int k = 0;
+			//	fill in page table with page number and limit and write to locations alongside as well
 			for (short int i = 0; i < numberOfSectors * 2; i += 2) {
 
-				*(pageTable + i) = freeList.top();
+				if (k == ((PAGESIZE / 2) - 2)) {
 
-				if (i == numberOfSectors * 2 - 2)
-					* (pageTable + i + 1) = limit;
-				else
-					*(pageTable + i + 1) = NULL;
+					short int newTable = freeList.top();
+					*(pageTable + k) = newTable;
+					*(pageTable + k + 1) = (short int) PAGESIZE;
+					
+					freeList.pop();
+					pageTable = (int *) getSector(newTable);
+					k = 0;
+					i -= 2;
 
-				freeList.pop();
-			}
+					continue;
+				}
 
-			//Begin writing to location by iterating over page table
-			for (short int i = 0; i < numberOfSectors * 2; i += 2) {
+				*(pageTable + k) = freeList.top();
 
-				page = getSector(*(pageTable + i));
+				page = getSector(*(pageTable + k));
 
 				if (i != numberOfSectors * 2 - 2) {
-					for (int j = 0; j < PAGESIZE; j++) {
-						*(page + j) = input[((i / 2) * PAGESIZE) + j];
-					}
+					* (pageTable + k + 1) = (short int) -1;
+
+					for (int j = 0; j < PAGESIZE; j++) 
+						*(page + k) = input[((i / 2) * PAGESIZE) + j];
+
+				} else {
+
+					* (pageTable + k + 1) = limit;
+
+					for (int j = 0; j < limit; j++) 
+						*(page + k) = input[((i / 2) * PAGESIZE) + j];
+
 				}
-				else {
-					for (int j = 0; j < limit; j++) {
-						*(page + j) = input[((i / 2) * PAGESIZE) + j];
-					}
-				}
+
+				freeList.pop();
+				k += 2;
 			}
+
+			//	Begin writing to location by iterating over page table
+			// for (short int i = 0; i < numberOfSectors * 2; i += 2) {
+
+			// 	page = getSector(*(pageTable + i));
+
+			// 	if (i != numberOfSectors * 2 - 2) {
+			// 		for (int j = 0; j < PAGESIZE; j++) {
+			// 			*(page + j) = input[((i / 2) * PAGESIZE) + j];
+			// 		}
+			// 	}
+			// 	else {
+			// 		for (int j = 0; j < limit; j++) {
+			// 			*(page + j) = input[((i / 2) * PAGESIZE) + j];
+			// 		}
+			// 	}
+			// }
 			
 
 		} else {
@@ -440,84 +514,178 @@ public:
 			int i;
 			countSectors = 0;
 
-			//finds total number of sectors in page table
-			for (i = 0; *(pageTable + i + 1) == -1; i += 2)
+			//	finds total number of sectors in page table
+			for (i = 0; *(pageTable + i + 1) == -1; i += 2) {
+
+				if (i == ((PAGESIZE / 2) - 4) && *(pageTable + i + 3) == (PAGESIZE + 1)) {
+					countSectors++;
+					pageTable = (int *) getSector(*(pageTable + i + 2));
+					i = -2;
+					continue;
+				}
+
 				countSectors++;
+			}
+
 
 			countSectors++;
 			appendPoint = *(pageTable + i + 1);
-			appendPage = *(pageTable + i);
 
-			if(input.size()> (freeList.size()*PAGESIZE) + (PAGESIZE-appendPoint)){
-				cout << "Out of memory...Please reduce input size or delete other files"<<endl;
+
+			//	if limit on last page is not fully filled
+			if (appendPoint != PAGESIZE - 1) 
+				appendPage = *(pageTable + i);
+
+			else {
+				i += 2;
+				countSectors++;
+
+				//	if this is not the last entry in this page table
+				if (i != ((PAGESIZE / 2) - 2)) {
+
+					if (freeList.size() == 0) {
+						cout << "Out of memory. Please reduce input size or delete other files." << endl;
+						return;
+					}
+
+					*(pageTable + i) = freeList.top();
+					*(pageTable + i + 1) = 0;
+					freeList.pop();
+
+					appendPage = *(pageTable + i);
+					appendPoint = *(pageTable + i + 1);
+
+				//	if this is the last entry on the page table, create a new page table 
+				} else {
+
+					if (freeList.size() <= 1) {
+						cout << "Out of memory. Please reduce input size or delete other files." << endl;
+						return;
+					}
+
+					short int newTable = freeList.top();
+					freeList.pop();
+					*(pageTable + i) = newTable;
+					*(pageTable + i + 1) = PAGESIZE;
+						
+
+					pageTable = (int *) getSector(newTable);
+					i = 0;
+
+					*(pageTable + i) = freeList.top();
+					*(pageTable + i + 1) = 0;
+					freeList.pop();
+					
+					appendPage = *(pageTable + i);
+					appendPoint = *(pageTable + i + 1);
+					
+				}
+
+			}
+			
+
+			if (input.size() > (freeList.size() * PAGESIZE) + (PAGESIZE - appendPoint)) {
+				cout << "Out of memory. Please reduce input size or delete other files." << endl;
 				return;
 			}
+
 
 			page = getSector(appendPage);
 
-			//if appending data does not increase page number
+			//	if appending data does not increase page number
 			if (input.length() < (PAGESIZE - appendPoint)) {
 
-				for (int j = 0; j < input.length(); j++) {
+				for (int j = 0; j < input.length(); j++) 
 					*(page + appendPoint + j) = input[j];
-				}
+
 				appendPoint += input.length();
-				*(pageTable + i + 1) = appendPoint;
-				
+				*(pageTable + i + 1) = appendPoint;		
+
 				filesize = getFileSize(filename);
-				cout<<"Updated file size: "<< filesize << endl;	
+				cout << "Updated file size: " << filesize << endl;	
 				return;
-			}
-			else {
-			
-				for (int j = appendPoint; j < PAGESIZE; j++) {
+
+			} else {
+
+				for (int j = appendPoint; j < PAGESIZE; j++)
 					*(page + j) = input[j - appendPoint];
-				}
 			
-			}
+			//}
 
-			*(pageTable + i + 1) = (short int)-1;
-			remainder = PAGESIZE - appendPoint;
+				*(pageTable + i + 1) = (short int) -1;
+				remainder = PAGESIZE - appendPoint;
 
-			//find remaing pages required to append the file and add it to page table
-			numberOfSectors = (input.length() - remainder) / PAGESIZE + 1;
-			limit = (input.length() - remainder) % PAGESIZE;
-			numberOfSectors = numberOfSectors + countSectors;
-			appendSector = i;
-			for (i = appendSector + 2; i < numberOfSectors * 2; i += 2) {
 
-				*(pageTable + i) = freeList.top();
+				//	find remaing pages required to append the file and add it to page table
+				numberOfSectors = (input.length() - remainder) / PAGESIZE + 1;
+				limit = (input.length() - remainder) % PAGESIZE;
+				numberOfSectors += countSectors;
+				appendSector = i;
 
-				if (i == numberOfSectors * 2 - 2)
-					* (pageTable + i + 1) = limit;
-				else
-					*(pageTable + i + 1) = (short int) -1;
 
-				freeList.pop();
-			}
+				if (limit == 0)
+					limit = PAGESIZE - 1;
 
-			//write the new data in appended pages
 
-			for (i = appendSector + 2; i < numberOfSectors * 2; i += 2) {
+				short int k = appendSector + 2;
+				for (i = k; i < numberOfSectors * 2; i += 2) {
 
-				page = getSector(*(pageTable + i));
+					if (i == ((PAGESIZE / 2) - 2)) {
 
-				if (i != numberOfSectors * 2 - 2) {
-					for (int j = 0; j < PAGESIZE; j++) {
-						*(page + j) = input[(((i - appendSector - 2) / 2) * PAGESIZE) + j + (remainder)];
+						short int newTable = freeList.top();
+						*(pageTable + k) = newTable;
+						*(pageTable + k + 1) = PAGESIZE;
+						
+						freeList.pop();
+						pageTable = (int *) getSector(newTable);
+
+						k = 0;
+
 					}
+
+					*(pageTable + k) = freeList.top();
+
+					if (i == numberOfSectors * 2 - 2)
+						* (pageTable + k+ 1) = limit;
+					else
+						*(pageTable + k + 1) = (short int) -1;
+
+					freeList.pop();
+					k += 2;
 				}
-				else {
-					for (int j = 0; j < limit; j++) {
-						*(page + j) = input[(((i - appendSector - 2) / 2) * PAGESIZE) + j + (remainder)];
+
+				//	write the new data in appended pages
+				k = appendSector + 2;
+				for (i = k; i < numberOfSectors * 2; i += 2) {
+
+					if (i == ((PAGESIZE / 2) - 2) && *(pageTable + k + 1) == PAGESIZE){
+						pageTable = (int *) getSector(*(pageTable + k));
+						k = 0;
 					}
+
+
+					page = getSector(*(pageTable + k));
+
+					if (i != numberOfSectors * 2 - 2) {
+						for (int j = 0; j < PAGESIZE; j++) {
+							*(page + j) = input[(((i - appendSector - 2) / 2) * PAGESIZE) + j + (remainder)];
+						}
+					}
+					else {
+						for (int j = 0; j < limit; j++) {
+							*(page + j) = input[(((i - appendSector - 2) / 2) * PAGESIZE) + j + (remainder)];
+						}
+					}
+					k += 2;
 				}
+
 			}
 			
 		}	
 
+		resetPageTablePtr();
 		filesize = getFileSize(filename);
-		cout<<"Updated file size: "<< filesize << endl;
+		cout << "Updated file size: " << filesize << endl;
 
 	}
 
@@ -563,7 +731,7 @@ public:
 		}
 
 		if (size > filesize) {
-			cout << "Out of bound exception. Given byte is greater than file size of" << filesize << " bytes." << endl;
+			cout << "Out of bound exception. Given byte is greater than file size of " << filesize << " bytes." << endl;
 			return;
 		}
 		
@@ -573,16 +741,21 @@ public:
 		truncLimit = size % PAGESIZE;
 		bool isLastSect = false;
 
-		if (*(pageTable + truncSectors * 2 + 1) != -1)
+		if (*(pageTable + truncSectors * 2 + 1) != -1 && *(pageTable + truncSectors * 2 + 1) != PAGESIZE)
 			isLastSect = true;
 
-		//update limit of the final page after truncate
+		//	update limit of the final page after truncate
 		*(pageTable + truncSectors * 2 + 1) = truncLimit;	
 
-		//push all the pages after truncate page to free list
-		for (i = truncSectors*2 + 2; *(pageTable + i + 1) == -1; i += 2) {
+		//	push all the pages after truncate page to free list
+		for (i = truncSectors*2 + 2; *(pageTable + i + 1) == -1; i += 2) {			
 
 			freeList.push(*(pageTable + i));
+
+			if (i == (PAGESIZE / 2 - 4) && *(pageTable + i + 3) == PAGESIZE) {
+				pageTable = (int *) getSector(*(pageTable + i + 1));
+				i = -2;
+			}
 
 		}
 		
@@ -590,8 +763,9 @@ public:
 			freeList.push(*(pageTable + i));
 		}
 
-		//update file size
+		//	update file size
 		filesize = getFileSize(filename);
+		resetPageTablePtr();
 	}
 
 
@@ -625,7 +799,7 @@ public:
 		}
 
 		mode = "read";
-		//if data is further ahead
+		//	if data is further ahead
 		if (to > from) {
 
 				string cutText = readUpto(from - 1, size);
@@ -636,7 +810,7 @@ public:
 				writeAt(writeData, from);
 
 			}
-		// if data is moved prior to its original position
+		//	if data is moved prior to its original position
 		else {
 			string cutText = readUpto(from-1, size);
 			string topText = readUpto(to - 1, from - to);
@@ -797,6 +971,7 @@ bool isNumber(string s) {
 */
 void create(string filename) {
 	filename += ".txt";
+
 	if (!fileExists(filename))
 		current->files.push_back(new FileNode(filename));
 	else
@@ -845,13 +1020,13 @@ void locateFile(vector<string> tokens, bool destFile) {
 
             } else {
 
-                // in case it is found
+                //	in case it is found
                 if (fileExists(tokens[i])) {
                 	found = true;
                 	return;
                 }
 
-                // in case it is a destination file and it does not exist yet
+                //	in case it is a destination file and it does not exist yet
                 else if (destFile) {
                     cout << "Creating destination file..." << endl;
                     current = tempFolder;
@@ -863,7 +1038,7 @@ void locateFile(vector<string> tokens, bool destFile) {
                     return;
                 }
 
-                // in case it is a source file and is not found
+                //	in case it is a source file and is not found
                 else if (!destFile) {
                     cout << "The specified file does not exist." << endl;
                     found = false;
@@ -917,7 +1092,7 @@ void move(string srcPath, string destPath) {
     if (srcFile != destFile) {
         if (destFile->pgTblPtr != NULL) {
             current = destFolder;
-            File openFile(tokenDestFile[tokenDestFile.size() - 1], "write");
+            File openFile(tokenDestFile[tokenDestFile.size() - 1], "write", false);
             openFile.truncate(0);
         }
         
@@ -980,7 +1155,7 @@ void deleteFile(string filename) {
 
 
 
-//Prints the path of given node from root node
+//	Prints the path of given node from root node
 string pathFromRoot(Folder* dir){
 	string path = dir->dirName;
 	
@@ -993,7 +1168,7 @@ string pathFromRoot(Folder* dir){
 
 
 
-//list details of all the files in the given directory
+//	list details of all the files in the given directory
 void listFiles(Folder* dir) {
 
 	if(dir->files.size() == 0)
@@ -1029,7 +1204,7 @@ void listFiles(Folder* dir) {
 }
 
 
-//Traverses to every folder node and calls listFiles for every folder node 
+//	Traverses to every folder node and calls listFiles for every folder node 
 void memMap(Folder* dir) {
 	listFiles(dir);
 	
@@ -1046,8 +1221,6 @@ void memMap(Folder* dir) {
 	list down commands to help user
 */
 void help() {
-
-	//for macos
 
 	cout << "-------------------------------------------User Guide-------------------------------------------" << endl;
 	cout << "Command\t\tDescription\t\t\t\t\t\t\tSyntax" << endl;
@@ -1072,7 +1245,6 @@ void help() {
 	cout << "map\t\tDisplay memory map\t\t\t\t\t\tmap" << endl;
 	cout << "end\t\tTerminate program\t\t\t\t\t\ttend" << endl;
 	cout << "rdat\t\tRead and existing .dat file generated using this program\trdat" << endl;
-
 
 }
 
@@ -1110,12 +1282,12 @@ bool processCommand(vector<string> tokens) {
 
 	if(tokens[0] == "open"){
 		if (tokens.size() == 2)
-			cout<<"Please input mode (read|write)"<<endl;
+			cout << "Please input mode (read|write)" << endl;
 
 		else if (tokens.size() == 3 && tokens[0] == "open" && (tokens[2] == "write" || tokens[2] == "read")) {
 
 			filePosDir = getFileNo(tokens[1]);
-			File openedFile(tokens[1], tokens[2]);
+			File openedFile(tokens[1], tokens[2], true);
 
 	        if (!fileFound)
 	        	return loop;
@@ -1162,30 +1334,39 @@ bool processCommand(vector<string> tokens) {
 		    }   	
 		
 		filePosDir = -1;
-		}
-    } else if (tokens.size() == 1 && tokens[0] == "ls") {
-        listDir();
-    } else if (tokens.size() == 2 && tokens[0] == "cd") {
-        changeDir(tokens[1]);
-    } else if (tokens.size() == 2 && tokens[0] == "cr") {
-        create(tokens[1]);
-    } else if (tokens.size() == 3 && tokens[0] == "mv") { // TEST
-        move(tokens[1], tokens[2]);
-    } else if (tokens.size() == 2 && tokens[0] == "del") { // TEST
-        deleteFile(tokens[1]);
-    } else if (tokens.size() == 2 && tokens[0] == "mkdir") {
-        createFolder(tokens[1]);
-    } else if (tokens.size() == 1 && tokens[0] == "map") { //make this
-        memMap(rootFolder);
-    } else if (tokens.size() == 1 && tokens[0] == "help") {
-        help();
-    } else if (tokens.size() == 1 && tokens[0] == "end") {
-    	//end(); to write into .dat file
-        loop = false;
-    } else {
-        cout << "Invalid command. Type help for user guide." << endl;
-    }
 
+		}
+
+    } else if (tokens.size() == 1 && tokens[0] == "ls")
+        listDir();
+
+    else if (tokens.size() == 2 && tokens[0] == "cd")
+        changeDir(tokens[1]);
+
+    else if (tokens.size() == 2 && tokens[0] == "cr")
+        create(tokens[1]);
+
+    else if (tokens.size() == 3 && tokens[0] == "mv")
+        move(tokens[1], tokens[2]);
+
+    else if (tokens.size() == 2 && tokens[0] == "del") 
+        deleteFile(tokens[1]);
+
+    else if (tokens.size() == 2 && tokens[0] == "mkdir")
+        createFolder(tokens[1]);
+
+    else if (tokens.size() == 1 && tokens[0] == "map") 
+        memMap(rootFolder);
+
+    else if (tokens.size() == 1 && tokens[0] == "help")
+        help();
+
+    else if (tokens.size() == 1 && tokens[0] == "end")
+      	loop = false;
+
+    else
+        cout << "Invalid command. Type help for user guide." << endl;
+    
 	return loop;
 }
 
@@ -1207,7 +1388,7 @@ int main(int argc, const char* argv[]) {
 
 
 	bool loop = true;
-	cout<<"Memory available: "<< freeList.size() * PAGESIZE << "/"<< MEMSIZE << "bytes" <<endl;
+	cout << "Memory available: " << freeList.size() * PAGESIZE << "/" << MEMSIZE << " bytes" << endl;
 	
 	while (loop) {
 
@@ -1220,6 +1401,7 @@ int main(int argc, const char* argv[]) {
 
 	}
 
+	// end(); that writes to .dat file
 
 	free((char*) start);
 
