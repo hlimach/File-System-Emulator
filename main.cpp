@@ -61,7 +61,7 @@ char* getSector(short int x) {
 class FileNode {
 public:
 	string name;
-	int* pgTblPtr;
+	short int* pgTblPtr;
 
 	FileNode(string fileName){
 		name = fileName;
@@ -139,7 +139,7 @@ int getFileSize(string filename) {
 		return -1;
 
 	} else {
-		int* pageTable = current->files[getFileNo(filename)]->pgTblPtr;
+		short int* pageTable = current->files[getFileNo(filename)]->pgTblPtr;
 
 		if (pageTable == NULL) {
 			return 0;
@@ -153,8 +153,12 @@ int getFileSize(string filename) {
 	    while (*(pageTable + i + 1) == -1) {
 	        size += PAGESIZE;
 	        i += 2;
-	    }
 
+	        if (i == (PAGESIZE/ 2 - 2) && *(pageTable + i + 1) == PAGESIZE) {
+	        	pageTable = (short int* ) getSector(*(pageTable + i));
+	        	i = 0;
+	        }
+	    }
 
 		//	i is now at the last entry of the files' page table
 		//	limit value obtained and added to size
@@ -224,7 +228,7 @@ bool folderExists(string dirName) {
 class File {
 private:
 	string filename, mode;
-	int* pageTable;
+	short int* pageTable;
 	char* page;
 	int filesize;
 
@@ -297,8 +301,8 @@ public:
 				cout << *(page + j);
 
 			if (i == (PAGESIZE / 2 - 4) && *(pageTable + i + 3) == PAGESIZE) {
-				pageTable = (int *) getSector(*(pageTable + i + 2));
-				i = 0;
+				pageTable = (short int *) getSector(*(pageTable + i + 2));
+				i = -2;
 			}
 
 
@@ -358,18 +362,20 @@ public:
 		//	iterates all pages before this page and outputs their content
 		for (i = k; i < (endPage * 2); i += 2) {
 
+			if (*(pageTable + k + 1) == PAGESIZE) {
+				pageTable = (short int *) getSector(*(pageTable + k + 2));
+				k = 0;
+				i -= 2;
+				continue;
+			}
+
 			page = getSector(*(pageTable + k));
 
 			for (int j = startByte; j < PAGESIZE; j++)
 				readUptoText += *(page + j);
 
-			if (k == ((PAGESIZE / 2) - 4) && *(pageTable + k + 3) == PAGESIZE) {
-				pageTable = (int *) getSector(*(pageTable + k + 2));
-				k = 0;
-			}
-
 			k += 2;
-
+			startByte = 0;
 		}
 
 		//	gets last page and reads upto the specified byte
@@ -438,14 +444,17 @@ public:
 			freeList.pop();
 
 			char* sector = getSector(freeSect);
-			current->files[getFileNo(filename)]->pgTblPtr = (int *)sector;
-			pageTable = current->files[getFileNo(filename)]->pgTblPtr;
+			current->files[getFileNo(filename)]->pgTblPtr = (short int *) sector;
+			resetPageTablePtr();
 
-			numberOfSectors = input.length() / PAGESIZE + 1;
+			
 			limit = input.length() % PAGESIZE;
 
-			if (limit == 0)
+			if (limit == 0){
+				numberOfSectors = input.length() / PAGESIZE;
 				limit = PAGESIZE - 1;
+			} else 
+				numberOfSectors = input.length() / PAGESIZE + 1;
 
 			/*	
 				pageTable will have 2 bytes per entry (pagenum, limit) so total 4
@@ -461,11 +470,12 @@ public:
 				if (k == ((PAGESIZE / 2) - 2)) {
 
 					short int newTable = freeList.top();
+					freeList.pop();
+
 					*(pageTable + k) = newTable;
 					*(pageTable + k + 1) = (short int) PAGESIZE;
 					
-					freeList.pop();
-					pageTable = (int *) getSector(newTable);
+					pageTable = (short int *) getSector(newTable);
 					k = 0;
 					i -= 2;
 
@@ -473,57 +483,43 @@ public:
 				}
 
 				*(pageTable + k) = freeList.top();
+				freeList.pop();
 
 				page = getSector(*(pageTable + k));
 
 				if (i != numberOfSectors * 2 - 2) {
 					* (pageTable + k + 1) = (short int) -1;
 
-					for (int j = 0; j < PAGESIZE; j++) 
-						*(page + k) = input[((i / 2) * PAGESIZE) + j];
+					for (int j = 0; j < PAGESIZE; j++) {
+						*(page + j) = input[((i / 2) * PAGESIZE) + j];
+						cout << j <<": "<<*(page+j) << endl;
+					}
 
 				} else {
 
 					* (pageTable + k + 1) = limit;
 
-					for (int j = 0; j < limit; j++) 
-						*(page + k) = input[((i / 2) * PAGESIZE) + j];
+					for (int j = 0; j < limit; j++) {
+						*(page + j) = input[((i / 2) * PAGESIZE) + j];
+						cout << j <<": "<<*(page+j) << endl;
+					}
 
 				}
 
-				freeList.pop();
 				k += 2;
 			}
-
-			//	Begin writing to location by iterating over page table
-			// for (short int i = 0; i < numberOfSectors * 2; i += 2) {
-
-			// 	page = getSector(*(pageTable + i));
-
-			// 	if (i != numberOfSectors * 2 - 2) {
-			// 		for (int j = 0; j < PAGESIZE; j++) {
-			// 			*(page + j) = input[((i / 2) * PAGESIZE) + j];
-			// 		}
-			// 	}
-			// 	else {
-			// 		for (int j = 0; j < limit; j++) {
-			// 			*(page + j) = input[((i / 2) * PAGESIZE) + j];
-			// 		}
-			// 	}
-			// }
 			
 
 		} else {
 			
 			int i;
 			countSectors = 0;
-
 			//	finds total number of sectors in page table
 			for (i = 0; *(pageTable + i + 1) == -1; i += 2) {
 
-				if (i == ((PAGESIZE / 2) - 4) && *(pageTable + i + 3) == (PAGESIZE + 1)) {
+				if (*(pageTable + i + 3) == PAGESIZE) {
 					countSectors++;
-					pageTable = (int *) getSector(*(pageTable + i + 2));
+					pageTable = (short int *) getSector(*(pageTable + i + 2));
 					i = -2;
 					continue;
 				}
@@ -537,10 +533,12 @@ public:
 
 
 			//	if limit on last page is not fully filled
-			if (appendPoint != PAGESIZE - 1) 
+			if (appendPoint != PAGESIZE - 1) // is some random limit
 				appendPage = *(pageTable + i);
 
 			else {
+
+				*(pageTable + i + 1) = (short int) -1;
 				i += 2;
 				countSectors++;
 
@@ -551,7 +549,6 @@ public:
 						cout << "Out of memory. Please reduce input size or delete other files." << endl;
 						return;
 					}
-
 					*(pageTable + i) = freeList.top();
 					*(pageTable + i + 1) = 0;
 					freeList.pop();
@@ -573,7 +570,7 @@ public:
 					*(pageTable + i + 1) = PAGESIZE;
 						
 
-					pageTable = (int *) getSector(newTable);
+					pageTable = (short int *) getSector(newTable);
 					i = 0;
 
 					*(pageTable + i) = freeList.top();
@@ -606,6 +603,8 @@ public:
 				*(pageTable + i + 1) = appendPoint;		
 
 				filesize = getFileSize(filename);
+				resetPageTablePtr();
+
 				cout << "Updated file size: " << filesize << endl;	
 				return;
 
@@ -614,72 +613,65 @@ public:
 				for (int j = appendPoint; j < PAGESIZE; j++)
 					*(page + j) = input[j - appendPoint];
 			
-			//}
 
 				*(pageTable + i + 1) = (short int) -1;
-				remainder = PAGESIZE - appendPoint;
+				remainder = PAGESIZE - appendPoint; // how much data is appended
 
 
 				//	find remaing pages required to append the file and add it to page table
-				numberOfSectors = (input.length() - remainder) / PAGESIZE + 1;
 				limit = (input.length() - remainder) % PAGESIZE;
-				numberOfSectors += countSectors;
 				appendSector = i;
 
 
-				if (limit == 0)
-					limit = PAGESIZE - 1;
+				if (limit == 0) {
+                    numberOfSectors = (input.length() - remainder) / PAGESIZE;
+                    limit = PAGESIZE - 1;
+                } else
+                    numberOfSectors = (input.length() - remainder) / PAGESIZE + 1;
+
+
+				numberOfSectors += countSectors;
 
 
 				short int k = appendSector + 2;
 				for (i = k; i < numberOfSectors * 2; i += 2) {
 
-					if (i == ((PAGESIZE / 2) - 2)) {
+					if (k == ((PAGESIZE / 2) - 2)) {
 
 						short int newTable = freeList.top();
 						*(pageTable + k) = newTable;
 						*(pageTable + k + 1) = PAGESIZE;
 						
 						freeList.pop();
-						pageTable = (int *) getSector(newTable);
+						pageTable = (short int *) getSector(newTable);
 
 						k = 0;
+						i -= 2;
+						continue;
 
 					}
 
 					*(pageTable + k) = freeList.top();
-
-					if (i == numberOfSectors * 2 - 2)
-						* (pageTable + k+ 1) = limit;
-					else
-						*(pageTable + k + 1) = (short int) -1;
-
-					freeList.pop();
-					k += 2;
-				}
-
-				//	write the new data in appended pages
-				k = appendSector + 2;
-				for (i = k; i < numberOfSectors * 2; i += 2) {
-
-					if (i == ((PAGESIZE / 2) - 2) && *(pageTable + k + 1) == PAGESIZE){
-						pageTable = (int *) getSector(*(pageTable + k));
-						k = 0;
-					}
-
-
 					page = getSector(*(pageTable + k));
 
-					if (i != numberOfSectors * 2 - 2) {
-						for (int j = 0; j < PAGESIZE; j++) {
+					if (i == numberOfSectors * 2 - 2) {
+						* (pageTable + k + 1) = limit;
+
+						for (int j = 0; j < limit; j++)
 							*(page + j) = input[(((i - appendSector - 2) / 2) * PAGESIZE) + j + (remainder)];
-						}
 					}
 					else {
-						for (int j = 0; j < limit; j++) {
+
+						*(pageTable + k + 1) = (short int) -1;
+					
+						for (int j = 0; j < PAGESIZE; j++)
 							*(page + j) = input[(((i - appendSector - 2) / 2) * PAGESIZE) + j + (remainder)];
-						}
+						
 					}
+
+					
+
+					freeList.pop();
 					k += 2;
 				}
 
@@ -757,7 +749,7 @@ public:
 			freeList.push(*(pageTable + i));
 
 			if (i == (PAGESIZE / 2 - 4) && *(pageTable + i + 3) == PAGESIZE) {
-				pageTable = (int *) getSector(*(pageTable + i + 1));
+				pageTable = (short int *) getSector(*(pageTable + i + 1));
 				i = -2;
 			}
 
@@ -1125,7 +1117,7 @@ void deleteFile(string filename) {
 		cout << "Error: file does not exist" << endl;
 		
 	} else {
-		int* pageTable = current->files[getFileNo(filename)]->pgTblPtr;
+		short int* pageTable = current->files[getFileNo(filename)]->pgTblPtr;
 		int pageNumber;
 		int i;
 		stack <int> temp;
@@ -1148,7 +1140,7 @@ void deleteFile(string filename) {
 			}
 
 
-			freeList.push((pageTable - (int*) start) / PAGESIZE);
+			freeList.push((pageTable - (short int*) start) / PAGESIZE);
 			cout << freeList.top() << endl;
 
 		}
@@ -1178,7 +1170,7 @@ void listFiles(Folder* dir) {
 	if(dir->files.size() == 0)
 		return;
 
-	int* pgTbl;
+	short int* pgTbl;
 	int totalPages = 0;
 	string name, pgnums = "", limit,disp = "{\n\t";
 
@@ -1274,8 +1266,20 @@ void readDat() {
 
 	datIn.open(DATPATH);
 
-	while (getline(datIn, line))
-	{
+
+	while (!freeList.empty())
+		freeList.pop();
+
+
+	for (short int i = NUMPAGES - 1; i >= 0; i--)
+		freeList.push(i);
+
+
+	cout << "Memory available: " << freeList.size() * PAGESIZE << "/" << MEMSIZE << " bytes" << endl;
+
+
+	while (getline(datIn, line)) {
+
 		current = rootFolder;
 
 		if (line[0] == 'D') {
@@ -1493,6 +1497,7 @@ bool processCommand(vector<string> tokens) {
 
     else if (tokens.size() == 1 && tokens[0] == "end"){
 		dat.open(DATPATH);
+		out = "";
 		end(rootFolder);
 		dat << out;
 		dat.close();
@@ -1535,8 +1540,6 @@ int main(int argc, const char* argv[]) {
 		loop = processCommand(tokens);
 
 	}
-
-	// end(); that writes to .dat file
 
 	free((char*) start);
 
