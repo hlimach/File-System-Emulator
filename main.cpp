@@ -40,20 +40,7 @@ vector<string> tokenize(string command, char delimiter) {
 
 	}
 
-
 	return tokens;
-
-}
-
-
-
-/*
-	function getPagePtr takes a sector's integer value
-	and returns a pointer to that sector
-*/
-char* getPagePtr(short int x) {
-
-	return (char*)start + (PAGESIZE * x);
 
 }
 
@@ -222,6 +209,14 @@ public:
 		pageTable = current->files[getFileNo(filename)]->pgTblPtr;
 	}
 
+	/*
+		function getPagePtr takes a sector's integer value
+		and returns a pointer to that sector
+	*/
+	char* getPagePtr(short int x) {
+		return (char*)start + (PAGESIZE * x);
+	}
+
 	short int getByteLimit() {
 		return *(pageTable);
 	}
@@ -248,9 +243,11 @@ public:
 
 	void setNextPageTableNum(int nextPageNum) {
 		*(pageTable + (PAGESIZE / 2 - 1)) = nextPageNum;
+	}	
+
+	void setPageTablePtr (short int * pageTbl) {
+		pageTable = pageTbl;
 	}
-
-
 
 	/*
 	function getFileSize accesses the files' page table and 
@@ -284,7 +281,6 @@ public:
 
 
 
-
 	/*
 		changeMode takes in argument md
 		changes mode to user's specified mode
@@ -297,6 +293,7 @@ public:
 		else
 			cout << "Please enter a valid mode (read|write)." << endl;
 	}
+
 
 
 	void displayFileContent() {
@@ -368,7 +365,6 @@ public:
 		else {
 			int nextPageTableNum = getPageNum((char *) pageTable);
 
-			//	if a new pagetable exists, go into it and get its info
 			do {
 				pageTable = (short int*) getPagePtr(nextPageTableNum);
 				displayFileContent();
@@ -1103,38 +1099,43 @@ void deleteFile(string filename) {
 
 	if (!fileExists(filename)) {
 		cout << "Error: file does not exist" << endl;
-
+		return;
 	}
 	else {
+
 		short int* pageTable = current->files[getFileNo(filename)]->pgTblPtr;
-		int pageNumber;
-		int i;
+		File delFile(filename, "read", false);
 		stack <int> temp;
 
 		if (pageTable != NULL) {
-			for (i = 0; *(pageTable + i + 1) == -1; i += 2) {
-				pageNumber = *(pageTable + i);
-				temp.push(pageNumber);
-			}
+			
+			int nextPageTableNum = getPageNum((char *) pageTable);
 
+			do {
+				pageTable = (short int*) delFile.getPagePtr(nextPageTableNum);
+				delFile.setPageTablePtr(pageTable);
+				short int pageNums = delFile.getPageCount();
 
-			pageNumber = *(pageTable + i);
-			temp.push(pageNumber);
+				for (int i = 2; i <= pageNums + 1; i++)
+					temp.push(*(pageTable + i));
 
+				nextPageTableNum = delFile.getNextPageTableNum();
+
+			} while (nextPageTableNum != -1);
+
+			freeList.push(getPageNum((char *) current->files[getFileNo(filename)]->pgTblPtr));
 
 			while (!temp.empty()) {
-
 				freeList.push(temp.top());
 				temp.pop();
 			}
 
-
-			freeList.push(getPageNum((char *) pageTable));
-
 		}
 
 		current->files.erase(current->files.begin() + getFileNo(filename));
+		
 	}
+
 }
 
 
