@@ -1,9 +1,5 @@
-D	root/sharique
 F	root/file1.txt
-D	root/sharique/haleem
-D	root/sharique/maha
-F	root/sharique/haleem/file2.txt
 -1
-this is in file 2
+You asked about efficiency. Creating a new stack may not be more efficient, as it will lead to more heap allocations. The underlying container will by default be a deque. If you use a deque or vector you will throw away the allocated memory you have already claimed for the container, which could otherwise be reused.
+You asked about efficiency. Creating a new stack may not be more efficient, as it will lead to more heap allocations. The underlying container will by default be a deque. If you use a deque or vector you will throw away the allocated memory you have already claimed for the container, which could otherwise be reused
 -1
-F	root/sharique/maha/file3.txt
