@@ -295,14 +295,6 @@ public:
 			cout << "Please enter a valid mode (read|write)." << endl;
 	}
 
-	void fillPage(char* page, string input, int pageStart, int pageEnd, int &inputStart) {
-		
-		for (int i = pageStart; i < pageEnd; i++) {
-			*(page + i) = input[inputStart + i - pageStart];
-		}
-		inputStart += (pageEnd - pageStart);
-	}
-
 
 	void pageTableData(string input, int startPage, int lastPage, int startByte, int limit, int &byteCount, bool read) {
 
