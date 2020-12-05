@@ -7,6 +7,7 @@
 #include <sstream>
 #include <vector>
 #include <fstream>
+#include <assert.h>
 
 #define PAGESIZE 16		//	size of each page in memory
 #define MEMSIZE 16384		//	total memory size - 8Mb
@@ -294,6 +295,13 @@ public:
 			cout << "Please enter a valid mode (read|write)." << endl;
 	}
 
+	void fillPage(char* page, string input, int pageStart, int pageEnd, int &inputStart) {
+		
+		for (int i = pageStart; i < pageEnd; i++) {
+			*(page + i) = input[inputStart + i - pageStart];
+		}
+		inputStart += (pageEnd - pageStart);
+	}
 
 	void fileData(string input, int neededPages, int limit, int &byteCount, int startPage, bool read) {
 
@@ -475,8 +483,8 @@ public:
 		}
 
 
-		int numberOfSectors = 0, appendSector, remainder, countSectors, neededPages = 0;
-		short int limit, appendPage, appendPoint;
+		int numberOfSectors = 0, appendSector, remainder,appendPage, countSectors, neededPages = 0;
+		short int limit, appendByte;
 
 		if (pageTable == NULL) {
 
@@ -551,91 +559,57 @@ public:
 		}
 		else {
 
-			int i;
-			countSectors = 0;
-
-			//finds total number of sectors in page table
-			for (i = 0; *(pageTable + i + 1) == -1; i += 2)
-				countSectors++;
-
-			countSectors++;
-			appendPoint = *(pageTable + i + 1);
-			appendPage = *(pageTable + i);
-
-			if (input.size() > (freeList.size() * PAGESIZE) + (PAGESIZE - appendPoint)) {
-				cout << "Out of memory...Please reduce input size or delete other files" << endl;
-				return;
+			resetPageTblPtr();
+			int byteCount = 0;
+			while (getNextPageTableNum() != -1) {
+				pageTable = (short int*)getPagePtr(getNextPageTableNum());
 			}
 
-			page = getPagePtr(appendPage);
-
-			//if appending data does not increase page number
-			if (input.length() < (PAGESIZE - appendPoint)) {
-
-				for (int j = 0; j < input.length(); j++) {
-					*(page + appendPoint + j) = input[j];
-				}
-				appendPoint += input.length();
-				*(pageTable + i + 1) = appendPoint;
-
-				fileSize = getFileSize();
-				cout << "Updated file size: " << fileSize << endl;
-				return;
-			}
-			else {
-
-				for (int j = appendPoint; j < PAGESIZE; j++) {
-					*(page + j) = input[j - appendPoint];
-				}
-
-			}
-
-			*(pageTable + i + 1) = (short int)-1;
-			remainder = PAGESIZE - appendPoint;
-
-			//find remaing pages required to append the file and add it to page table
-			limit = (input.length() - remainder) % PAGESIZE;
-
-			if (limit == 0) {
-				limit = PAGESIZE - 1;
-				numberOfSectors = (input.length() - remainder) / PAGESIZE;
-			}
-			else {
-				numberOfSectors = (input.length() - remainder) / PAGESIZE + 1;
-
-			}
-
-			numberOfSectors = numberOfSectors + countSectors;
-			appendSector = i;
-			for (i = appendSector + 2; i < numberOfSectors * 2; i += 2) {
-
-				*(pageTable + i) = freeList.top();
-
-				if (i == numberOfSectors * 2 - 2)
-					* (pageTable + i + 1) = limit;
-				else
-					*(pageTable + i + 1) = (short int)-1;
-
+			if (getPageCount() == MAXENTRIES && getByteLimit() == PAGESIZE) {
+				setNextPageTableNum(freeList.top());
 				freeList.pop();
+				pageTable = (short int*)getPagePtr(getNextPageTableNum());
+				appendPage = 2;
+
 			}
+			else {
+				int numberOfPages = getPageCount();
 
-			//write the new data in appended pages
-
-			for (i = appendSector + 2; i < numberOfSectors * 2; i += 2) {
-
-				page = getPagePtr(*(pageTable + i));
-
-				if (i != numberOfSectors * 2 - 2) {
-					for (int j = 0; j < PAGESIZE; j++) {
-						*(page + j) = input[(((i - appendSector - 2) / 2) * PAGESIZE) + j + (remainder)];
-					}
+				if (getByteLimit() == PAGESIZE) {
+					appendPage = getPageCount() + 2;
+					appendByte = 0;
+					*(pageTable + appendPage) = freeList.top();
+					freeList.pop();
+					setPageCount(getPageCount() + 1);
 				}
 				else {
-					for (int j = 0; j < limit; j++) {
-						*(page + j) = input[(((i - appendSector - 2) / 2) * PAGESIZE) + j + (remainder)];
-					}
+					appendPage = numberOfPages + 1;
+					appendByte = getByteLimit();
+				}
+				
+				page = getPagePtr(*(pageTable + appendPage));
+
+				if (input.length() <= PAGESIZE - appendByte) {
+				
+					fillPage(page, input, appendByte, appendByte + input.length(), byteCount);
+
+					setByteLimit(appendByte + input.length());
+					
+					resetPageTblPtr();
+					fileSize = getFileSize();
+					if (printInfo)
+						cout << "Updated file size: " << fileSize << endl;
+					
+					return;
+
+				}
+				else {
+					fillPage(page, input, appendByte, PAGESIZE, byteCount);
+					setByteLimit(PAGESIZE);
+					cout<<"last page filled"<<endl;
 				}
 			}
+			cout << "new page table reached" << endl;
 
 		}
 
@@ -1433,7 +1407,7 @@ bool processCommand(vector<string> tokens) {
 	bool loop = true;
 
 	if (tokens[0] == "open") {
-		if (tokens.size() == 2)
+		if (tokens.size() == 2 || (tokens[2] != "read" && tokens[2] != "write"))
 			cout << "Please input mode (read|write)" << endl;
 
 		else if (tokens.size() == 3 && tokens[0] == "open" && (tokens[2] == "write" || tokens[2] == "read")) {
