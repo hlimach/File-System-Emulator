@@ -303,37 +303,38 @@ public:
 		inputStart += (pageEnd - pageStart);
 	}
 
-	void fileData(string input, int neededPages, int limit, int &byteCount, int startPage, bool read) {
 
-		for (int i = startPage; i <= neededPages + 1; i++) {
-			page = getPagePtr(*(pageTable + i));
-			
-			if ((i - 1) != neededPages) {
+	void pageTableData(string input, int startPage, int lastPage, int startByte, int limit, int &byteCount, bool read) {
 
-				for (int j = 0; j < PAGESIZE; j++){
-					if (read)
-						cout << *(page + j);
-					else
-						*(page + j) = input[byteCount + j];
-				}
+        for (int i = startPage + 1; i <= lastPage + 1; i++) {
+            page = getPagePtr(*(pageTable + i));
+            
+            if (i != (lastPage + 1)) {
 
-				byteCount += PAGESIZE;
-			}
-			else {
+                for (int j = startByte; j < PAGESIZE; j++){
+                    if (read)
+                        cout << *(page + j);
+                    else
+                        *(page + j) = input[byteCount];
+                    byteCount++;
+                }
+                startByte = 0;
+            }
+            else {
 
-				for (int j = 0; j < limit; j++) {
-					if (read)
-						cout << *(page + j);
-					else
-						*(page + j) = input[byteCount + j];
-				}
+                for (int j = startByte; j < limit; j++) {
+                    if (read)
+                        cout << *(page + j);
+                    else
+                        *(page + j) = input[byteCount];
+                    byteCount++;
+                }
+                startByte = 0;
+            }
 
-				byteCount += limit;
-			}
+        }
 
-		}
-
-	}
+    }
 
 
 	/*
@@ -341,32 +342,32 @@ public:
 	*/
 	void read() {
 
-		if (mode != "read") {
-			cout << "Please open file in \"read\" mode for this function." << endl;
-			return;
-		}
+        if (mode != "read") {
+            cout << "Please open file in \"read\" mode for this function." << endl;
+            return;
+        }
 
-		if (pageTable == NULL) {
-			cout << "The file has no content to display." << endl;
-			return;
-		}
+        if (pageTable == NULL) {
+            cout << "The file has no content to display." << endl;
+            return;
+        }
 
-		else {
-			int nextPageTableNum = getPageNum((char *) pageTable);
-			int temp = 0;
+        else {
+            int nextPageTableNum = getPageNum((char *) pageTable);
+            int temp = 0;
 
-			do {
-				pageTable = (short int*) getPagePtr(nextPageTableNum);
-				fileData("", getPageCount(), getByteLimit(), temp, 2, true);
-				nextPageTableNum = getNextPageTableNum();
+            do {
+                pageTable = (short int*) getPagePtr(nextPageTableNum);
+                pageTableData("", 1, getPageCount(), 0, getByteLimit(), temp, true);
+                nextPageTableNum = getNextPageTableNum();
 
-			} while (nextPageTableNum != -1);
+            } while (nextPageTableNum != -1);
 
-			cout << endl;
-			
-		}
+            cout << endl;
+            
+        }
 
-	}
+    }
 
 
 
@@ -462,14 +463,63 @@ public:
 	}
 
 
-	void assignPages(int neededPages) {
-
-		for (int i = 2; i <= neededPages + 1; i++) {
+	void assignPages(int start, int last) {
+		for (int i = start + 1; i <= last + 1; i++) {
 			*(pageTable + i) = freeList.top();
 			freeList.pop();
 		}
 	}
 
+
+	void calcLimit(int &neededPages, short int &limit, int inputSize) {
+		limit = inputSize % PAGESIZE;
+
+		if (limit == 0) {
+            limit = PAGESIZE;
+            neededPages = inputSize / PAGESIZE;
+        }
+        else
+            neededPages = inputSize / PAGESIZE + 1;
+	}
+
+
+
+	void createPageTableAndWriteData(string input, int neededPages, int limit, int &byteCount, int pageTablePageNum) {
+		do {
+            pageTable = (short int*) getPagePtr(pageTablePageNum);
+
+            if(neededPages >= MAXENTRIES) {
+
+                if (neededPages != MAXENTRIES) {
+                    setByteLimit((short int) PAGESIZE);
+                    setNextPageTableNum(freeList.top());
+                    freeList.pop();
+                }
+                else {
+                    setByteLimit((short int) limit);
+                    setNextPageTableNum((short int) -1);
+                }
+
+                setPageCount((short int) MAXENTRIES);
+                assignPages(1, MAXENTRIES);
+                pageTableData(input, 1, MAXENTRIES, 0, getByteLimit(), byteCount, false);
+
+                neededPages -= MAXENTRIES;
+                pageTablePageNum = getNextPageTableNum();
+            }
+            else {
+                setByteLimit((short int) limit);
+                setPageCount((short int) neededPages);
+                assignPages(1, neededPages);
+                pageTableData(input, 1, neededPages, 0, limit, byteCount, false);
+                setNextPageTableNum((short int) -1);
+                neededPages = 0;
+            }
+
+        } while (neededPages != 0);
+
+        assert(byteCount == input.length());
+	}
 
 	/*
 		function write checks if file is empty or not. If it is a new file then it starts to write from the start,
@@ -482,136 +532,67 @@ public:
 			return;
 		}
 
-
-		int numberOfSectors = 0, appendSector, remainder,appendPage, countSectors, neededPages = 0;
-		short int limit, appendByte;
+        int neededPages = 0;
+        short int limit;
 
 		if (pageTable == NULL) {
 
-			if (input.size() > (freeList.size() * PAGESIZE)) {
-				cout << "Out of memory...Please reduce input size or delete other files" << endl;
-				return;
-			}
-
-			//If it is a new file 
-			short int pageTablePageNum = freeList.top();
-			freeList.pop();
-
-			char* page = getPagePtr(pageTablePageNum);
-			current->files[getFileNo(filename)]->pgTblPtr = (short int*) page;
-			pageTable = (short int*) page;
-			limit = input.length() % PAGESIZE;
-
-			if (limit == 0) {
-                limit = PAGESIZE;
-                neededPages = input.length() / PAGESIZE;
+            if (input.size() > (freeList.size() * PAGESIZE)) {
+                cout << "Out of memory...Please reduce input size or delete other files" << endl;
+                return;
             }
-            else
-                neededPages = input.length() / PAGESIZE + 1;
+
+            //If it is a new file
+            short int pageTablePageNum = freeList.top();
+            freeList.pop();
+
+            char* page = getPagePtr(pageTablePageNum);
+            current->files[getFileNo(filename)]->pgTblPtr = (short int*) page;
+            pageTable = (short int*) page;
+            calcLimit(neededPages, limit, input.length());
+
+            int byteCount = 0;
             
+            createPageTableAndWriteData(input, neededPages, limit, byteCount, pageTablePageNum);
 
-            int neededPageTables, byteCount = 0;
-            
+        }
 
-            if (neededPages % MAXENTRIES == 0)
-                neededPageTables = neededPages / MAXENTRIES;
-            else
-                neededPageTables = neededPages / MAXENTRIES + 1;
+        else {
 
-            do {
-                pageTable = (short int*) getPagePtr(pageTablePageNum);
+            resetPageTblPtr();
+            int byteCount = 0;
 
-                if(neededPages >= MAXENTRIES) {
+            while (getNextPageTableNum() != -1) {
+                pageTable = (short int*) getPagePtr(getNextPageTableNum());
+            }
 
-                    if (neededPages != MAXENTRIES)
-                        setByteLimit((short int) PAGESIZE);
-                    else
-                        setByteLimit((short int) limit);
+            int freeSpace = (MAXENTRIES * PAGESIZE) - (((getPageCount() - 1) * PAGESIZE) + getByteLimit());
+            calcLimit(neededPages, limit, (int) (input.length() - (PAGESIZE - getByteLimit())));
 
-                    setPageCount((short int) MAXENTRIES);
-                    assignPages(MAXENTRIES);
-                    fileData(input, MAXENTRIES, getByteLimit(), byteCount, 2, false);
-                    
-                    if (getByteLimit() == PAGESIZE){
-                        setNextPageTableNum(freeList.top());
-                        freeList.pop();
-                    }
-                    else
-                        setNextPageTableNum((short int) -1);
-                    
-                    neededPages -= MAXENTRIES;
-                    pageTablePageNum = getNextPageTableNum();
-                }
-                else {
-                    setByteLimit((short int) limit);
-                    setPageCount((short int) neededPages);
-                    assignPages(neededPages);
-                    fileData(input, neededPages, limit, byteCount, 2, false);
-                    setNextPageTableNum((short int) -1);
-                    neededPages = 0;
-                }
+            if (freeSpace >= input.length()) {
+                assignPages(getPageCount() + 1, getPageCount() + neededPages);
+                pageTableData(input, getPageCount(), getPageCount() + neededPages, getByteLimit(), limit + 1, byteCount, false);
+                setByteLimit(limit);
+                setPageCount(getPageCount() + neededPages);
+            }
+            else {
+                //fill up this page table from byte till end,
+                //then make new page tables and fill em up until input is complete
+                assignPages(getPageCount() + 1, MAXENTRIES);
+                pageTableData(input, getPageCount(), MAXENTRIES, getByteLimit(), PAGESIZE, byteCount, false);
+                neededPages -= (MAXENTRIES - getPageCount());
+                setByteLimit(PAGESIZE);
+                setPageCount(MAXENTRIES);
+                setNextPageTableNum(freeList.top());
+                freeList.pop();
 
-            } while (neededPages != 0);
+                int pageTablePageNum = getNextPageTableNum();
 
-            assert(byteCount == input.length());
+                createPageTableAndWriteData(input, neededPages, limit, byteCount, pageTablePageNum);
 
+            }
 
-		}
-		else {
-
-			resetPageTblPtr();
-			int byteCount = 0;
-			while (getNextPageTableNum() != -1) {
-				pageTable = (short int*)getPagePtr(getNextPageTableNum());
-			}
-
-			if (getPageCount() == MAXENTRIES && getByteLimit() == PAGESIZE) {
-				setNextPageTableNum(freeList.top());
-				freeList.pop();
-				pageTable = (short int*)getPagePtr(getNextPageTableNum());
-				appendPage = 2;
-
-			}
-			else {
-				int numberOfPages = getPageCount();
-
-				if (getByteLimit() == PAGESIZE) {
-					appendPage = getPageCount() + 2;
-					appendByte = 0;
-					*(pageTable + appendPage) = freeList.top();
-					freeList.pop();
-					setPageCount(getPageCount() + 1);
-				}
-				else {
-					appendPage = numberOfPages + 1;
-					appendByte = getByteLimit();
-				}
-				
-				page = getPagePtr(*(pageTable + appendPage));
-
-				if (input.length() <= PAGESIZE - appendByte) {
-				
-					fillPage(page, input, appendByte, appendByte + input.length(), byteCount);
-
-					setByteLimit(appendByte + input.length());
-					
-					resetPageTblPtr();
-					fileSize = getFileSize();
-					if (printInfo)
-						cout << "Updated file size: " << fileSize << endl;
-					
-					return;
-
-				}
-				else {
-					fillPage(page, input, appendByte, PAGESIZE, byteCount);
-					setByteLimit(PAGESIZE);
-					cout<<"last page filled"<<endl;
-				}
-			}
-			cout << "new page table reached" << endl;
-
-		}
+        }
 
 		resetPageTblPtr();
 		fileSize = getFileSize();
@@ -693,7 +674,6 @@ public:
 
 
         int nextPageTableNum = getPageNum((char *) pageTable);
-        int temp = 0;
         
         
         if (size % PAGESIZE == 0)
