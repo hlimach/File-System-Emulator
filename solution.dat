@@ -1,5 +1,4 @@
-F	root/file1.txt
+F	root/a.txt
 -1
-You asked about efficiency. Creating a new stack may not be more efficient, as it will lead to more heap allocations. The underlying container will by default be a deque. If you use a deque or vector you will throw away the allocated memory you have already claimed for the container, which could otherwise be reused.
-You asked about efficiency. Creating a new stack may not be more efficient, as it will lead to more heap allocations. The underlying container will by default be a deque. If you use a deque or vector you will throw away the allocated memory you have already claimed for the container, which could otherwise be reused
+Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut, imperdiet a,
 -1

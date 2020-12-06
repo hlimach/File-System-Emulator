@@ -296,8 +296,8 @@ public:
 	}
 
 
-	void pageTableData(string input, int startPage, int lastPage, int startByte, int limit, int &byteCount, bool read) {
-
+	string pageTableData(string input, int startPage, int lastPage, int startByte, int limit, int &byteCount, bool read) {
+		string data = "";
         for (int i = startPage + 1; i <= lastPage + 1; i++) {
             page = getPagePtr(*(pageTable + i));
             
@@ -305,7 +305,7 @@ public:
 
                 for (int j = startByte; j < PAGESIZE; j++){
                     if (read)
-                        cout << *(page + j);
+                        data += *(page + j);
                     else
                         *(page + j) = input[byteCount];
                     byteCount++;
@@ -316,7 +316,7 @@ public:
 
                 for (int j = startByte; j < limit; j++) {
                     if (read)
-                        cout << *(page + j);
+                        data += *(page + j);
                     else
                         *(page + j) = input[byteCount];
                     byteCount++;
@@ -325,9 +325,23 @@ public:
             }
 
         }
-
+		return data;
     }
 
+
+	string alterOnePage(string input, int pageNumber, int startbyte, int limit, bool read) {
+		string data = "";
+		page = getPagePtr(*(pageTable + pageNumber));
+		for (int i = startbyte; i < limit; i++) {
+			if (read) {
+				data += *(page + i);
+			}
+			else {
+				*(page + i) = input[i - startbyte];
+			}
+		}
+		return data;
+	}
 
 	/*
 		Function read prints out entire content of file
@@ -350,7 +364,7 @@ public:
 
             do {
                 pageTable = (short int*) getPagePtr(nextPageTableNum);
-                pageTableData("", 1, getPageCount(), 0, getByteLimit(), temp, true);
+                cout << pageTableData("", 1, getPageCount(), 0, getByteLimit(), temp, true);
                 nextPageTableNum = getNextPageTableNum();
 
             } while (nextPageTableNum != -1);
@@ -358,7 +372,7 @@ public:
             cout << endl;
             
         }
-
+		resetPageTblPtr();
     }
 
 
@@ -379,7 +393,7 @@ public:
 			return "";
 		}
 
-		if (readUpTo - startFrom > fileSize) {
+		if ((readUpTo - startFrom > fileSize) || (startFrom + readUpTo > fileSize)) {
 			cout << "Out of bound exception. Given limit exceeds total file limit at " << fileSize << " bytes." << endl;
 			return "";
 		}
@@ -387,40 +401,50 @@ public:
 		string readUptoText = "";
 
 		//	which page number in the page table the byte will belong to
-		int startPage = (startFrom / PAGESIZE);
+		int startPage = (startFrom / PAGESIZE) + 1;
 		int startByte = startFrom % PAGESIZE;
-		int endPage = (startFrom + readUpTo) / PAGESIZE;
+		int endPage = (startFrom + readUpTo) / PAGESIZE + 1;
 		int limit = (startFrom + readUpTo) % PAGESIZE;
-		int i;
+		int readPages = endPage - startPage;
+		bool samePage = startPage == endPage;
 
+		while (startPage > MAXENTRIES) {
+			pageTable = (short int*)getPagePtr(getNextPageTableNum());
+			startPage -= MAXENTRIES;
+		}
 
-		//	iterates all pages before this page and outputs their content
-		for (i = startPage * 2; i < (endPage * 2); i += 2) {
+		if (samePage)
+		{
+			readUptoText += alterOnePage("", startPage + 1, startByte, startByte + readUpTo, true);
+			return readUptoText;
+		}
 
-			page = getPagePtr(*(pageTable + i));
+		for (int i = 0; i < readPages; i++) {
 
+			if (startPage == MAXENTRIES + 1) {
+				pageTable = (short int*)getPagePtr(getNextPageTableNum());
+				startPage = 1;
+				i--;
+				continue;
+			}
+			page = getPagePtr(*(pageTable + startPage + 1));
 			for (int j = startByte; j < PAGESIZE; j++)
 				readUptoText += *(page + j);
+
 			startByte = 0;
+			startPage++;
 		}
 
-		//	gets last page and reads upto the specified byte
-		page = getPagePtr(*(pageTable + i));
-
-		if (startPage == endPage) {
-
-			startByte = startFrom % PAGESIZE;
-
-			for (int j = startByte; j < startByte + readUpTo; j++)
-				readUptoText += *(page + j);
-
+		if (startPage == MAXENTRIES + 1) {
+			pageTable = (short int*)getPagePtr(getNextPageTableNum());
+			startPage = 1;
 		}
-		else {
+		page = getPagePtr(*(pageTable + startPage + 1));
 
-			for (int j = 0; j < limit; j++)
-				readUptoText += *(page + j);
-		}
+		for (int j = 0; j < limit; j++)
+			readUptoText += *(page + j);
 
+		resetPageTblPtr();
 		return readUptoText;
 
 	}
@@ -562,6 +586,16 @@ public:
             calcLimit(neededPages, limit, (int) (input.length() - (PAGESIZE - getByteLimit())));
 
             if (freeSpace >= input.length()) {
+				
+				if (input.length() < PAGESIZE - getByteLimit()) {
+					alterOnePage(input, getPageCount() + 1, getByteLimit(), input.length() + getByteLimit(), false);
+					setByteLimit(input.length() + getByteLimit());
+					resetPageTblPtr();
+					fileSize = getFileSize();
+					if (printInfo)
+						cout << "Updated file size: " << fileSize << endl;
+					return;
+				}
                 assignPages(getPageCount() + 1, getPageCount() + neededPages);
                 pageTableData(input, getPageCount(), getPageCount() + neededPages, getByteLimit(), limit + 1, byteCount, false);
                 setByteLimit(limit);
@@ -753,7 +787,9 @@ public:
 			string endText = readUpto(to - 1, fileSize - to + 1);
 			string writeData = middleText + cutText + endText;
 			mode = "write";
+			printInfo = false;
 			writeAt(writeData, from);
+			printInfo = true;
 
 		}
 		// if data is moved prior to its original position
@@ -761,10 +797,13 @@ public:
 			string cutText = readUpto(from - 1, size);
 			string topText = readUpto(to - 1, from - to);
 			string endText = readUpto(from + size - 1, fileSize - from - size);
-			string writeData = cutText +" "+ topText + endText;
+			string writeData = cutText + topText + endText;
 			mode = "write";
+			printInfo = false;
 			writeAt(writeData, to);
+			printInfo = true;
 		}
+		resetPageTblPtr();
 		return;
 
 
@@ -1199,7 +1238,7 @@ void getChildren(Folder* dir) {
 		if (dir->files[i]->pgTblPtr != NULL) {
 			File openFile(dir->files[i]->name, "read", false);
 			out += "-1\n";
-			out += openFile.readUpto(0, openFile.getFileSize());
+			out += openFile.readUpto(0, openFile.getFileSize()) + "\n";
 			out += "-1\n";
 		}
 	}
@@ -1408,7 +1447,7 @@ bool processCommand(vector<string> tokens) {
 					openedFile.read();
 
 				else if (tokens.size() == 3 && tokens[0] == "rf" && isNumber(tokens[1]) && isNumber(tokens[2]))
-					cout << openedFile.readUpto(stoi(tokens[1]), stoi(tokens[2])) << endl;
+					cout << openedFile.readUpto(stoi(tokens[1]) - 1, stoi(tokens[2])) << endl;
 
 				else if (tokens.size() == 2 && tokens[0] == "trun" && isNumber(tokens[1]))
 					openedFile.truncate(stoi(tokens[1]));
