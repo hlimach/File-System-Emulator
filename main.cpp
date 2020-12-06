@@ -469,11 +469,7 @@ public:
 			input += "\n";
 		}
 		
-		vector<string> lines = tokenize(input, '\n');
-		input = "";
-		for (int i = 0; i < lines.size() - 1; i++)
-			input += lines[i] + "\n";
-		input += lines.back();
+		input = input.substr(0, input.size() - 1);
 
 		return input;
 	}
@@ -1336,6 +1332,7 @@ void readDat() {
 					break;
 				content += line + "\n";
 			}
+			content = content.substr(0, content.size() - 1);
 			current = tempFolder;
 
 			//open file and write content
