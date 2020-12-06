@@ -9,107 +9,139 @@
 #include <fstream>
 #include <assert.h>
 
-#define PAGESIZE 16		//	size of each page in memory
-#define MEMSIZE 16384		//	total memory size - 8Mb
-#define NUMPAGES (MEMSIZE / PAGESIZE)	//	total pages in memory
+#define PAGESIZE 16						 /* Size of each page in memory. */
+#define MEMSIZE 16384					 /* Total memory reserved for file data. */
+#define NUMPAGES (MEMSIZE / PAGESIZE)	 /* Total pages in memory. */
+#define LASTENTRY ((PAGESIZE / 2) - 1)	 /* Last entry point for a page table. */
+#define MAXENTRIES ((PAGESIZE / 2) - 3)	 /* Maximum entries possible in a page table */
 #define DATPATH "F:/nust/sem 5/Operating Systems/OS_Proj/solution.dat"
-#define LASTENTRY ((PAGESIZE / 2) - 1)
-#define MAXENTRIES ((PAGESIZE / 2) - 3)
 
 using namespace std;
 
+
+/* Points to the starting location of the allocated memory. */
 const char* start;
 
 
-//	freeList holds ineger values of all sectors that are unused
+/* A stack of free/ unused page numbers in ascending order maintained by the system. 
+   Whenever a new page is to be assigned, this stack is popped. */
 stack <short int> freeList;
 
 
-//	tokenizes a given string with respect to delimeter
-vector<string> tokenize(string command, char delimiter) {
-
+/* Gets the input string and returns it as a vector of strings, tokenized by the 
+   Delimiter assigned. */
+vector<string> 
+tokenize (string command, char delimiter) 
+{
 	string s;
 	stringstream ss(command);
 	vector<string> tokens;
 
-	while (getline(ss, s, delimiter)) {
-
+	while (getline(ss, s, delimiter)) 
+	{
+		/* In case the delimiter is entered more than once, it introduces empty 
+		   Strings into the vector. To get rid of these, whenever these are obtained 
+		   The loop continues onto next iteration. */
 		if (s == "")
 			continue;
 
 		tokens.push_back(s);
-
 	}
 
 	return tokens;
-
 }
 
 
-int getPageNum (char* page) {
+/* Gets a char pointer to a page and returns the page number that it is supposed to 
+   Be according to starting pointer. */
+int 
+getPageNum (char* page) 
+{
 	return (page - start) / PAGESIZE;
 }
 
 
-/*
-	File node (leaf) for tree which stores name of file and its head pointer to page table
-*/
-class FileNode {
+/* Class for file nodes in the tree structure to be maintained for memory management. 
+   It is a leaf node. */
+class 
+FileNode 
+{
 public:
 	string name;
 	short int* pgTblPtr;
 
-	FileNode(string fileName) {
+	/* Pointer pgTblPtr points to this files' page table, but is assigned NULL upon 
+	   Creation, and will only point to one once data is written into this file. */
+	FileNode (string fileName) 
+	{
 		name = fileName;
 		pgTblPtr = NULL;
 	}
 };
 
 
-
-/*
-	Folder node for tree which stores name, child pointers for files and subdirectories, and a pointer to parent directory
-*/
-class Folder {
+/* Class for folder nodes in the tree structure to be maintained for memory management.
+   It maintains vectors for both subfolders and files within this folder. Stores a 
+   Pointer to its parent as folder nodes are used in tree traversal. */
+class 
+Folder 
+{
 public:
 	string dirName;
 	vector<Folder*> subdir;
 	vector<FileNode*> files;
 	Folder* parent;
 
-	Folder(string name) {
-
+	Folder (string name) 
+	{
 		dirName = name;
 		parent = NULL;
-
 	}
 };
 
 
-// the default starting folder 
+/* The starting folder of this system : "root". */
 Folder* rootFolder = new Folder("root");
 
+
+/* To write into .dat file at end of program to save file info. */
 ofstream dat;
+
+
+/* String is used to gather all text to be written into .dat file. */
 string out;
 
-// keeps track of current position in directory
+
+/* Current folder pointer stores pointer to current working directory, whereas 
+   tempFolder pointer is used for temporary actions/ tracking. */
 Folder* current, * tempFolder;
+
+
+/* Pointer tempFile points to File node to store its value if found. */
 FileNode* tempFile;
+
+
+/* Int filePosDir tells us which index in the vector of the current directory the 
+   Needed file will be found. */
 int filePosDir;
+
+
+/* To let functions know if the needed file is found. */
 bool fileFound, found;
 
 
-
-/*
-	returns the file number of given name in current directory
-*/
-int getFileNo(string name) {
-
+/* Takes in the files' name as an argument and tells which index it will be found at. 
+   If the file does not exist in the current directory, it returns -1 (error). */
+int 
+getFileNo (string name) 
+{
 	int i;
 	bool found = false;
 
-	for (i = 0; i < current->files.size(); i++) {
-		if (current->files[i]->name == name) {
+	for (i = 0; i < current->files.size(); i++) 
+	{
+		if (current->files[i]->name == name) 
+		{
 			found = true;
 			break;
 		}
@@ -119,65 +151,51 @@ int getFileNo(string name) {
 		return i;
 	else
 		return -1;
-
 }
 
 
-
-/*
-	function fileExists takes in filename as argument
-	accesses the temporary folder's file directory and iterates it fully
-	returns the true if file exists
-*/
-bool fileExists(string filename) {
-
-	for (int j = 0; j < tempFolder->files.size(); j++) {
-		if (tempFolder->files[j]->name == filename) {
+/* Function takes in the wanted files' name as argument accesses the temporary folders'
+   File directory and iterates it fully returns true if it is found. */
+bool 
+fileExists (string filename) 
+{
+	for (int j = 0; j < tempFolder->files.size(); j++) 
+	{
+		if (tempFolder->files[j]->name == filename) 
+		{
 			filePosDir = j;
 			tempFile = tempFolder->files[j];
 			return true;
 		}
 	}
-
 	return false;
 }
 
 
-
-/*
-	function folderExists takes in dirName as argument
-	accesses the temporary folder's subdirectory and iterates it fully
-	returns the true if folder exists
-*/
-bool folderExists(string dirName) {
-
-	for (int j = 0; j < tempFolder->subdir.size(); j++) {
-		if (tempFolder->subdir[j]->dirName == dirName) {
+/* Function folderExists takes in directory name as argument accesses the temporary 
+   Folder's subdirectory and iterates it fully returns true if it is found. */
+bool 
+folderExists (string dirName) 
+{
+	for (int j = 0; j < tempFolder->subdir.size(); j++) 
+	{
+		if (tempFolder->subdir[j]->dirName == dirName) 
+		{
 			tempFolder = tempFolder->subdir[j];
 			return true;
 		}
 	}
-
 	return false;
 }
 
 
-
-/*
-	File class object is created once the file is opened.
-
-	A file can only be altered (read/ write/ truncate/ moveWithIn) if its object is created.
-
-	The functions for alteration are all methods of this class to limit accessibility.
-
-	Modes for opening file are read and write:
-
-	Read allows user to view entire content of file, or can specify which byte to view from.
-
-	Write allows user to fill up a new file, append to existing content, start overwriting from specified byte, truncate size, or move data within file.
-
-*/
-class File {
+/* File object is created whenever the user must interact with any file. It has all 
+   The functions for read, write, truncate, and move within. The user must open a file 
+   By providing the mode in which they wish to interact with it. The mode can be 
+   Changed later using 'chmod' command. */
+class 
+File 
+{
 private:
 	string filename, mode;
 	short int* pageTable;
@@ -186,10 +204,16 @@ private:
 	bool printInfo;
 
 public:
-	File(string name, string md, bool printInf) {
+
+	/* Constructor takes in the files' name, the desried mode, and a boolean value
+	   For if the file must be opened and changed in silent mode (only for interal calls, 
+	   Not in user control. User opened files are never opened in silent mode.). */
+	File (string name, string md, bool printInf) 
+	{
 		fileFound = fileExists(name);
 
-		if (fileFound) {
+		if (fileFound) 
+		{
 			filename = name;
 			pageTable = current->files[getFileNo(filename)]->pgTblPtr;
 			fileSize = getFileSize();
@@ -198,77 +222,112 @@ public:
 			printInfo = printInf;
 
 			if (printInfo)
-				cout << "File opened: " << filename << ", mode: " << mode << ", size: " << fileSize << " bytes." << endl;
-
+				cout << "File opened: " << filename << ", mode: " << mode << ", size: "
+					 << fileSize << " bytes." << endl;
 		}
+
 		else
 			cout << "The file does not exist." << endl;
 
 	}
 
-	void resetPageTblPtr() {
-		pageTable = current->files[getFileNo(filename)]->pgTblPtr;
-	}
 
-	/*
-		function getPagePtr takes a sector's integer value
-		and returns a pointer to that sector
-	*/
-	char* getPagePtr(short int x) {
+	/* For any given page number within memory, its pointer is returned. */
+	char* 
+	getPagePtr (short int x) 
+	{
 		return (char*)start + (PAGESIZE * x);
 	}
 
-	short int getByteLimit() {
+
+	/* The first entry in any page table is its' limit i.e where the last pages' last 
+	   Byte is (where it is filled upto). */
+	short int 
+	getByteLimit () 
+	{
 		return *(pageTable);
 	}
 
 
-	short int getPageCount() {
+	/* The second entry in any page table is the number of pages it has i.e how many
+	   Pages are kept in the page table to assist iteration. */
+	short int 
+	getPageCount () 
+	{
 		return *(pageTable + 1);
 	}
 
 
-	short int getNextPageTableNum() {
+	/* The last entry in a page table is the page number of next linked page table. */
+	short int 
+	getNextPageTableNum () 
+	{
 		return *(pageTable + LASTENTRY);
 	}
 
-	void setByteLimit(int limit) {
+
+	/* Sets/ Updates the current page tables' limit to be the given value. */
+	void 
+	setByteLimit (int limit) 
+	{
 		*(pageTable) = limit;
 	}
 
 
-	void setPageCount(int count) {
+	/* Sets/ Updates the current page tables' page count to be the given value. */
+	void 
+	setPageCount (int count) 
+	{
 		*(pageTable + 1) = count;
 	}
 
 
-	void setNextPageTableNum(int nextPageNum) {
-		*(pageTable + (PAGESIZE / 2 - 1)) = nextPageNum;
+	/* Sets/ Updates the current page tables' last entry to be the given value
+	   Which indicates which page number of page table it is next linked to. */
+	void 
+	setNextPageTableNum (int nextPageNum) 
+	{
+		*(pageTable + LASTENTRY) = nextPageNum;
 	}	
 
-	void setPageTablePtr (short int * pageTbl) {
+
+	/* Sets/ Updates the page tables' pointer to point to a new location in memory. */
+	void 
+	setPageTablePtr (short int * pageTbl) 
+	{
 		pageTable = pageTbl;
 	}
 
-	/*
-	function getFileSize accesses the files' page table and 
-	iterates it fully then returns the file size in bytes
-	*/
-	int getFileSize() {
 
+	/* Resets page table pointer to point to the starting page table. */
+	void 
+	resetPageTblPtr () 
+	{
+		pageTable = current->files[getFileNo(filename)]->pgTblPtr;
+	}
+
+
+	/* Iterates all the page tables of the given file and returns the total size in 
+	   Bytes of the current file. */
+	int 
+	getFileSize () 
+	{
+		resetPageTblPtr();
 		if (pageTable == NULL)
 			return 0;
+		else 
+		{
+			/* Obtain the page number of the starting page table, and send into
+			   The do...while, which extracts page table using its number, adds
+			   Its limit to 'size' variable, gets the next page table number, and
+			   Does the same process until the next page table number is '-1', 
+			   Which indicates that there are no further page tables linked. */
+			int nextPageTableNum = getPageNum((char *) pageTable), size = 0;
 
-		else {
-			int nextPageTableNum = getPageNum((char *) pageTable);
-			int size = 0;
-
-			do {
+			do 
+			{
 				pageTable = (short int*) getPagePtr(nextPageTableNum);
-
-				short int pageNums = getPageCount();
-				short int limit = getByteLimit();
-
+				short int pageNums = getPageCount(), limit = getByteLimit();
 				size += (((pageNums - 1) * PAGESIZE) + limit);
 				nextPageTableNum = getNextPageTableNum();
 
@@ -277,237 +336,311 @@ public:
 			resetPageTblPtr();
 			return size;
 		}
-
 	}
 
 
 
-	/*
-		changeMode takes in argument md
-		changes mode to user's specified mode
-	*/
-	void changeMode(string md) {
-		if (md == "read" || md == "write") {
+	/* This function is invoked when user wants to change mode from which file is
+	   Currently opened in. If the argument is valid (read or write), then it is
+	   Successfully changed, allowing user access to functions that are available
+	   Within that mode. Otherwise, an error message is printed. */
+	void 
+	changeMode (string md) 
+	{
+		if (md == "read" || md == "write") 
+		{
 			mode = md;
-			cout << "File opened: " << filename << ", mode: " << mode << ", size: " << fileSize << " bytes." << endl;
+			cout << "File opened: " << filename << ", mode: " << mode << ", size: " <<
+				 fileSize << " bytes." << endl;
 		}
 		else
 			cout << "Please enter a valid mode (read|write)." << endl;
 	}
 
-
-	string pageTableData(string input, int startPage, int lastPage, int startByte, int limit, int &byteCount, bool read) {
+	/* For the current page table, this function takes in argument to firstly specify 
+	   A read or write operation. If it is a write opeartion, the input string is 
+	   Written into the specified location, otherwise the specified locations' data is
+	   Simply returned to calling function. */
+	string 
+	pageTableData (string input, int startPage, int lastPage, int startByte, int limit,
+		 int &byteCount, bool read) 
+	{
+		/* stores data that is being read. */
 		string data = "";
-        for (int i = startPage + 1; i <= lastPage + 1; i++) {
+
+		/* Value startPage tells the function which page to start iteration from, and
+		   Value lastPage tells upto which page it should go. */
+        for (int i = startPage + 1; i <= lastPage + 1; i++) 
+        {
             page = getPagePtr(*(pageTable + i));
-            
-            if (i != (lastPage + 1)) {
 
-                for (int j = startByte; j < PAGESIZE; j++){
+            /* If the iteration is not on the last page, the the data is read from 
+               Start to end of this page. */
+            if (i != (lastPage + 1)) 
+            {
+            	/* If a starting byte is specified, then for the first page the data
+            	   Is read from this byte onwards. Afterwards it is reset to 0 and
+            	   For every page ahead the data is read from the starting. */
+                for (int j = startByte; j < PAGESIZE; j++)
+                {
                     if (read)
                         data += *(page + j);
                     else
                         *(page + j) = input[byteCount];
+
                     byteCount++;
                 }
                 startByte = 0;
             }
-            else {
 
-                for (int j = startByte; j < limit; j++) {
+            /* If the iteration is on the last page, the the data is read from here upto
+               The defined limit. */
+            else 
+            {
+                for (int j = startByte; j < limit; j++) 
+                {
                     if (read)
                         data += *(page + j);
                     else
                         *(page + j) = input[byteCount];
+
                     byteCount++;
                 }
                 startByte = 0;
             }
-
         }
 		return data;
     }
 
-
-	string alterOnePage(string input, int pageNumber, int startbyte, int limit, bool read) {
+    /* For alterations to data that are within a single page, this function changes/ reads
+       That specific pages' data by starting from a specified byte, and ending at a 
+       Specified byte. */
+	string 
+	alterOnePage (string input, int pageNumber, int startbyte, int limit, bool read) 
+	{
 		string data = "";
 		page = getPagePtr(*(pageTable + pageNumber));
-		for (int i = startbyte; i < limit; i++) {
-			if (read) {
+		for (int i = startbyte; i < limit; i++) 
+		{
+			if (read) 
 				data += *(page + i);
-			}
-			else {
+			else 
 				*(page + i) = input[i - startbyte];
-			}
 		}
 		return data;
 	}
 
-	/*
-		Function read prints out entire content of file
-	*/
-	void read() {
 
-        if (mode != "read") {
+	/* Read function fully displays the content of file. */
+	void 
+	read () 
+	{
+        if (mode != "read") 
+        {
             cout << "Please open file in \"read\" mode for this function." << endl;
             return;
         }
-
-        if (pageTable == NULL) {
+        else if (pageTable == NULL) 
+        {
             cout << "The file has no content to display." << endl;
             return;
         }
+        else 
+        {
+        	/* The current page tables' number is taken and sent into the
+        	   Do...while loop, which runs upto the last page table. It prints
+        	   Data within each page table according to its page count and limit,
+        	   And once this iteration is done, the page table pointer is reset
+        	   To point to the starting table. */
+            int nextPageTableNum = getPageNum((char *) pageTable), temp = 0;
 
-        else {
-            int nextPageTableNum = getPageNum((char *) pageTable);
-            int temp = 0;
-
-            do {
+            do 
+            {
                 pageTable = (short int*) getPagePtr(nextPageTableNum);
-                cout << pageTableData("", 1, getPageCount(), 0, getByteLimit(), temp, true);
+                cout << pageTableData("", 1, getPageCount(), 0, getByteLimit(), temp,
+                	 true);
                 nextPageTableNum = getNextPageTableNum();
 
             } while (nextPageTableNum != -1);
 
-            cout << endl;
-            
+            cout << endl; 
         }
+
 		resetPageTblPtr();
     }
 
 
 
-	/*
-		function readupto takes two arguments starting bite and size of bytes to be read, and
-		prints out the content within that limit.
-	*/
-	string readUpto(int startFrom, int readUpTo) {
+	/* Function readupto takes two arguments starting bite and size of bytes to be read, 
+	   And prints out the content within that limit. */
+	string 
+	readUpto (int startFrom, int readUpTo) 
+	{
 
-		if (mode != "read") {
+		if (mode != "read") 
+		{
 			cout << "Please open file in \"read\" mode for this function" << endl;
 			return "";
 		}
-
-		if (pageTable == NULL) {
+		else if (pageTable == NULL) 
+		{
 			cout << "The file has no content to display." << endl;
 			return "";
 		}
-
-		if ((readUpTo - startFrom > fileSize) || (startFrom + readUpTo > fileSize)) {
-			cout << "Out of bound exception. Given limit exceeds total file limit at " << fileSize << " bytes." << endl;
+		else if ((readUpTo - startFrom > fileSize) || (startFrom + readUpTo > fileSize)) 
+		{
+			cout << "Out of bound exception. Given limit exceeds total file limit at "
+				 << fileSize << " bytes." << endl;
 			return "";
 		}
-
-		string readUptoText = "";
-
-		//	which page number in the page table the byte will belong to
-		int startPage = (startFrom / PAGESIZE) + 1;
-		int startByte = startFrom % PAGESIZE;
-		int endPage = (startFrom + readUpTo) / PAGESIZE + 1;
-		int limit = (startFrom + readUpTo) % PAGESIZE;
-		int readPages = endPage - startPage;
-		bool samePage = startPage == endPage;
-
-		while (startPage > MAXENTRIES) {
-			pageTable = (short int*)getPagePtr(getNextPageTableNum());
-			startPage -= MAXENTRIES;
-		}
-
-		if (samePage)
+		else 
 		{
-			readUptoText += alterOnePage("", startPage + 1, startByte, startByte + readUpTo, true);
-			return readUptoText;
-		}
+			string readUptoText = "";
 
-		for (int i = 0; i < readPages; i++) {
+			//	which page number in the page table the byte will belong to
+			int startPage = (startFrom / PAGESIZE) + 1;
+			int startByte = startFrom % PAGESIZE;
+			int endPage = (startFrom + readUpTo) / PAGESIZE + 1;
+			int limit = (startFrom + readUpTo) % PAGESIZE;
+			int readPages = endPage - startPage;
+			bool samePage = startPage == endPage;
 
-			if (startPage == MAXENTRIES + 1) {
+			while (startPage > MAXENTRIES) 
+			{
+				pageTable = (short int*)getPagePtr(getNextPageTableNum());
+				startPage -= MAXENTRIES;
+			}
+
+			if (samePage)
+			{
+				readUptoText += alterOnePage("", startPage + 1, startByte, startByte 
+					 + readUpTo, true);
+				return readUptoText;
+			}
+
+			for (int i = 0; i < readPages; i++) 
+			{
+				if (startPage == MAXENTRIES + 1) 
+				{
+					pageTable = (short int*)getPagePtr(getNextPageTableNum());
+					startPage = 1;
+					i--;
+					continue;
+				}
+
+				page = getPagePtr(*(pageTable + startPage + 1));
+
+				for (int j = startByte; j < PAGESIZE; j++)
+					readUptoText += *(page + j);
+
+				startByte = 0;
+				startPage++;
+			}
+
+			if (startPage == MAXENTRIES + 1) 
+			{
 				pageTable = (short int*)getPagePtr(getNextPageTableNum());
 				startPage = 1;
-				i--;
-				continue;
 			}
+
 			page = getPagePtr(*(pageTable + startPage + 1));
-			for (int j = startByte; j < PAGESIZE; j++)
+
+			for (int j = 0; j < limit; j++)
 				readUptoText += *(page + j);
 
-			startByte = 0;
-			startPage++;
+			resetPageTblPtr();
+			return readUptoText;
 		}
-
-		if (startPage == MAXENTRIES + 1) {
-			pageTable = (short int*)getPagePtr(getNextPageTableNum());
-			startPage = 1;
-		}
-		page = getPagePtr(*(pageTable + startPage + 1));
-
-		for (int j = 0; j < limit; j++)
-			readUptoText += *(page + j);
-
-		resetPageTblPtr();
-		return readUptoText;
-
 	}
 
 
-	/*
-		promts the user to write data which will be written to opened file
-	*/
-	string getInput() {
-		
-		if (mode != "write") {
+	/* Prompts user to input data for the write functions. It stops taking input once 
+	   The user enters '-1' in a new line and presses enter. */
+	string 
+	getInput () 
+	{
+		if (mode != "write") 
+		{
 			cout << "Please open file in \"write\" mode for this function" << endl;
 			return "";
-		}
-		
-		string input, line;
+		} 
+		else 
+		{
+			string input, line;
+			while (getline(cin, line)) 
+			{
+				if (line == "-1")
+					break;
 
-		while (getline(cin, line)) {
-			if (line == "-1")
-				break;
-			input += line;
-			input += "\n";
-		}
-		
-		input = input.substr(0, input.size() - 1);
+				input += line;
+				input += "\n";
+			}
+			input = input.substr(0, input.size() - 1);
 
-		return input;
+			return input;
+		}
 	}
 
 
-	void assignPages(int start, int last) {
-		for (int i = start + 1; i <= last + 1; i++) {
+	/* Function assigns pages to a file as it is being filled i.e. according to needed
+	   Pages within a page table. It pops a value from free list and assigns it to the
+	   Page table entry. */
+	void 
+	assignPages (int start, int last) 
+	{
+		for (int i = start + 1; i <= last + 1; i++) 
+		{
 			*(pageTable + i) = freeList.top();
 			freeList.pop();
 		}
 	}
 
 
-	void calcLimit(int &neededPages, short int &limit, int inputSize) {
-		limit = inputSize % PAGESIZE;
-
-		if (limit == 0) {
-            limit = PAGESIZE;
-            neededPages = inputSize / PAGESIZE;
+	/* Function calculates the limit and needed pages according to the input size. */
+	void 
+	calcLimit (int &neededPages, short int &limit, int inputSize, int macro) 
+	{
+		limit = inputSize % macro;
+		if (limit == 0) 
+		{
+            limit = macro;
+            neededPages = inputSize / macro;
         }
         else
-            neededPages = inputSize / PAGESIZE + 1;
+            neededPages = inputSize / macro + 1;
 	}
 
 
-
-	void createPageTableAndWriteData(string input, int neededPages, int limit, int &byteCount, int pageTablePageNum) {
-		do {
+	/* For a write operation, once the limit, and needed pages are calculated, this
+	   Function creates page tables up until when there are no more pages needed.
+	   It fills them us as it creates them. */
+	void 
+	createPageTableAndWriteData (string input, int neededPages, int limit, 
+		 int &byteCount, int pageTablePageNum) 
+	{
+		do 
+		{
             pageTable = (short int*) getPagePtr(pageTablePageNum);
 
-            if(neededPages >= MAXENTRIES) {
-
-                if (neededPages != MAXENTRIES) {
+            /* If the needed pages are more than the maximum entries allowed in
+               A page table, then this control branch is taken. It assigns the
+               Pages, writes into them, assigns the page count to be maximum 
+               Entries, and assigns it a new page table it is further linked to. */
+            if(neededPages >= MAXENTRIES) 
+            {
+            	/* It sets the limit according to exact amount of needed pages (if 
+            	   The needed pages are still more, it means the max limit will be 
+            	   Assigned to show that page table is completely filled. Otherwise, 
+            	   The limit of the input is assigned and this page table is not 
+            	   Further linked to another page table). */
+                if (neededPages != MAXENTRIES) 
+                {
                     setByteLimit((short int) PAGESIZE);
                     setNextPageTableNum(freeList.top());
                     freeList.pop();
                 }
-                else {
+                else 
+                {
                     setByteLimit((short int) limit);
                     setNextPageTableNum((short int) -1);
                 }
@@ -519,7 +652,13 @@ public:
                 neededPages -= MAXENTRIES;
                 pageTablePageNum = getNextPageTableNum();
             }
-            else {
+            /* If the needed pages are less than the maximum entries allowed in a
+               Page table, then this control branch is taken. It assigns the pages
+               Needed, writes into them, assigns the page count to be the amount of
+               Pages that were needed in completing the data writing and does not
+               Further link this page table to another one. */
+            else 
+            {
                 setByteLimit((short int) limit);
                 setPageCount((short int) neededPages);
                 assignPages(1, neededPages);
@@ -530,487 +669,489 @@ public:
 
         } while (neededPages != 0);
 
-        assert(byteCount == input.length());
+        assert (byteCount == input.length());
 	}
 
-	/*
-		function write checks if file is empty or not. If it is a new file then it starts to write from the start,
-		else it starts to append from the last byte of file.
-	*/
-	void write(string input) {
 
-		if (mode != "write") {
-			cout << "Please open file in \"write\" mode for this function" << endl;
-			return;
-		}
+	/* Write function is invoked whenever user wishes to write into a new file or to
+	   Append to an existing file. */
+	void 
+	write(string input) 
+	{
 
-        int neededPages = 0;
+		int neededPages = 0, byteCount = 0;
         short int limit;
 
-		if (pageTable == NULL) {
+		if (mode != "write") 
+		{
+			cout << "Please open file in \"write\" mode." << endl;
+			return;
+		}
+		else if (input.size() > (freeList.size() * PAGESIZE)) 
+        {
+            cout << "Not enough memory available. Please reduce input size or delete 
+            	 other files." << endl;
+            return;
+        }
 
-            if (input.size() > (freeList.size() * PAGESIZE)) {
-                cout << "Out of memory...Please reduce input size or delete other files" << endl;
-                return;
-            }
-
-            //If it is a new file
+		/* If it is a new file i.e. empty, then this control branch is taken. */
+		else if (pageTable == NULL) 
+		{
+			/* Assigns this file a new page table. */
             short int pageTablePageNum = freeList.top();
             freeList.pop();
-
             char* page = getPagePtr(pageTablePageNum);
             current->files[getFileNo(filename)]->pgTblPtr = (short int*) page;
             pageTable = (short int*) page;
-            calcLimit(neededPages, limit, input.length());
 
-            int byteCount = 0;
-            
-            createPageTableAndWriteData(input, neededPages, limit, byteCount, pageTablePageNum);
-
+            /* Calculates needed pages and limit, then it calls onto function which
+               Handles creating page tables and writing process according to amount
+               Of needed pages. */
+            calcLimit(neededPages, limit, input.length(), PAGESIZE);
+            createPageTableAndWriteData(input, neededPages, limit, byteCount, 
+            	 pageTablePageNum);
         }
 
-        else {
-
+        /* If it is a not new file, then this control branch is taken (append). */
+        else 
+        {
+        	/* Iterates to the last page table that is assigned to this file. */
             resetPageTblPtr();
-            int byteCount = 0;
-
-            while (getNextPageTableNum() != -1) {
+            while (getNextPageTableNum() != -1) 
                 pageTable = (short int*) getPagePtr(getNextPageTableNum());
-            }
 
-            int freeSpace = (MAXENTRIES * PAGESIZE) - (((getPageCount() - 1) * PAGESIZE) + getByteLimit());
-            calcLimit(neededPages, limit, (int) (input.length() - (PAGESIZE - getByteLimit())));
+            /* Checks for available space in this page table, and calculates
+               Needed pages and limit for this input. */
+            int freeSpace = (MAXENTRIES * PAGESIZE) - (((getPageCount() - 1) * PAGESIZE)
+            	 + getByteLimit());
+            calcLimit(neededPages, limit, (int) (input.length() - (PAGESIZE - 
+            	 getByteLimit())), PAGESIZE);
 
-            if (freeSpace >= input.length()) {
-				
-				if (input.length() < PAGESIZE - getByteLimit()) {
-					alterOnePage(input, getPageCount() + 1, getByteLimit(), input.length() + getByteLimit(), false);
+            /* If the available space is more than the input size, then only the 
+               Current page table must be filled upto the needed amount. */
+            if (freeSpace >= input.length()) 
+            {
+				/* If the input size is less than the space available within
+				   A single page, then only this page must be written in. */
+				if (input.length() < PAGESIZE - getByteLimit()) 
+				{
+					alterOnePage(input, getPageCount() + 1, getByteLimit(), 
+						 input.length() + getByteLimit(), false);
 					setByteLimit(input.length() + getByteLimit());
-					resetPageTblPtr();
-					fileSize = getFileSize();
-					if (printInfo)
-						cout << "Updated file size: " << fileSize << endl;
-					return;
-				}
-                assignPages(getPageCount() + 1, getPageCount() + neededPages);
-                pageTableData(input, getPageCount(), getPageCount() + neededPages, getByteLimit(), limit + 1, byteCount, false);
-                setByteLimit(limit);
-                setPageCount(getPageCount() + neededPages);
+				} 
+				/* If the input size is more than the space available within a single
+				   Page, then however many pages needed ahead are assigned, and the
+				   Writing process is handled by calling pageTableData function. */
+				else 
+				{
+	                assignPages(getPageCount() + 1, getPageCount() + neededPages);
+	                pageTableData(input, getPageCount(), getPageCount() + neededPages, 
+	                	 getByteLimit(), limit + 1, byteCount, false);
+	                setByteLimit(limit);
+	                setPageCount(getPageCount() + neededPages);
+            	}
             }
-            else {
-                //fill up this page table from byte till end,
-                //then make new page tables and fill em up until input is complete
+            /* If the available space is less than the input size, then more page
+               Tables will be need to assigned according to needed pages, so this
+               Control branch is taken. */
+            else 
+            {
                 assignPages(getPageCount() + 1, MAXENTRIES);
-                pageTableData(input, getPageCount(), MAXENTRIES, getByteLimit(), PAGESIZE, byteCount, false);
+                pageTableData(input, getPageCount(), MAXENTRIES, getByteLimit(), 
+                	 PAGESIZE, byteCount, false);
                 neededPages -= (MAXENTRIES - getPageCount());
                 setByteLimit(PAGESIZE);
                 setPageCount(MAXENTRIES);
                 setNextPageTableNum(freeList.top());
                 freeList.pop();
-
                 int pageTablePageNum = getNextPageTableNum();
-
-                createPageTableAndWriteData(input, neededPages, limit, byteCount, pageTablePageNum);
-
+                createPageTableAndWriteData(input, neededPages, limit, byteCount, 
+                	 pageTablePageNum);
             }
-
         }
 
-		resetPageTblPtr();
 		fileSize = getFileSize();
-		if(printInfo)
+		if (printInfo)
 			cout << "Updated file size: " << fileSize << endl;
-
 	}
 
 
-
-	/*
-		function writeAt takes in positional byte as argumnent where the over writing should begin from,
-		truncates the file to that size and starts writing from that position.
-	*/
-	void writeAt(string data, int writeAt) {
-
-		if (mode != "write") {
+	/* WriteAt function is invoked whenever user wishes to write into file at a
+	   Specific (over writing). */
+	void 
+	writeAt (string data, int writeAt) 
+	{
+		if (mode != "write") 
+		{
 			cout << "Please open file in \"write\" mode for this function" << endl;
 			return;
 		}
-
-		if (pageTable == NULL) {
+		else  if (pageTable == NULL) 
+		{
 			cout << "Invalid command. Cannot call 'Write At' on an empty file." << endl;
 			return;
 		}
-
-		if (writeAt > fileSize) {
-			cout << "Out of bound exception. Given byte is greater than file size of" << fileSize << " bytes." << endl;
+		else if (writeAt > fileSize) 
+		{
+			cout << "Out of bound exception. Given byte is greater than file size of" 
+				<< fileSize << " bytes." << endl;
 			return;
 		}
-
-		if (data.length() + writeAt > fileSize) {
+		else if (data.length() + writeAt > fileSize) 
+		{
 			truncate(writeAt - 1);
 			write(data);
 			return;
 		}
-
-		mode = "read";
-		string after = readUpto(writeAt + data.length() - 1, fileSize - (writeAt + data.length()) + 1);
-		mode = "write";
-		truncate(writeAt - 1);
-		write(data + after);
+		else 
+		{
+			mode = "read";
+			string after = readUpto(writeAt + data.length() - 1, fileSize - (writeAt + 
+				 data.length()) + 1);
+			mode = "write";
+			truncate(writeAt - 1);
+			write(data + after);
+		}
 	}
 
 
-
-	/*
-		function truncate takes in size as integer to which the file size must be reduced to,
-		and updates the file to be that size and deletes the rest of it.
-	*/
-	void truncate(int size) {
-
-		if (mode != "write") {
+	/* Truncate takes the size that the current file must be reduced to, and
+	   Essentially 'deletes' from that point onwards. */
+	void 
+	truncate (int size) 
+	{
+		if (mode != "write") 
+		{
 			cout << "Please open file in \"write\" mode for this function" << endl;
 			return;
 		}
-
-		if (size > fileSize) {
-			cout << "Out of bound exception. Given byte is greater than file size of" << fileSize << " bytes." << endl;
+		else if (size > fileSize) 
+		{
+			cout << "Out of bound exception. Given byte is greater than file size of "
+				 << fileSize << " bytes." << endl;
 			return;
 		}
+		else
+		{
+			short int reduceTo = size;
+            resetPageTblPtr();
 
-		resetPageTblPtr();
-        int pageNumOfGivenByte;
+            /* First calculate the page number in all the page tables where this given
+               Size ends. */
+            int pageNumOfGivenByte;
+            calcLimit(pageNumOfGivenByte, reduceTo, size, PAGESIZE);
+            short int pageNumOfGivenB = (short int) pageNumOfGivenByte;
+            
+            /* Calculate the page table number in all the page tables where this page
+               Will be located. */
+            int whichPageTable;
+            calcLimit(whichPageTable, pageNumOfGivenB, pageNumOfGivenByte, MAXENTRIES);
 
-        if (size % PAGESIZE == 0)
-            pageNumOfGivenByte = size / PAGESIZE;
-        else
-            pageNumOfGivenByte = size / PAGESIZE + 1;
-
-        
-        int whichPageTable;
-
-
-        if (pageNumOfGivenByte % MAXENTRIES == 0)
-            whichPageTable = pageNumOfGivenByte / MAXENTRIES;
-        else
-            whichPageTable = pageNumOfGivenByte / MAXENTRIES + 1;
-
-
-        int nextPageTableNum = getPageNum((char *) pageTable);
-        
-        
-        if (size % PAGESIZE == 0)
-            size = PAGESIZE;
-        else
-            size = size % PAGESIZE;
-        
-        
-        if (pageNumOfGivenByte % MAXENTRIES == 0)
-            pageNumOfGivenByte = MAXENTRIES;
-        else
-            pageNumOfGivenByte = pageNumOfGivenByte % MAXENTRIES;
-
-        
-        for (int i = 1; i < whichPageTable; i++) {
+            /* Gets current page table number, and iterates until the page table with
+               The desired page is reached. */
+            int nextPageTableNum = getPageNum((char *) pageTable);
+            for (int i = 1; i < whichPageTable; i++)
+            {
+                pageTable = (short int*) getPagePtr(nextPageTableNum);
+                nextPageTableNum = getNextPageTableNum();
+            }
+            
+            /* Pointer to this page table is obtained, and all remaining pages in this
+               Page table are added back to free list. */
             pageTable = (short int*) getPagePtr(nextPageTableNum);
-            nextPageTableNum = getNextPageTableNum();
-        }
-        
-        pageTable = (short int*) getPagePtr(nextPageTableNum);
-        
-        setByteLimit(size);
-        setPageCount(pageNumOfGivenByte);
-
-        for (int i = pageNumOfGivenByte + 2; i < LASTENTRY; i++)
-            freeList.push(*(pageTable + i));
-
-        nextPageTableNum = getNextPageTableNum();
-        setNextPageTableNum((short int) -1);
-
-        while (nextPageTableNum != -1) {
-            pageTable = (short int*) getPagePtr(nextPageTableNum);
-
-            for (int i = 2; i <= getPageCount() + 1; i++)
+            for (int i = pageNumOfGivenB + 2; i <= getPageCount() + 1; i++)
                 freeList.push(*(pageTable + i));
 
-            freeList.push(nextPageTableNum);
+            /* This page tables' limit, page count, and next page table number are
+               Updated according to its reduced size. Next page table number is set
+               To -1 to indicate no further linking. */
+            setByteLimit(reduceTo);
+            setPageCount(pageNumOfGivenB);
             nextPageTableNum = getNextPageTableNum();
-        }
+            setNextPageTableNum((short int) -1);
 
+	        /* For as long as there are linked page tables ahead, this loop goes into
+	           Each one and adds all their pages into free list, and at the end adds
+	           The page tables' page number to the free list as well. */
+	        while (nextPageTableNum != -1) 
+	        {
+	            pageTable = (short int*) getPagePtr(nextPageTableNum);
 
-        resetPageTblPtr();
-        //update file size
-        fileSize = getFileSize();
-        if (printInfo)
-            cout << "File size reduced to " << fileSize << " bytes." << endl;
+	            for (int i = 2; i <= getPageCount() + 1; i++)
+	                freeList.push(*(pageTable + i));
+
+	            freeList.push(nextPageTableNum);
+	            nextPageTableNum = getNextPageTableNum();
+	        }
+
+	        fileSize = getFileSize();
+	        if (printInfo)
+	            cout << "File size reduced to " << fileSize << " bytes." << endl;
+	    }
     }
 
 
-
-	/*
-		Move within is a cut paste function within the file. It takes 3 arguments from (starting byte),
-		size (how many bytes to be cut starting from), and to (where the chunk should be pasted).
-	*/
-	void moveWithin(int from, int size, int to) {
-
+	/* Move within is invoked for a cut paste action where user specifies where to cut
+	   From, for how many bytes (size of text chunk that must be cut), and where it
+	   Should be pasted. */
+	void 
+	moveWithin (int from, int size, int to) 
+	{
 		fileSize = getFileSize();
 
-		if ((to > from && to < from + size) || to < 0 || from < 0 || size < 0) {
-			cout << "Invalid byte arguments" << endl;
+		if ((to > from && to < from + size) || to < 0 || from < 0 || size < 0) 
+		{
+			cout << "Invalid byte arguments." << endl;
 			return;
 		}
-		if (mode != "write") {
-			cout << "Please open file in \"write\" mode for this function" << endl;
+		else if (mode != "write") 
+		{
+			cout << "Please open file in \"write\" mode." << endl;
 			return;
 		}
-
-
-		if (pageTable == NULL) {
+		else if (pageTable == NULL) 
+		{
 			cout << "Invalid command. Cannot call 'Write At' on an empty file." << endl;
 			return;
 		}
-
-		if (from + size > fileSize) {
-			cout << "Out of bound exception. Specified chunk exceeds out of file size of" << fileSize << " bytes." << endl;
+		else if (from + size > fileSize) 
+		{
+			cout << "Out of bound exception. Specified chunk exceeds out of file size
+				 of " << fileSize << " bytes." << endl;
 			return;
 		}
-	
-		mode = "read";
-		//if data is further ahead
-		if (to > from) {
-
-			string cutText = readUpto(from - 1, size);
-			string middleText = readUpto(from + size - 1, to - (from + size));
-			string endText = readUpto(to - 1, fileSize - to + 1);
-			string writeData = middleText + cutText + endText;
-			mode = "write";
-			printInfo = false;
-			writeAt(writeData, from);
-			printInfo = true;
-
+		else
+		{
+			mode = "read";
+			/* If the paste position is ahead of the cut position. */
+			if (to > from) 
+			{
+				string cutText = readUpto(from - 1, size);
+				string middleText = readUpto(from + size - 1, to - (from + size));
+				string endText = readUpto(to - 1, fileSize - to + 1);
+				string writeData = middleText + cutText + endText;
+				mode = "write";
+				printInfo = false;
+				writeAt(writeData, from);
+				printInfo = true;
+			}
+			/* If the paste position is before the cut position. */
+			else 
+			{
+				string cutText = readUpto(from - 1, size);
+				string topText = readUpto(to - 1, from - to);
+				string endText = readUpto(from + size - 1, fileSize - from - size);
+				string writeData = cutText + topText + endText;
+				mode = "write";
+				printInfo = false;
+				writeAt(writeData, to);
+				printInfo = true;
+			}
+			resetPageTblPtr();
 		}
-		// if data is moved prior to its original position
-		else {
-			string cutText = readUpto(from - 1, size);
-			string topText = readUpto(to - 1, from - to);
-			string endText = readUpto(from + size - 1, fileSize - from - size);
-			string writeData = cutText + topText + endText;
-			mode = "write";
-			printInfo = false;
-			writeAt(writeData, to);
-			printInfo = true;
-		}
-		resetPageTblPtr();
-		return;
-
-
 	}
-
 };
 
 
+/* Traverses tree according to given path. If a folder within the path is not found, 
+   The loop is exited, and the boolean found is set to false. */
+bool
+traverseTree (int i, vector<string> tokens)
+{
+	for (i; i < tokens.size() - 1; i++)
+    {
+        if (tokens[i] == "..")
+        {
+            if (tempFolder->parent == NULL)
+            {
+                cout << "Parent of root does not exist." << endl;
+                return false;
+            }
+            tempFolder = tempFolder->parent;
+        }
+        else
+        {
+            bool folderFound = folderExists(tokens[i]);
+            if (!folderFound)
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
 
 
-
-/*
-	fucntion createFolder accepts argument path
-	treverses the tree from current path and if the path exists
-	creates a node for subdirectory
-*/
-void createFolder(string path) {
-
+/* Fucntion createFolder accepts argument path for folder creation traverses the tree
+   From current path, and if the path exists it creates a node for subdirectory. */
+void 
+createFolder (string path) 
+{
 	bool createable = true;
 	tempFolder = current;
 	vector<string> tokens = tokenize(path, '/');
 
-	if (tokens.size() == 0) {
+	if (tokens.size() == 0) 
+	{
 		cout << "Invalid path entered." << endl;
 		return;
 	}
+	else {
+		createable = traverseTree(0, tokens);
 
-	for (int i = 0; i < tokens.size() - 1; i++) {
-
-		if (tokens[i] == "..")
-			tempFolder = tempFolder->parent;
-
-		else {
-
-			bool folderFound = folderExists(tokens[i]);
-
-			if (!folderFound) {
-				createable = false;
-				break;
-			}
-
+		/* If the path exists, a folder of the same name does not already exist, and
+		   The name of the folder is neither '.' nor '..', then a folder at the 
+		   Specified path is successfully created. */
+		if (createable && !folderExists(tokens.back()) && (tokens.back() != "." ||
+			 tokens.back() != "..")) 
+		{
+			tempFolder->subdir.push_back(new Folder(tokens.back()));
+			tempFolder->subdir.back()->parent = tempFolder;
 		}
-
+		else
+			cout << "Error: cannot create directory in specified path." << endl;
 	}
-
-	if (createable && !folderExists(tokens.back()) && (tokens.back() != "." || tokens.back() != "..")) {
-
-		tempFolder->subdir.push_back(new Folder(tokens.back()));
-		tempFolder->subdir.back()->parent = tempFolder;
-
-	}
-	else
-		cout << "Error: cannot create directory in specified path." << endl;
-
 }
 
 
-
-/*
-	fucntion listDir lists all nodes of files and folders
-	in current working directory
-*/
-void listDir() {
-
-	if (current->subdir.size() == 0 && current->files.size() == 0) {
-		cout << "Directory is empty." << endl;
-		return;
-	}
-
-	for (int i = 0; i < current->subdir.size(); i++)
-		cout << current->subdir[i]->dirName << "\t";
-
-	for (int i = 0; i < current->files.size(); i++)
-		cout << current->files[i]->name << "\t";
-
-	cout << endl;
-}
-
-
-
-/*
-	function changeDir accepts argument path
-	traverses the tree related to current directory and if path exists
-	updates the current working directory to specified path
-*/
-void changeDir(string path) {
-
+/* Function changeDir accepts argument path traverses the tree related to current 
+   Directory and if path exists updates the current working directory to specified 
+   Path. */
+void 
+changeDir (string path) 
+{
 	bool changable = true;
 	vector<string> tokens = tokenize(path, '/');
 
-	if (tokens.size() == 0) {
+	if (tokens.size() == 0) 
+	{
 		cout << "Invalid path entered." << endl;
 		return;
 	}
+	else 
+	{
+		tempFolder = current;
+		int i = 0;
 
-	tempFolder = current;
-	int i = 0;
+		/* If the first token is '.', then it works in current directory. */
+		if (tokens[0] == ".")
+			i = 1;
 
-	if (tokens[0] == ".")
-		i = 1;
+		changable = traverseTree(i, tokens);
 
-	for (i; i < tokens.size(); i++) {
-
-		if (tokens[i] == "..") {
-
-			if (tempFolder->parent == NULL) {
-				cout << "Parent of root does not exist." << endl;
-				return;
-			}
-
-			tempFolder = tempFolder->parent;
-		}
-
-		else {
-			bool folderFound = folderExists(tokens[i]);
-
-			if (!folderFound) {
-				changable = false;
-				break;
-			}
-		}
+		if (changable)
+			current = tempFolder;
+		else
+			cout << "Error: cannot change directory to specified path." << endl;
 	}
+}
 
-	if (changable)
-		current = tempFolder;
-	else
-		cout << "Error: cannot change directory to specified path." << endl;
 
+/* Lists all the files and folders in the current working directory. */
+void 
+listDir () 
+{
+	if (current->subdir.size() == 0 && current->files.size() == 0) 
+	{
+		cout << "Directory is empty." << endl;
+		return;
+	}
+	else 
+	{
+		for (int i = 0; i < current->subdir.size(); i++)
+			cout << current->subdir[i]->dirName << "\t";
+
+		for (int i = 0; i < current->files.size(); i++)
+			cout << current->files[i]->name << "\t";
+
+		cout << endl;
+	}
 }
 
 
 
-/*
-	checked if given string is numbers or not
-*/
-bool isNumber(string s) {
-
+/* Checks if the given string is a number. */
+bool 
+isNumber (string s) 
+{
 	for (int i = 0; i < s.length(); i++)
 		if (isdigit(s[i]) == false)
 			return false;
-
 	return true;
-
 }
 
 
 
-/*
-	creates node for file and pushes it into its parent directory.
-	this does not assign any pages to the file
-*/
-void create(string filename) {
+/* Creates a file node at the current working directory and pushes it into its' files
+   List. This does not assign any pages. */
+void 
+create (string filename) 
+{
 	filename += ".txt";
 
 	if (!fileExists(filename)) 
 		current->files.push_back(new FileNode(filename));
 	else
 		cout << "A file of same name already exists." << endl;
-
 }
 
 
 
-/*
-	the function locateFile takes in tokenized path and a check if working is for destination file,
-	traverses the path to find specified file in tokens. If the path exists, the fucntion updates pointers to tempFile.
-	If the path exists and file does not exists and its a destination file, the function creates the file.
-*/
-void locateFile(vector<string> tokens, bool destFile) {
-
+/* The function locateFile takes in tokenized path and a check if working is for
+   Destination file. Iraverses the path to find specified file in tokens. If the path
+   Exists, the fucntion updates pointers to tempFile.cIf the path exists, file does
+   Not exist, and its a destination file, the function creates the file. */
+void 
+locateFile (vector<string> tokens, bool destFile) 
+{
 	found = true;
 	tempFolder = current;
 	int i = 0;
 
+	/* If the first token is '.', then it works in current directory. */
 	if (tokens[0] == ".")
 		i = 1;
 
-	for (i; i < tokens.size(); i++) {
-
-		if (tokens[i] == "..") {
-
-			if (tempFolder->parent == NULL) {
+	for (i; i < tokens.size(); i++) 
+	{
+		if (tokens[i] == "..") 
+		{
+			if (tempFolder->parent == NULL) 
+			{
 				cout << "Parent of root does not exist." << endl;
 				found = false;
 				return;
 			}
-
 			tempFolder = tempFolder->parent;
-
 		}
-		else {
-
-			if (i != tokens.size() - 1) {
+		else 
+		{
+			/* If the current token isnt the last one (file name), then check if folder
+			   Exists. If it does not, then the path given is invalid, so function is
+			   Exited. */
+			if (i != tokens.size() - 1) 
+			{
 				bool checkFolder = folderExists(tokens[i]);
-
-				if (!checkFolder) {
-					cout << "Invalid path. A folder in the specified path does not exist." << endl;
+				if (!checkFolder) 
+				{
+					cout << "Invalid path. A folder in the specified path does not
+						 exist." << endl;
 					found = false;
 					return;
 				}
-
 			}
-			else {
-
-				// in case it is found
-				if (fileExists(tokens[i])) {
+			/* If the current token is the last one i.e. file name, then check if file
+			   Exists. If it does not, then check if working with destination file, in
+			   Which case, make the file at the specified location. */
+			else 
+			{
+				/* In case it exists. */
+				if (fileExists(tokens[i])) 
+				{
 					found = true;
 					return;
 				}
-
-				// in case it is a destination file and it does not exist yet
+				/* In case it is a destination file and it does not exist yet. */
 				else if (destFile) {
 					cout << "Creating destination file..." << endl;
 					current = tempFolder;
@@ -1021,29 +1162,24 @@ void locateFile(vector<string> tokens, bool destFile) {
 					found = true;
 					return;
 				}
-
-				// in case it is a source file and is not found
+				/* In case it is a source file and it does not exist. */
 				else if (!destFile) {
 					cout << "The specified file does not exist." << endl;
 					found = false;
 					return;
 				}
-
 			}
-
 		}
 	}
-
 }
 
 
 
-/*
-	takes in two arguments source file path and destination file path
-	copies the source file to destination file
-*/
-void move(string srcPath, string destPath) {
-
+/* Takes in two paths for source and destination file, and moves the source file to
+   The Destination file. */
+void 
+move (string srcPath, string destPath) 
+{
 	vector<string> tokenSrcFile = tokenize(srcPath, '/');
 	vector<string> tokenDestFile = tokenize(destPath, '/');
 
@@ -1051,9 +1187,11 @@ void move(string srcPath, string destPath) {
 	FileNode* srcFile, * destFile;
 	Folder* srcFolder, * destFolder;
 
+	/* Checks if source file exists, in which case it records its variables. */
 	locateFile(tokenSrcFile, false);
 	bool srcFileFound = found;
-	if (srcFileFound) {
+	if (srcFileFound) 
+	{
 		srcFile = tempFile;
 		srcFolder = tempFolder;
 		srcPos = filePosDir;
@@ -1061,10 +1199,11 @@ void move(string srcPath, string destPath) {
 	else
 		return;
 
-
+	/* Checks if destination file exists, in which case it records its variables. */
 	locateFile(tokenDestFile, true);
 	bool destFileFound = found;
-	if (destFileFound) {
+	if (destFileFound) 
+	{
 		destFile = tempFile;
 		destFolder = tempFolder;
 		destPos = filePosDir;
@@ -1072,9 +1211,12 @@ void move(string srcPath, string destPath) {
 	else
 		return;
 
-
-	if (srcFile != destFile) {
-		if (destFile->pgTblPtr != NULL) {
+	/* Checks if both specified files are not the same, because for a cut paste within
+	   The same file, the move within function should be invoked. */
+	if (srcFile != destFile) 
+	{
+		if (destFile->pgTblPtr != NULL) 
+		{
 			current = destFolder;
 			File openFile(tokenDestFile[tokenDestFile.size() - 1], "write", false);
 			openFile.truncate(0);
@@ -1083,73 +1225,73 @@ void move(string srcPath, string destPath) {
 		destFile->pgTblPtr = srcFile->pgTblPtr;
 		srcFile->pgTblPtr = NULL;
 		(srcFolder->files).erase(srcFolder->files.begin() + srcPos);
-
-
 	}
-	else {
-		cout << "Invalid Arguments. To move within a file, plese open the file first." << endl;
+	else 
+	{
+		cout << "Invalid Arguments. To move within a file, plese open the file first."
+			 << endl;
 		return;
 	}
-
 }
 
 
 
-/*
-	function deleteFile accepts argument filename
-	goes to its page table and pushes all the pages to free list
-	and removes the file node from parent node.
-*/
-void deleteFile(string filename) {
-
-	if (!fileExists(filename)) {
+/* Takes in file name as an argument. Works on current working directory. If a file
+   Of the same name exists, it is deleted. */
+void 
+deleteFile (string filename) 
+{
+	/* If a file of the given name does not exist in current working directory. */
+	if (!fileExists(filename)) 
+	{
 		cout << "Error: file does not exist" << endl;
 		return;
 	}
-	else {
-
+	else 
+	{
+		/* Get page table pointer of this file, and open the file. */
 		short int* pageTable = current->files[getFileNo(filename)]->pgTblPtr;
 		File delFile(filename, "read", false);
-		stack <int> temp;
 
-		if (pageTable != NULL) {
-			
+		/* If the file is not empty, then start deletion process. */
+		if (pageTable != NULL) 
+		{
+			/* Get page number of current page table and send into the do...while which
+			   Gets a pointer to the given page table, iterates over each page in the 
+			   Page table according to its page count, and pushes them into temp stack,
+			   Pushes the page tables' page into temp stack, and does this until no
+			   More page tables are left. */
 			int nextPageTableNum = getPageNum((char *) pageTable);
-
-			do {
+			do 
+			{
 				pageTable = (short int*) delFile.getPagePtr(nextPageTableNum);
 				delFile.setPageTablePtr(pageTable);
 				short int pageNums = delFile.getPageCount();
 
 				for (int i = 2; i <= pageNums + 1; i++)
-					temp.push(*(pageTable + i));
+					freeList.push(*(pageTable + i));
 
 				nextPageTableNum = delFile.getNextPageTableNum();
 
 			} while (nextPageTableNum != -1);
 
-			freeList.push(getPageNum((char *) current->files[getFileNo(filename)]->pgTblPtr));
-
-			while (!temp.empty()) {
-				freeList.push(temp.top());
-				temp.pop();
-			}
-
+			freeList.push(getPageNum((char *) current->files[getFileNo(filename)]->
+					 pgTblPtr));
 		}
 
-		current->files.erase(current->files.begin() + getFileNo(filename));
-		
+		current->files.erase(current->files.begin() + getFileNo(filename));	
 	}
-
 }
 
 
 
-//Prints the path of given node from root node
-string pathFromRoot(Folder* dir) {
+/* Returns string path from root upto the current working directory. */
+string 
+pathFromRoot (Folder* dir) 
+{
 	string path = dir->dirName;
-
-	while (dir->parent != NULL) {
+	while (dir->parent != NULL) 
+	{
 		path = dir->parent->dirName + "/" + path;
 		dir = dir->parent;
 	}
@@ -1157,10 +1299,10 @@ string pathFromRoot(Folder* dir) {
 }
 
 
-
-//list details of all the files in the given directory
-void listFiles(Folder* dir) {
-
+/* Lists all files in current directory along with their information. */
+void 
+listFiles (Folder* dir) 
+{
 	if (dir->files.size() == 0)
 		return;
 
@@ -1168,99 +1310,104 @@ void listFiles(Folder* dir) {
 	int totalPages = 0;
 	string name, pgnums = "", limit, disp = "{\n\t";
 
-	for (int i = 0; i < dir->files.size(); i++) {
+	for (int i = 0; i < dir->files.size(); i++) 
+	{
 		name = dir->files[i]->name;
 
-		if (dir->files[i]->pgTblPtr != NULL) {
-			pgTbl = dir->files[i]->pgTblPtr;
-			int j;
+		if (dir->files[i]->pgTblPtr != NULL) 
+		{
+			File openFile(dir->files[i]->name, "read", false);
+            pgTbl = dir->files[i]->pgTblPtr;
+            int nextPageTableNum = getPageNum((char *) pgTbl), temp = 0;
 
-			for (j = 0; *(pgTbl + j + 1) == -1; j += 2) {
-				totalPages++;
-				pgnums += to_string(*(pgTbl + j)) + ", ";
-			}
+            do
+            {
+                pgTbl = (short int*) openFile.getPagePtr(nextPageTableNum);
+                openFile.setPageTablePtr(pgTbl);
 
-			pgnums += to_string(*(pgTbl + j)) + " ";
-			limit = to_string(*(pgTbl + j + 1));
+                for (int i = 2; i <= openFile.getPageCount() + 1; i++)
+                    pgnums += to_string(*(pgTbl + i)) + ", ";
 
+                nextPageTableNum = openFile.getNextPageTableNum();
+
+            } while (nextPageTableNum != -1);
+
+            pgnums = pgnums.substr(0, pgnums.size() - 3);
+            limit = to_string(openFile.getByteLimit());
+            disp += "Name: " + name + "\n\tPage numers: " + pgnums + "\n\tLimit on
+            	 last page: " + limit + "\n\tTotal file size: " + 
+            	 to_string(openFile.getFileSize()) + "\n\tPath: " + pathFromRoot(dir) 
+            	 + "\n}\n";
 		}
-		else {
-
-			pgnums = "empty";
-			limit = "-";
-		}
-		if (pgnums != "empty")
-			disp += "Name: " + name + "\n\tPage numers: " + pgnums + "\n\tLimit on last page: " + limit + "\n\tTotal file size: " + to_string((totalPages * PAGESIZE) + stoi(limit)) + "\n\tPath: " + pathFromRoot(dir) + "\n\n";
-		else
-			disp += "Name: " + name + "\n\tPage numers: " + pgnums + "\n\tLimit on last page: " + limit + "\n\tTotal file size: 0\n\tPath: " + pathFromRoot(dir) + "\n}\n";
+		else 
+		{
+			disp += "Name: " + name + "\n\tPage numers: empty\n\tLimit on last page:
+				 -\n\tTotal file size: 0\n\tPath: " + pathFromRoot(dir) + "\n}\n";
+		}	
 	}
+
 	cout << disp;
 }
 
 
-//Traverses to every folder node and calls listFiles for every folder node 
-void memMap(Folder* dir) {
-
+/* Recursive function for memory map. Lists all files in a directory, then is called
+   On each subdirectory. */
+void 
+memMap (Folder* dir) 
+{
 	listFiles(dir);
 
 	if (dir->subdir.size() == 0)
 		return;
 
-	for (int i = 0; i < dir->subdir.size(); i++) {
+	for (int i = 0; i < dir->subdir.size(); i++)
 		memMap(dir->subdir[i]);
-	}
-
 }
 
 
-
-
-
-/*
-	function getChildren accepts argument of folder node
-	concatenate info about all child nodes of given folder node
-	into string "out" which will be written in .dat file
-*/
-void getChildren(Folder* dir) {
+/* Function getChildren accepts argument of folder node concatenate info about all 
+   Child nodes of given folder node into 'out' which will be written in .dat file. */
+void 
+getChildren (Folder* dir) 
+{
 	current = dir;
 	tempFolder = dir;
 
-	for (int i = 0; i < dir->subdir.size(); i++) {
+	for (int i = 0; i < dir->subdir.size(); i++) 
 		out += "D\t" + pathFromRoot(dir->subdir[i]) + "\n";
-	}
-	for (int i = 0; i < dir->files.size(); i++) {
+	
+	for (int i = 0; i < dir->files.size(); i++) 
+	{
 		out += "F\t" + pathFromRoot(dir) + "/" + dir->files[i]->name + "\n";
 
-		if (dir->files[i]->pgTblPtr != NULL) {
+		if (dir->files[i]->pgTblPtr != NULL) 
+		{
 			File openFile(dir->files[i]->name, "read", false);
 			out += "-1\n";
 			out += openFile.readUpto(0, openFile.getFileSize()) + "\n";
 			out += "-1\n";
 		}
 	}
-
 }
 
 
 
-/*
-	function end writes the tree into .dat file
-*/
-void end(Folder* dir) {
-
+/* Writes memory structure tree into .dat file. Called at the end of the program. */
+void 
+end (Folder* dir) 
+{
 	getChildren(dir);
 	for (int i = 0; i < dir->subdir.size(); i++)
 		end(dir->subdir[i]);
-
 }
 
 
 
-/*
-	function readDat reads .dat file and makes the tree structure for files and directories
-*/
-void readDat() {
-
+/* Reads the given .dat file, reloads the entire memory structure and writes into
+   Files as given in the file. */
+void 
+readDat () 
+{
 	ifstream datIn;
 	vector<string> lineTokens, fileFolder, tokenizedFileName, folderPath;
 	string line, fileName, content;
@@ -1274,87 +1421,89 @@ void readDat() {
 		freeList.push(i);
 
 
-	while (getline(datIn, line)) {
-
+	while (getline(datIn, line)) 
+	{
 		current = rootFolder;
 
-		if (line[0] == 'D') {
-
+		if (line[0] == 'D') 
+		{
 			lineTokens = tokenize(line, '\t');
 			folderPath = tokenize(lineTokens[1], '/');
 
-			//Remove "root" from path since current directory is already root
+			/* Remove "root" from path since current directory is already root */
 			folderPath.erase(folderPath.begin());
 			line = "";
 
-			//serializing tokens of path to string
-			for (int i = 0; i < folderPath.size(); i++) {
+			/* Serializing tokens of path to string */
+			for (int i = 0; i < folderPath.size(); i++) 
 				line += folderPath[i] + "/";
-			}
 
 			createFolder(line);
 			line = "";
 
 		}
-		else if (line[0] == 'F') {
-
+		else if (line[0] == 'F') 
+		{
 			lineTokens = tokenize(line, '\t');
 			fileFolder = tokenize(lineTokens[1], '/');
 
 			fileName = fileFolder.back();
 
-			//remove .txt from file name
+			/* Remove .txt from file name */
 			tokenizedFileName = tokenize(fileName, '.');
 			fileName = tokenizedFileName[0];
 
-			//remove root and filename from path to get file directory
+			/* Remove root and filename from path to get file directory */
 			fileFolder.pop_back();
 			fileFolder.erase(fileFolder.begin());
 			line = "";
 
-			//serializing tokens of path to string
-			if (fileFolder.size() != 0) {
-				for (int i = 0; i < fileFolder.size(); i++) {
+			/* Serializing tokens of path to string */
+			if (fileFolder.size() != 0) 
+			{
+				for (int i = 0; i < fileFolder.size(); i++) 
 					line += fileFolder[i] + "/";
-				}
+				
 				changeDir(line);
 			}
+
 			tempFolder = current;
-			//create file in durectory
+
+			/* Create file in durectory */
 			create(fileName);
 			line = "";
 
-		}// condition if data is to be written in file
-		else if (line[0] == '-') {
-			//concatenate content until -1 is encountered again
-			while (getline(datIn, line)) {
+		} 
+		/* Condition if data is to be written in file */
+		else if (line[0] == '-') 
+		{
+			/* Concatenate content until -1 is encountered again */
+			while (getline(datIn, line)) 
+			{
 				if (line[0] == '-')
 					break;
 				content += line + "\n";
 			}
+
 			content = content.substr(0, content.size() - 1);
 			current = tempFolder;
 
-			//open file and write content
+			/* Open file and write content */
 			File openedFile(fileName + ".txt", "write", false);
 			openedFile.write(content);
 		}
 	}
 	current = rootFolder;
 	datIn.close();
-
 }
 
 
 
 
-/*
-	list down commands to help user
-*/
-void help() {
-
-	//for macos
-
+/* user guide. */
+void 
+help () 
+{
 	cout << "-------------------------------------------User Guide-------------------------------------------" << endl;
 	cout << "Command\t\tDescription\t\t\t\t\t\t\tSyntax" << endl;
 	cout << "mkdir\t\tMake new directory in given path\t\t\t\tmkdir ../folder/subf/DirName" << endl;
@@ -1385,40 +1534,36 @@ void help() {
 
 
 
-/*
-	function getCommand takes no arguments in
-	asks for user input (command to be run)
-	takes the entered string and breaks it up by space char
-	returns vector of strings containing command words
-*/
-vector<string> getCommand() {
-
+/* Prompts user to enter in their command, and once it is taken, it is tokenized based
+   On spaces and the vector of resulting strings is returned. */
+vector<string> 
+getCommand () 
+{
 	string command;
-
 	cout << pathFromRoot(current) << "> ";
 	getline(cin, command);
-
 	return tokenize(command, ' ');
-
 }
 
 
 
-/*
-	processCommand takes in commands vector as arugment
-	forwards the commands to their respective functions
-	and returns boolean to main to update running status of program
-*/
-bool processCommand(vector<string> tokens) {
-
+/* ProcessCommand takes in commands vector as arugment, forwards the commands to their
+   Respective functions, and returns boolean to main to update running status of 
+   Program. */
+bool 
+processCommand (vector<string> tokens) 
+{
 	string filename;
 	bool loop = true;
 
-	if (tokens[0] == "open") {
+	if (tokens[0] == "open") 
+	{
 		if (tokens.size() == 2 || (tokens[2] != "read" && tokens[2] != "write"))
 			cout << "Please input mode (read|write)" << endl;
 
-		else if (tokens.size() == 3 && tokens[0] == "open" && (tokens[2] == "write" || tokens[2] == "read")) {
+		else if (tokens.size() == 3 && tokens[0] == "open" && (tokens[2] == "write"
+			 || tokens[2] == "read")) 
+		{
 
 			filePosDir = getFileNo(tokens[1]);
 			File openedFile(tokens[1], tokens[2], true);
@@ -1428,7 +1573,8 @@ bool processCommand(vector<string> tokens) {
 
 			bool inLoop = true;
 
-			while (inLoop) {
+			while (inLoop) 
+			{
 				vector<string> tokens = getCommand();
 
 				if (tokens.size() == 1 && tokens[0] == "wr")
@@ -1443,25 +1589,29 @@ bool processCommand(vector<string> tokens) {
 				else if (tokens.size() == 1 && tokens[0] == "rd")
 					openedFile.read();
 
-				else if (tokens.size() == 3 && tokens[0] == "rf" && isNumber(tokens[1]) && isNumber(tokens[2]))
-					cout << openedFile.readUpto(stoi(tokens[1]) - 1, stoi(tokens[2])) << endl;
+				else if (tokens.size() == 3 && tokens[0] == "rf" && isNumber(tokens[1])
+					 && isNumber(tokens[2]))
+					cout << openedFile.readUpto(stoi(tokens[1]) - 1, stoi(tokens[2]))
+						 << endl;
 
 				else if (tokens.size() == 2 && tokens[0] == "trun" && isNumber(tokens[1]))
 					openedFile.truncate(stoi(tokens[1]));
 
-				else if (tokens.size() == 4 && tokens[0] == "mvin" && isNumber(tokens[1]) && isNumber(tokens[2]) && isNumber(tokens[3]))
+				else if (tokens.size() == 4 && tokens[0] == "mvin" && isNumber(tokens[1])
+					 && isNumber(tokens[2]) && isNumber(tokens[3]))
 					openedFile.moveWithin(stoi(tokens[1]), stoi(tokens[2]), stoi(tokens[3]));
-
-				else if (tokens.size() == 1 && tokens[0] == "close") {
-					cout << "File closed." << endl;
-					inLoop = false;
-				}
 
 				else if (tokens.size() == 1 && tokens[0] == "end")
 					cout << "Close file before ending program." << endl;
 
 				else if (tokens.size() == 1 && tokens[0] == "help")
 					help();
+
+				else if (tokens.size() == 1 && tokens[0] == "close") 
+				{
+					cout << "File closed." << endl;
+					inLoop = false;
+				}
 
 				else
 					cout << "Invalid command. Type help for user guide." << endl;
@@ -1470,37 +1620,41 @@ bool processCommand(vector<string> tokens) {
 			filePosDir = -1;
 		}
 	}
-	else if (tokens.size() == 1 && tokens[0] == "ls") {
+	else if (tokens.size() == 1 && tokens[0] == "ls") 
 		listDir();
-	}
-	else if (tokens.size() == 2 && tokens[0] == "cd") {
+
+	else if (tokens.size() == 2 && tokens[0] == "cd")
 		changeDir(tokens[1]);
-	}
-	else if (tokens.size() == 2 && tokens[0] == "cr") {
+	
+	else if (tokens.size() == 2 && tokens[0] == "cr")
 		create(tokens[1]);
-	}
-	else if (tokens.size() == 3 && tokens[0] == "mv") { // TEST
+	
+	else if (tokens.size() == 3 && tokens[0] == "mv") 
 		move(tokens[1], tokens[2]);
-	}
-	else if (tokens.size() == 2 && tokens[0] == "del") { // TEST
+	
+	else if (tokens.size() == 2 && tokens[0] == "del")
 		deleteFile(tokens[1]);
-	}
-	else if (tokens.size() == 2 && tokens[0] == "mkdir") {
+	
+	else if (tokens.size() == 2 && tokens[0] == "mkdir")
 		createFolder(tokens[1]);
-	}
-	else if (tokens.size() == 1 && tokens[0] == "map") { //make this
+	
+	else if (tokens.size() == 1 && tokens[0] == "map")
 		memMap(rootFolder);
-	}
-	else if (tokens.size() == 1 && tokens[0] == "rdat") {
+	
+	else if (tokens.size() == 1 && tokens[0] == "help")
+		help();
+
+	else if (tokens.size() == 1 && tokens[0] == "rdat") 
+	{
 		cout << "reading .dat file ..." << endl;
 		readDat();
 		cout << "Complete" << endl;
-		cout << "Memory available: " << freeList.size() * PAGESIZE << "/" << MEMSIZE << " bytes" << endl;
+		cout << "Memory available: " << freeList.size() * PAGESIZE << "/" << MEMSIZE
+			 << " bytes" << endl;
 	}
-	else if (tokens.size() == 1 && tokens[0] == "help") {
-		help();
-	}
-	else if (tokens.size() == 1 && tokens[0] == "end") {
+	
+	else if (tokens.size() == 1 && tokens[0] == "end") 
+	{
 		dat.open(DATPATH);
 		out = "";
 		cout << "Writing .dat file ..." << endl;
@@ -1509,47 +1663,34 @@ bool processCommand(vector<string> tokens) {
 		cout << "Complete" << endl;
 		loop = false;
 	}
-	else {
+	else 
 		cout << "Invalid command. Type help for user guide." << endl;
-	}
 
 	return loop;
 }
 
 
 
-/*
-	explain
-	function
-*/
-int main(int argc, const char* argv[]) {
-
+int 
+main (int argc, const char* argv[]) 
+{
 	current = rootFolder;
 	tempFolder = rootFolder;
 	start = (char*)malloc(MEMSIZE);
 
-
 	for (short int i = NUMPAGES - 1; i >= 0; i--)
 		freeList.push(i);
 
-
 	bool loop = true;
-	cout << "Memory available: " << freeList.size() * PAGESIZE << "/" << MEMSIZE << " bytes" << endl;
+	cout << "Memory available: " << freeList.size() * PAGESIZE << "/" << MEMSIZE <<
+		 " bytes" << endl;
 
-	while (loop) {
-
-		// take user input and store each word in vector
+	while (loop) 
+	{
 		vector<string> tokens = getCommand();
-
-
-		// process command and call the respective function
 		loop = processCommand(tokens);
-
 	}
 
-
 	free((char*)start);
-
 	return 0;
-
 }
