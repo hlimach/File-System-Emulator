@@ -339,7 +339,6 @@ public:
 	}
 
 
-
 	/* This function is invoked when user wants to change mode from which file is
 	   Currently opened in. If the argument is valid (read or write), then it is
 	   Successfully changed, allowing user access to functions that are available
@@ -356,6 +355,7 @@ public:
 		else
 			cout << "Please enter a valid mode (read|write)." << endl;
 	}
+
 
 	/* For the current page table, this function takes in argument to firstly specify 
 	   A read or write operation. If it is a write opeartion, the input string is 
@@ -412,23 +412,70 @@ public:
 		return data;
     }
 
-    /* For alterations to data that are within a single page, this function changes/ reads
-       That specific pages' data by starting from a specified byte, and ending at a 
-       Specified byte. */
-	string 
-	alterOnePage (string input, int pageNumber, int startbyte, int limit, bool read) 
-	{
-		string data = "";
-		page = getPagePtr(*(pageTable + pageNumber));
-		for (int i = startbyte; i < limit; i++) 
+
+    /* Function takes in starting byte, and chunk size as an argument, and manipulates
+       It according to read/ write bool. */
+    string
+    chunkManipulation (int startFrom, int chunkSize, bool read, string data) 
+    {
+    	string text = "";
+    	/* Which page number in the page table the byte will belong to. */
+		int startPage, endPage, neededPages, temp = 0;
+		int startByte = startFrom % PAGESIZE;
+		int limit = (startFrom + chunkSize) % PAGESIZE;
+
+		if (startByte == 0)
+			startPage = startFrom / PAGESIZE;
+		else 
+			startPage = startFrom / PAGESIZE + 1;
+
+		if (limit == 0)
 		{
-			if (read) 
-				data += *(page + i);
-			else 
-				*(page + i) = input[i - startbyte];
+			limit = PAGESIZE;
+			endPage = (startFrom + chunkSize) / PAGESIZE;
 		}
-		return data;
-	}
+		else 
+			endPage = (startFrom + chunkSize) / PAGESIZE + 1;
+
+		neededPages = endPage - startPage + 1;
+
+		/* Loop ahead to go to page table with the needed starting page. */
+		while (startPage > MAXENTRIES) 
+		{
+			pageTable = (short int*) getPagePtr(getNextPageTableNum());
+			startPage -= MAXENTRIES;
+		}
+
+		/* If the reading is within a page table then send all arguments 
+		   At once. */
+		if ((PAGESIZE - startByte) + ((MAXENTRIES - startPage) * PAGESIZE) > 
+			 startFrom + chunkSize) 
+			text += pageTableData(data, startPage, endPage, startByte, limit, temp,
+				 read);
+
+		/* If the reading is not within a page table then send starting byte 
+		   And starting page in the beginning, loop until needed pages are in
+		   The last page table limits, and then send it the limit. */
+		else 
+		{
+			int pageTablePageNum = getPageNum((char *) pageTable);
+			do 
+			{
+				pageTable = (short int*) getPagePtr(pageTablePageNum);
+				text += pageTableData(data, startPage, MAXENTRIES, startByte, PAGESIZE,
+					 temp, read);
+
+				pageTablePageNum = getNextPageTableNum();
+				neededPages -= (MAXENTRIES - startPage + 1);
+				startPage = 1;
+				startByte = 0;
+			} while (neededPages > MAXENTRIES);
+			
+			pageTable = (short int*) getPagePtr(pageTablePageNum);
+			text += pageTableData(data, 1, neededPages, 0, limit, temp, read);
+		}
+		return text;
+    }
 
 
 	/* Function readupto takes two arguments starting bite and size of bytes to be read, 
@@ -437,6 +484,7 @@ public:
 	read (int startFrom, int readUpTo) 
 	{
 		string text = "";
+		resetPageTblPtr();
         if (mode != "read") 
         {
             cout << "Please open file in \"read\" mode for this function." << endl;
@@ -470,68 +518,18 @@ public:
                 nextPageTableNum = getNextPageTableNum();
 
             } while (nextPageTableNum != -1);
+            resetPageTblPtr();
+	    	return text;
         }
         else 
         {
-        	/* Which page number in the page table the byte will belong to. */
-			int startPage, endPage, neededPages, temp = 0;
-			int startByte = startFrom % PAGESIZE;
-			int limit = (startFrom + readUpTo) % PAGESIZE;
-
-			if (startByte == 0)
-				startPage = startFrom / PAGESIZE;
-			else 
-				startPage = startFrom / PAGESIZE + 1;
-
-			if (limit == 0)
-			{
-				limit = PAGESIZE;
-				endPage = (startFrom + readUpTo) / PAGESIZE;
-			}
-			else 
-				endPage = (startFrom + readUpTo) / PAGESIZE + 1;
-
-			neededPages = endPage - startPage + 1;
-
-			/* Loop ahead to go to page table with the needed starting page. */
-			while (startPage > MAXENTRIES) 
-			{
-				pageTable = (short int*) getPagePtr(getNextPageTableNum());
-				startPage -= MAXENTRIES;
-			}
-
-			// read from whereever i make it start for however many page tables
-			// if it is within same page table, then do one thing, if not then other
-			if ((PAGESIZE - startByte) + ((MAXENTRIES - startPage) * PAGESIZE) > 
-				 startFrom + readUpTo) 
-			{
-				// i only check this page table and send it all the data
-				text += pageTableData("", startPage, endPage, startByte, limit, temp,
-					 true);
-			}
-			else 
-			{
-				int pageTablePageNum = getPageNum((char *) pageTable);
-				do 
-				{
-					pageTable = (short int*) getPagePtr(pageTablePageNum);
-					text += pageTableData("", startPage, MAXENTRIES, startByte, PAGESIZE,
-						 temp, true);
-
-					pageTablePageNum = getNextPageTableNum();
-					neededPages -= (MAXENTRIES - startPage + 1);
-					startPage = 0;
-					startByte = 0;
-				} while (neededPages > MAXENTRIES);
-				
-				pageTable = (short int*) getPagePtr(pageTablePageNum);
-				text += pageTableData("", 1, neededPages, 0, limit, temp, true);
-			}
-			
+        	text = chunkManipulation(startFrom, readUpTo, true, "");
+        	resetPageTblPtr();
+			return text;
         }
-        resetPageTblPtr();
-	    return text;
+        
     }
+
 
 	/* Prompts user to input data for the write functions. It stops taking input once 
 	   The user enters '-1' in a new line and presses enter. */
@@ -758,36 +756,22 @@ public:
 	writeAt (string data, int writeAt) 
 	{
 		if (mode != "write") 
-		{
 			cout << "Please open file in \"write\" mode for this function." << endl;
-			return;
-		}
+
 		else  if (pageTable == NULL) 
-		{
 			cout << "Invalid command. Cannot call 'Write At' on an empty file." << endl;
-			return;
-		}
+
 		else if (writeAt > fileSize) 
-		{
 			cout << "Out of bound exception. Given byte is greater than file size of " 
 				<< fileSize << " bytes." << endl;
-			return;
-		}
+
 		else if (data.length() + writeAt > fileSize) 
 		{
 			truncate(writeAt - 1);
 			write(data);
-			return;
 		}
 		else 
-		{
-			mode = "read";
-			string after = read(writeAt + data.length() - 1, fileSize - (writeAt + 
-				 data.length()) + 1);
-			mode = "write";
-			truncate(writeAt - 1);
-			write(data + after);
-		}
+			chunkManipulation(writeAt, data.length(), false, data);
 	}
 
 
@@ -1283,7 +1267,6 @@ listFiles (Folder* dir)
 		return;
 
 	short int* pgTbl;
-	int totalPages = 0;
 	string name, pgnums = "", limit, disp = "{\n\t";
 
 	for (int i = 0; i < dir->files.size(); i++) 
