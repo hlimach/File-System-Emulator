@@ -1,7 +1,6 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
-#include <map>
 #include <stack>
 #include <string>
 #include <sstream>
@@ -50,6 +49,18 @@ tokenize (string command, char delimiter)
 
 	return tokens;
 }
+
+
+
+/* Prints number of bytes available by iterating over free list*/
+void
+printSpace()
+{
+	cout << "Memory available: " << freeList.size() * PAGESIZE << "/" << MEMSIZE <<
+		 " bytes" << endl;
+
+}
+
 
 
 /* Gets a char pointer to a page and returns the page number that it is supposed to 
@@ -912,9 +923,13 @@ public:
 /* Traverses tree according to given path. If a folder within the path is not found, 
    The loop is exited, and the boolean found is set to false. */
 bool
-traverseTree (int i, vector<string> tokens)
+traverseTree (int i, vector<string> tokens, bool change)
 {
-	for (i; i < tokens.size() - 1; i++)
+	int lim = tokens.size() - 1;
+	if (change)
+		lim++;
+
+	for (i; i < lim; i++)
     {
         if (tokens[i] == "..")
         {
@@ -953,7 +968,7 @@ createFolder (string path)
 		return;
 	}
 	else {
-		createable = traverseTree(0, tokens);
+		createable = traverseTree(0, tokens, false);
 
 		/* If the path exists, a folder of the same name does not already exist, and
 		   The name of the folder is neither '.' nor '..', then a folder at the 
@@ -991,9 +1006,9 @@ changeDir (string path)
 
 		/* If the first token is '.', then it works in current directory. */
 		if (tokens[0] == ".")
-			i = 1;
+			i = 0;
 
-		changable = traverseTree(i, tokens);
+		changable = traverseTree(i, tokens, true);
 
 		if (changable)
 			current = tempFolder;
@@ -1273,13 +1288,12 @@ listFiles (Folder* dir)
 		{
 			File openFile(dir->files[i]->name, "read", false);
             pgTbl = dir->files[i]->pgTblPtr;
-			pgtbles = to_string(getPageNum((char *)pgTbl));
             int nextPageTableNum = getPageNum((char *) pgTbl), temp = 0;
 
             do
             {
                 pgTbl = (short int*) openFile.getPagePtr(nextPageTableNum);
-				pgtbles += ", " + to_string(getPageNum((char *)pgTbl));
+				pgtbles += to_string(getPageNum((char *)pgTbl)) + ", ";
                 openFile.setPageTablePtr(pgTbl);
 
                 for (int i = 2; i <= openFile.getPageCount() + 1; i++)
@@ -1290,6 +1304,7 @@ listFiles (Folder* dir)
             } while (nextPageTableNum != -1);
 
             pgnums = pgnums.substr(0, pgnums.size() - 2);
+            pgtbles = pgtbles.substr(0, pgtbles.size() - 2);
             limit = to_string(openFile.getByteLimit());
             disp += "Name: " + name + "\n\tPage numers: " + pgnums + 
 				"\n\tPage Tables: " + pgtbles + "\n\tLimit on last page: "
@@ -1312,7 +1327,8 @@ listFiles (Folder* dir)
    On each subdirectory. */
 void 
 memMap (Folder* dir) 
-{
+{	
+	tempFolder = dir;
 	listFiles(dir);
 
 	if (dir->subdir.size() == 0)
@@ -1368,7 +1384,7 @@ readDat ()
 {
 	ifstream datIn;
 	vector<string> lineTokens, fileFolder, tokenizedFileName, folderPath;
-	string line, fileName, content;
+	string line, fileName, content,path;
 
 	datIn.open(DATPATH);
 
@@ -1385,35 +1401,23 @@ readDat ()
 
 		if (line[0] == 'D') 
 		{
-			lineTokens = tokenize(line, '\t');
-			folderPath = tokenize(lineTokens[1], '/');
-
-			/* Remove "root" from path since current directory is already root */
-			folderPath.erase(folderPath.begin());
-			line = "";
-
-			/* Serializing tokens of path to string */
-			for (int i = 0; i < folderPath.size(); i++) 
-				line += folderPath[i] + "/";
-
-			createFolder(line);
+			path = line.substr(6,line.size()-6);
+			createFolder(path);
 			line = "";
 
 		}
 		else if (line[0] == 'F') 
 		{
-			lineTokens = tokenize(line, '\t');
-			fileFolder = tokenize(lineTokens[1], '/');
+			line = line.substr(6, line.size() - 6);
+			fileFolder = tokenize(line, '/');
 
 			fileName = fileFolder.back();
 
 			/* Remove .txt from file name */
-			tokenizedFileName = tokenize(fileName, '.');
-			fileName = tokenizedFileName[0];
+			fileName = fileName.substr(0, fileName.size() - 4);
 
 			/* Remove root and filename from path to get file directory */
 			fileFolder.pop_back();
-			fileFolder.erase(fileFolder.begin());
 			line = "";
 
 			/* Serializing tokens of path to string */
@@ -1433,12 +1437,12 @@ readDat ()
 
 		} 
 		/* Condition if data is to be written in file */
-		else if (line[0] == '-') 
+		else if (line[0] == '#') 
 		{
 			/* Concatenate content until -1 is encountered again */
 			while (getline(datIn, line)) 
 			{
-				if (line[0] == '-')
+				if (line[0] == '#')
 					break;
 				content += line + "\n";
 			}
@@ -1596,9 +1600,11 @@ processCommand (vector<string> tokens)
 	else if (tokens.size() == 2 && tokens[0] == "mkdir")
 		createFolder(tokens[1]);
 	
-	else if (tokens.size() == 1 && tokens[0] == "map")
+	else if (tokens.size() == 1 && tokens[0] == "map"){
+		printSpace();
 		memMap(rootFolder);
-	
+	}
+
 	else if (tokens.size() == 1 && tokens[0] == "help")
 		help();
 
@@ -1607,8 +1613,7 @@ processCommand (vector<string> tokens)
 		cout << "reading .dat file ..." << endl;
 		readDat();
 		cout << "Complete" << endl;
-		cout << "Memory available: " << freeList.size() * PAGESIZE << "/" << MEMSIZE
-			 << " bytes" << endl;
+		printSpace();
 	}
 	
 	else if (tokens.size() == 1 && tokens[0] == "end") 
@@ -1640,8 +1645,7 @@ main (int argc, const char* argv[])
 		freeList.push(i);
 
 	bool loop = true;
-	cout << "Memory available: " << freeList.size() * PAGESIZE << "/" << MEMSIZE <<
-		 " bytes" << endl;
+	printSpace();
 
 	while (loop) 
 	{
