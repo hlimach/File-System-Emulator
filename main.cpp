@@ -431,21 +431,29 @@ public:
 	}
 
 
-	/* Read function fully displays the content of file. */
-	void 
-	read () 
+	/* Function readupto takes two arguments starting bite and size of bytes to be read, 
+	   And prints out the content within that limit. */
+	string 
+	read (int startFrom, int readUpTo) 
 	{
+		string text = "";
         if (mode != "read") 
         {
             cout << "Please open file in \"read\" mode for this function." << endl;
-            return;
+            return "";
         }
         else if (pageTable == NULL) 
         {
             cout << "The file has no content to display." << endl;
-            return;
+            return "";
         }
-        else 
+        else if ((readUpTo - startFrom > fileSize) || (startFrom + readUpTo > fileSize)) 
+		{
+			cout << "Out of bound exception. Given limit exceeds total file limit at "
+				 << fileSize << " bytes." << endl;
+			return "";
+		}
+        else if (startFrom == 0 && readUpTo == fileSize)
         {
         	/* The current page tables' number is taken and sent into the
         	   Do...while loop, which runs upto the last page table. It prints
@@ -457,102 +465,73 @@ public:
             do 
             {
                 pageTable = (short int*) getPagePtr(nextPageTableNum);
-                cout << pageTableData("", 1, getPageCount(), 0, getByteLimit(), temp,
+                text += pageTableData("", 1, getPageCount(), 0, getByteLimit(), temp,
                 	 true);
                 nextPageTableNum = getNextPageTableNum();
 
             } while (nextPageTableNum != -1);
-
-            cout << endl; 
         }
-
-		resetPageTblPtr();
-    }
-
-
-
-	/* Function readupto takes two arguments starting bite and size of bytes to be read, 
-	   And prints out the content within that limit. */
-	string 
-	readUpto (int startFrom, int readUpTo) 
-	{
-
-		if (mode != "read") 
-		{
-			cout << "Please open file in \"read\" mode for this function" << endl;
-			return "";
-		}
-		else if (pageTable == NULL) 
-		{
-			cout << "The file has no content to display." << endl;
-			return "";
-		}
-		else if ((readUpTo - startFrom > fileSize) || (startFrom + readUpTo > fileSize)) 
-		{
-			cout << "Out of bound exception. Given limit exceeds total file limit at "
-				 << fileSize << " bytes." << endl;
-			return "";
-		}
-		else 
-		{
-			string readUptoText = "";
-
-			//	which page number in the page table the byte will belong to
-			int startPage = (startFrom / PAGESIZE) + 1;
+        else 
+        {
+        	/* Which page number in the page table the byte will belong to. */
+			int startPage, endPage, neededPages, temp = 0;
 			int startByte = startFrom % PAGESIZE;
-			int endPage = (startFrom + readUpTo) / PAGESIZE + 1;
 			int limit = (startFrom + readUpTo) % PAGESIZE;
-			int readPages = endPage - startPage;
-			bool samePage = startPage == endPage;
 
+			if (startByte == 0)
+				startPage = startFrom / PAGESIZE;
+			else 
+				startPage = startFrom / PAGESIZE + 1;
+
+			if (limit == 0)
+			{
+				limit = PAGESIZE;
+				endPage = (startFrom + readUpTo) / PAGESIZE;
+			}
+			else 
+				endPage = (startFrom + readUpTo) / PAGESIZE + 1;
+
+			neededPages = endPage - startPage + 1;
+
+			/* Loop ahead to go to page table with the needed starting page. */
 			while (startPage > MAXENTRIES) 
 			{
-				pageTable = (short int*)getPagePtr(getNextPageTableNum());
+				pageTable = (short int*) getPagePtr(getNextPageTableNum());
 				startPage -= MAXENTRIES;
 			}
 
-			if (samePage)
+			// read from whereever i make it start for however many page tables
+			// if it is within same page table, then do one thing, if not then other
+			if ((PAGESIZE - startByte) + ((MAXENTRIES - startPage) * PAGESIZE) > 
+				 startFrom + readUpTo) 
 			{
-				readUptoText += alterOnePage("", startPage + 1, startByte, startByte 
-					 + readUpTo, true);
-				return readUptoText;
+				// i only check this page table and send it all the data
+				text += pageTableData("", startPage, endPage, startByte, limit, temp,
+					 true);
 			}
-
-			for (int i = 0; i < readPages; i++) 
+			else 
 			{
-				if (startPage == MAXENTRIES + 1) 
+				int pageTablePageNum = getPageNum((char *) pageTable);
+				do 
 				{
-					pageTable = (short int*)getPagePtr(getNextPageTableNum());
-					startPage = 1;
-					i--;
-					continue;
-				}
+					pageTable = (short int*) getPagePtr(pageTablePageNum);
+					text += pageTableData("", startPage, MAXENTRIES, startByte, PAGESIZE,
+						 temp, true);
 
-				page = getPagePtr(*(pageTable + startPage + 1));
-
-				for (int j = startByte; j < PAGESIZE; j++)
-					readUptoText += *(page + j);
-
-				startByte = 0;
-				startPage++;
+					pageTablePageNum = getNextPageTableNum();
+					neededPages -= (MAXENTRIES - startPage + 1);
+					startPage = 0;
+					startByte = 0;
+				} while (neededPages > MAXENTRIES);
+				
+				pageTable = (short int*) getPagePtr(pageTablePageNum);
+				text += pageTableData("", 1, neededPages, 0, limit, temp, true);
 			}
-
-			if (startPage == MAXENTRIES + 1) 
-			{
-				pageTable = (short int*)getPagePtr(getNextPageTableNum());
-				startPage = 1;
-			}
-
-			page = getPagePtr(*(pageTable + startPage + 1));
-
-			for (int j = 0; j < limit; j++)
-				readUptoText += *(page + j);
-
-			resetPageTblPtr();
-			return readUptoText;
-		}
-	}
-
+			
+        }
+        resetPageTblPtr();
+	    return text;
+    }
 
 	/* Prompts user to input data for the write functions. It stops taking input once 
 	   The user enters '-1' in a new line and presses enter. */
@@ -561,7 +540,7 @@ public:
 	{
 		if (mode != "write") 
 		{
-			cout << "Please open file in \"write\" mode for this function" << endl;
+			cout << "Please open file in \"write\" mode for this function." << endl;
 			return "";
 		} 
 		else 
@@ -576,7 +555,6 @@ public:
 				input += "\n";
 			}
 			input = input.substr(0, input.size() - 1);
-
 			return input;
 		}
 	}
@@ -689,8 +667,8 @@ public:
 		}
 		else if (input.size() > (freeList.size() * PAGESIZE)) 
         {
-            cout << "Not enough memory available. Please reduce input size or delete 
-            	 other files." << endl;
+            cout << "Not enough memory available. " << 
+            	 "Please reduce input size or delete other files." << endl;
             return;
         }
 
@@ -732,25 +710,23 @@ public:
             if (freeSpace >= input.length()) 
             {
 				/* If the input size is less than the space available within
-				   A single page, then only this page must be written in. */
+				   A single page, then only this page must be written in, so the
+				   needed pages are assgined 0 so no more pages are assigned. */
 				if (input.length() < PAGESIZE - getByteLimit()) 
 				{
-					alterOnePage(input, getPageCount() + 1, getByteLimit(), 
-						 input.length() + getByteLimit(), false);
-					setByteLimit(input.length() + getByteLimit());
+					neededPages = 0;
+                    limit = getByteLimit() + input.length();
 				} 
 				/* If the input size is more than the space available within a single
 				   Page, then however many pages needed ahead are assigned, and the
 				   Writing process is handled by calling pageTableData function. */
-				else 
-				{
-	                assignPages(getPageCount() + 1, getPageCount() + neededPages);
-	                pageTableData(input, getPageCount(), getPageCount() + neededPages, 
-	                	 getByteLimit(), limit + 1, byteCount, false);
-	                setByteLimit(limit);
-	                setPageCount(getPageCount() + neededPages);
-            	}
+                assignPages(getPageCount() + 1, getPageCount() + neededPages);
+                pageTableData(input, getPageCount(), getPageCount() + neededPages, 
+                	 getByteLimit(), limit + 1, byteCount, false);
+                setByteLimit(limit);
+                setPageCount(getPageCount() + neededPages);
             }
+
             /* If the available space is less than the input size, then more page
                Tables will be need to assigned according to needed pages, so this
                Control branch is taken. */
@@ -783,7 +759,7 @@ public:
 	{
 		if (mode != "write") 
 		{
-			cout << "Please open file in \"write\" mode for this function" << endl;
+			cout << "Please open file in \"write\" mode for this function." << endl;
 			return;
 		}
 		else  if (pageTable == NULL) 
@@ -793,7 +769,7 @@ public:
 		}
 		else if (writeAt > fileSize) 
 		{
-			cout << "Out of bound exception. Given byte is greater than file size of" 
+			cout << "Out of bound exception. Given byte is greater than file size of " 
 				<< fileSize << " bytes." << endl;
 			return;
 		}
@@ -806,7 +782,7 @@ public:
 		else 
 		{
 			mode = "read";
-			string after = readUpto(writeAt + data.length() - 1, fileSize - (writeAt + 
+			string after = read(writeAt + data.length() - 1, fileSize - (writeAt + 
 				 data.length()) + 1);
 			mode = "write";
 			truncate(writeAt - 1);
@@ -916,8 +892,8 @@ public:
 		}
 		else if (from + size > fileSize) 
 		{
-			cout << "Out of bound exception. Specified chunk exceeds out of file size
-				 of " << fileSize << " bytes." << endl;
+			cout << "Out of bound exception. Specified chunk exceeds out of file size of "
+				  << fileSize << " bytes." << endl;
 			return;
 		}
 		else
@@ -926,9 +902,9 @@ public:
 			/* If the paste position is ahead of the cut position. */
 			if (to > from) 
 			{
-				string cutText = readUpto(from - 1, size);
-				string middleText = readUpto(from + size - 1, to - (from + size));
-				string endText = readUpto(to - 1, fileSize - to + 1);
+				string cutText = read(from - 1, size);
+				string middleText = read(from + size - 1, to - (from + size));
+				string endText = read(to - 1, fileSize - to + 1);
 				string writeData = middleText + cutText + endText;
 				mode = "write";
 				printInfo = false;
@@ -938,9 +914,9 @@ public:
 			/* If the paste position is before the cut position. */
 			else 
 			{
-				string cutText = readUpto(from - 1, size);
-				string topText = readUpto(to - 1, from - to);
-				string endText = readUpto(from + size - 1, fileSize - from - size);
+				string cutText = read(from - 1, size);
+				string topText = read(to - 1, from - to);
+				string endText = read(from + size - 1, fileSize - from - size);
 				string writeData = cutText + topText + endText;
 				mode = "write";
 				printInfo = false;
@@ -1134,8 +1110,8 @@ locateFile (vector<string> tokens, bool destFile)
 				bool checkFolder = folderExists(tokens[i]);
 				if (!checkFolder) 
 				{
-					cout << "Invalid path. A folder in the specified path does not
-						 exist." << endl;
+					cout << "Invalid path. A folder in the specified path does not exist."
+						 << endl;
 					found = false;
 					return;
 				}
@@ -1334,15 +1310,15 @@ listFiles (Folder* dir)
 
             pgnums = pgnums.substr(0, pgnums.size() - 3);
             limit = to_string(openFile.getByteLimit());
-            disp += "Name: " + name + "\n\tPage numers: " + pgnums + "\n\tLimit on
-            	 last page: " + limit + "\n\tTotal file size: " + 
+            disp += "Name: " + name + "\n\tPage numers: " + pgnums + 
+            	 "\n\tLimit on last page: " + limit + "\n\tTotal file size: " + 
             	 to_string(openFile.getFileSize()) + "\n\tPath: " + pathFromRoot(dir) 
             	 + "\n}\n";
 		}
 		else 
 		{
-			disp += "Name: " + name + "\n\tPage numers: empty\n\tLimit on last page:
-				 -\n\tTotal file size: 0\n\tPath: " + pathFromRoot(dir) + "\n}\n";
+			disp += "Name: " + name + "\n\tPage numers: empty\n\tLimit on last page: "
+				 + "-\n\tTotal file size: 0\n\tPath: " + pathFromRoot(dir) + "\n}\n";
 		}	
 	}
 
@@ -1384,7 +1360,7 @@ getChildren (Folder* dir)
 		{
 			File openFile(dir->files[i]->name, "read", false);
 			out += "-1\n";
-			out += openFile.readUpto(0, openFile.getFileSize()) + "\n";
+			out += openFile.read(0, openFile.getFileSize()) + "\n";
 			out += "-1\n";
 		}
 	}
@@ -1587,11 +1563,11 @@ processCommand (vector<string> tokens)
 					openedFile.changeMode(tokens[1]);
 
 				else if (tokens.size() == 1 && tokens[0] == "rd")
-					openedFile.read();
+					cout << openedFile.read(0, openedFile.getFileSize()) << endl;
 
 				else if (tokens.size() == 3 && tokens[0] == "rf" && isNumber(tokens[1])
 					 && isNumber(tokens[2]))
-					cout << openedFile.readUpto(stoi(tokens[1]) - 1, stoi(tokens[2]))
+					cout << openedFile.read(stoi(tokens[1]) - 1, stoi(tokens[2]))
 						 << endl;
 
 				else if (tokens.size() == 2 && tokens[0] == "trun" && isNumber(tokens[1]))
