@@ -424,10 +424,7 @@ public:
 		int startByte = startFrom % PAGESIZE;
 		int limit = (startFrom + chunkSize) % PAGESIZE;
 
-		if (startByte == 0)
-			startPage = startFrom / PAGESIZE;
-		else 
-			startPage = startFrom / PAGESIZE + 1;
+		startPage = startFrom / PAGESIZE + 1;
 
 		if (limit == 0)
 		{
@@ -452,6 +449,7 @@ public:
 			 startFrom + chunkSize) 
 			text += pageTableData(data, startPage, endPage, startByte, limit, temp,
 				 read);
+		
 
 		/* If the reading is not within a page table then send starting byte 
 		   And starting page in the beginning, loop until needed pages are in
@@ -478,7 +476,7 @@ public:
     }
 
 
-	/* Function readupto takes two arguments starting bite and size of bytes to be read, 
+	/* Function read takes two arguments starting bite and size of bytes to be read, 
 	   And prints out the content within that limit. */
 	string 
 	read (int startFrom, int readUpTo) 
@@ -495,7 +493,7 @@ public:
             cout << "The file has no content to display." << endl;
             return "";
         }
-        else if ((readUpTo - startFrom > fileSize) || (startFrom + readUpTo > fileSize)) 
+        else if ((readUpTo - startFrom > fileSize) || (startFrom + readUpTo > fileSize) || (startFrom < 0)) 
 		{
 			cout << "Out of bound exception. Given limit exceeds total file limit at "
 				 << fileSize << " bytes." << endl;
@@ -659,10 +657,8 @@ public:
         short int limit;
 
 		if (mode != "write") 
-		{
-			cout << "Please open file in \"write\" mode." << endl;
 			return;
-		}
+		
 		else if (input.size() > (freeList.size() * PAGESIZE)) 
         {
             cout << "Not enough memory available. " << 
@@ -756,12 +752,12 @@ public:
 	writeAt (string data, int writeAt) 
 	{
 		if (mode != "write") 
-			cout << "Please open file in \"write\" mode for this function." << endl;
+			return;
 
 		else  if (pageTable == NULL) 
 			cout << "Invalid command. Cannot call 'Write At' on an empty file." << endl;
 
-		else if (writeAt > fileSize) 
+		else if (writeAt > fileSize || writeAt < 0) 
 			cout << "Out of bound exception. Given byte is greater than file size of " 
 				<< fileSize << " bytes." << endl;
 
@@ -772,6 +768,8 @@ public:
 		}
 		else 
 			chunkManipulation(writeAt, data.length(), false, data);
+		
+		resetPageTblPtr();
 	}
 
 
@@ -888,11 +886,10 @@ public:
 			{
 				string cutText = read(from - 1, size);
 				string middleText = read(from + size - 1, to - (from + size));
-				string endText = read(to - 1, fileSize - to + 1);
-				string writeData = middleText + cutText + endText;
+				string writeData = middleText + cutText;
 				mode = "write";
 				printInfo = false;
-				writeAt(writeData, from);
+				writeAt(writeData, from - 1);
 				printInfo = true;
 			}
 			/* If the paste position is before the cut position. */
@@ -900,11 +897,10 @@ public:
 			{
 				string cutText = read(from - 1, size);
 				string topText = read(to - 1, from - to);
-				string endText = read(from + size - 1, fileSize - from - size);
-				string writeData = cutText + topText + endText;
+				string writeData = cutText + topText;
 				mode = "write";
 				printInfo = false;
-				writeAt(writeData, to);
+				writeAt(writeData, to - 1);
 				printInfo = true;
 			}
 			resetPageTblPtr();
@@ -1267,7 +1263,7 @@ listFiles (Folder* dir)
 		return;
 
 	short int* pgTbl;
-	string name, pgnums = "", limit, disp = "{\n\t";
+	string name,pgtbles="", pgnums = "", limit, disp = "{\n\t";
 
 	for (int i = 0; i < dir->files.size(); i++) 
 	{
@@ -1277,11 +1273,13 @@ listFiles (Folder* dir)
 		{
 			File openFile(dir->files[i]->name, "read", false);
             pgTbl = dir->files[i]->pgTblPtr;
+			pgtbles = to_string(getPageNum((char *)pgTbl));
             int nextPageTableNum = getPageNum((char *) pgTbl), temp = 0;
 
             do
             {
                 pgTbl = (short int*) openFile.getPagePtr(nextPageTableNum);
+				pgtbles += ", " + to_string(getPageNum((char *)pgTbl));
                 openFile.setPageTablePtr(pgTbl);
 
                 for (int i = 2; i <= openFile.getPageCount() + 1; i++)
@@ -1291,10 +1289,11 @@ listFiles (Folder* dir)
 
             } while (nextPageTableNum != -1);
 
-            pgnums = pgnums.substr(0, pgnums.size() - 3);
+            pgnums = pgnums.substr(0, pgnums.size() - 2);
             limit = to_string(openFile.getByteLimit());
             disp += "Name: " + name + "\n\tPage numers: " + pgnums + 
-            	 "\n\tLimit on last page: " + limit + "\n\tTotal file size: " + 
+				"\n\tPage Tables: " + pgtbles + "\n\tLimit on last page: "
+            	 + limit + "\n\tTotal file size: " + 
             	 to_string(openFile.getFileSize()) + "\n\tPath: " + pathFromRoot(dir) 
             	 + "\n}\n";
 		}
@@ -1540,7 +1539,7 @@ processCommand (vector<string> tokens)
 					openedFile.write(openedFile.getInput());
 
 				else if (tokens.size() == 2 && tokens[0] == "wrat" && isNumber(tokens[1]))
-					openedFile.writeAt(openedFile.getInput(), stoi(tokens[1]));
+					openedFile.writeAt(openedFile.getInput(), stoi(tokens[1]) - 1);
 
 				else if (tokens.size() == 2 && tokens[0] == "chmod")
 					openedFile.changeMode(tokens[1]);
