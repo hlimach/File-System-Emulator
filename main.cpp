@@ -1361,9 +1361,9 @@ getChildren (Folder* dir)
 		if (dir->files[i]->pgTblPtr != NULL) 
 		{
 			File openFile(dir->files[i]->name, "read", false);
-			out += "-1\n";
+			out += "#\n";
 			out += openFile.read(0, openFile.getFileSize()) + "\n";
-			out += "-1\n";
+			out += "#\n";
 		}
 	}
 }
@@ -1457,6 +1457,7 @@ readDat ()
 			/* Open file and write content */
 			File openedFile(fileName + ".txt", "write", false);
 			openedFile.write(content);
+			content = "";
 		}
 	}
 	current = rootFolder;
