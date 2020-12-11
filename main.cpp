@@ -1332,6 +1332,7 @@ void
 memMap (Folder* dir) 
 {	
 	tempFolder = dir;
+	current = dir;
 	listFiles(dir);
 
 	if (dir->subdir.size() == 0)
@@ -1606,7 +1607,9 @@ processCommand (vector<string> tokens)
 	
 	else if (tokens.size() == 1 && tokens[0] == "map"){
 		printSpace();
+		Folder *currentFolder = current;
 		memMap(rootFolder);
+		current = currentFolder;
 	}
 
 	else if (tokens.size() == 1 && tokens[0] == "help")
