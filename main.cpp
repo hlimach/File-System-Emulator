@@ -1278,11 +1278,14 @@ listFiles (Folder* dir)
 		return;
 
 	short int* pgTbl;
-	string name,pgtbles="", pgnums = "", limit, disp = "{\n\t";
+	string name, pgtbles="", pgnums = "", limit, disp = "";
 
 	for (int i = 0; i < dir->files.size(); i++) 
 	{
 		name = dir->files[i]->name;
+		disp += "{\n\t";
+		pgnums = "";
+		pgtbles = "";
 
 		if (dir->files[i]->pgTblPtr != NULL) 
 		{
