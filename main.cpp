@@ -1456,6 +1456,7 @@ readDat ()
 		}
 	}
 	current = rootFolder;
+	tempFolder = current;
 	datIn.close();
 }
 
