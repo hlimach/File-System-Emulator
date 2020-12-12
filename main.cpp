@@ -63,6 +63,8 @@ printSpace()
 
 
 
+
+
 /* Gets a char pointer to a page and returns the page number that it is supposed to 
    Be according to starting pointer. */
 int 
@@ -118,6 +120,8 @@ Folder* rootFolder = new Folder("root");
 /* To write into .dat file at end of program to save file info. */
 ofstream dat;
 
+/* To read from .dat file whenever required. */
+ifstream datIn;
 
 /* String is used to gather all text to be written into .dat file. */
 string out;
@@ -140,6 +144,41 @@ int filePosDir;
 /* To let functions know if the needed file is found. */
 bool fileFound, found;
 
+
+/* Returns string path from root upto the current working directory. */
+string 
+pathFromRoot (Folder* dir) 
+{
+	string path = dir->dirName;
+	while (dir->parent != NULL) 
+	{
+		path = dir->parent->dirName + "/" + path;
+		dir = dir->parent;
+	}
+	return path;
+}
+
+
+void
+enterDat(string path,bool file,string name)
+{
+	string prevText = "",line = "";
+	datIn.open(DATPATH);
+	while(getline(datIn,line))
+	{
+		prevText += line + "\n";
+	}
+	datIn.close();
+
+	if(file)
+		prevText += "F\t" + path + "/" + name; 
+	else
+		prevText += "D\t" + path + "/" + name; 
+	
+	dat.open(DATPATH);
+	dat<<prevText;
+	dat.close();
+}
 
 /* Takes in the files' name as an argument and tells which index it will be found at. 
    If the file does not exist in the current directory, it returns -1 (error). */
@@ -350,6 +389,9 @@ public:
 	}
 
 
+
+	
+
 	/* This function is invoked when user wants to change mode from which file is
 	   Currently opened in. If the argument is valid (read or write), then it is
 	   Successfully changed, allowing user access to functions that are available
@@ -360,8 +402,10 @@ public:
 		if (md == "read" || md == "write") 
 		{
 			mode = md;
-			cout << "File opened: " << filename << ", mode: " << mode << ", size: " <<
+			if(printInfo){
+				cout << "File opened: " << filename << ", mode: " << mode << ", size: " <<
 				 fileSize << " bytes." << endl;
+			}
 		}
 		else
 			cout << "Please enter a valid mode (read|write)." << endl;
@@ -540,10 +584,68 @@ public:
     }
 
 
+
+	void
+	updateDat(string path)
+	{
+
+		datIn.open(DATPATH);
+		string line = "",topText = "",data = "",endText = "";
+		
+		//read top text untill file is found
+		while(getline(datIn,line)){
+			
+			if(line[0] == 'F')
+				if(line.substr(2,line.size()-2) == path)
+					break;
+			
+			topText += line + "\n";
+		}
+
+		topText += line + "\n";
+
+		if(fileSize!=0)
+			data = "#\n" + read(0,fileSize) + "\n#\n";
+
+		//skip the data stored in that file if any
+		getline(datIn,line);
+		if(line[0] == '#'){
+			do{
+				getline(datIn,line);
+			}while(line[0]!='#');
+			getline(datIn,line);
+		}
+		
+		//read after the file is found and data is skipped
+		endText += line + "\n";
+
+		while(getline(datIn,line))
+			endText += line + "\n";
+
+		datIn.close();
+		dat.open(DATPATH);
+		dat << topText + data +	endText;
+		dat.close();
+
+	}
+
+
+	/* Makes necessary changes and calls updateDat function */
+	void
+	callUpdateDat(){
+		bool prevPrintInfo = printInfo;
+		printInfo = false;
+		changeMode("read");
+		updateDat(pathFromRoot(current)+"/"+filename);
+		changeMode("write");
+		printInfo = prevPrintInfo; 
+	}
+
+
 	/* Prompts user to input data for the write functions. It stops taking input once 
 	   The user enters '-1' in a new line and presses enter. */
 	string 
-	getInput () 
+	getInput (ifstream& in) 
 	{
 		if (mode != "write") 
 		{
@@ -661,7 +763,7 @@ public:
 	/* Write function is invoked whenever user wishes to write into a new file or to
 	   Append to an existing file. */
 	void 
-	write(string input) 
+	write(string input , bool updatedat) 
 	{
 
 		int neededPages = 0, byteCount = 0;
@@ -752,6 +854,9 @@ public:
         }
 
 		fileSize = getFileSize();
+		if(updatedat)
+			callUpdateDat();
+		
 		if (printInfo)
 			cout << "Updated file size: " << fileSize << endl;
 	}
@@ -775,11 +880,12 @@ public:
 		else if (data.length() + writeAt > fileSize) 
 		{
 			truncate(writeAt - 1);
-			write(data);
+			write(data,true);
 		}
 		else 
 			chunkManipulation(writeAt, data.length(), false, data);
 		
+		callUpdateDat();
 		resetPageTblPtr();
 	}
 
@@ -857,6 +963,7 @@ public:
 	        if (printInfo)
 	            cout << "File size reduced to " << fileSize << " bytes." << endl;
 	    }
+		callUpdateDat();
     }
 
 
@@ -917,6 +1024,8 @@ public:
 			resetPageTblPtr();
 		}
 	}
+
+
 };
 
 
@@ -956,7 +1065,7 @@ traverseTree (int i, vector<string> tokens, bool change)
 /* Fucntion createFolder accepts argument path for folder creation traverses the tree
    From current path, and if the path exists it creates a node for subdirectory. */
 void 
-createFolder (string path) 
+createFolder (string path,bool updatedat) 
 {
 	bool createable = true;
 	tempFolder = current;
@@ -982,6 +1091,10 @@ createFolder (string path)
 		else
 			cout << "Error: cannot create directory in specified path." << endl;
 	}
+	tempFolder = current;
+	if(updatedat)
+		enterDat(pathFromRoot(current),false,path);
+
 }
 
 
@@ -1056,7 +1169,7 @@ isNumber (string s)
 /* Creates a file node at the current working directory and pushes it into its' files
    List. This does not assign any pages. */
 void 
-create (string filename) 
+create (string filename,bool updatedat) 
 {
 	filename += ".txt";
 
@@ -1064,6 +1177,8 @@ create (string filename)
 		current->files.push_back(new FileNode(filename));
 	else
 		cout << "A file of same name already exists." << endl;
+	if(updatedat)
+		enterDat(pathFromRoot(current),true,filename);
 }
 
 
@@ -1126,7 +1241,7 @@ locateFile (vector<string> tokens, bool destFile)
 				else if (destFile) {
 					cout << "Creating destination file..." << endl;
 					current = tempFolder;
-					create(tokens.back());
+					create(tokens.back(),true);
 					filePosDir = current->files.size() - 1;
 					tempFile = tempFolder->files[filePosDir];
 					cout << "New file created." << endl;
@@ -1255,21 +1370,6 @@ deleteFile (string filename)
 }
 
 
-
-/* Returns string path from root upto the current working directory. */
-string 
-pathFromRoot (Folder* dir) 
-{
-	string path = dir->dirName;
-	while (dir->parent != NULL) 
-	{
-		path = dir->parent->dirName + "/" + path;
-		dir = dir->parent;
-	}
-	return path;
-}
-
-
 /* Lists all files in current directory along with their information. */
 void 
 listFiles (Folder* dir) 
@@ -1343,50 +1443,13 @@ memMap (Folder* dir)
 }
 
 
-/* Function getChildren accepts argument of folder node concatenate info about all 
-   Child nodes of given folder node into 'out' which will be written in .dat file. */
-void 
-getChildren (Folder* dir) 
-{
-	current = dir;
-	tempFolder = dir;
-
-	for (int i = 0; i < dir->subdir.size(); i++) 
-		out += "D\t" + pathFromRoot(dir->subdir[i]) + "\n";
-	
-	for (int i = 0; i < dir->files.size(); i++) 
-	{
-		out += "F\t" + pathFromRoot(dir) + "/" + dir->files[i]->name + "\n";
-
-		if (dir->files[i]->pgTblPtr != NULL) 
-		{
-			File openFile(dir->files[i]->name, "read", false);
-			out += "#\n";
-			out += openFile.read(0, openFile.getFileSize()) + "\n";
-			out += "#\n";
-		}
-	}
-}
-
-
-
-/* Writes memory structure tree into .dat file. Called at the end of the program. */
-void 
-end (Folder* dir) 
-{
-	getChildren(dir);
-	for (int i = 0; i < dir->subdir.size(); i++)
-		end(dir->subdir[i]);
-}
-
-
 
 /* Reads the given .dat file, reloads the entire memory structure and writes into
    Files as given in the file. */
 void 
 readDat () 
 {
-	ifstream datIn;
+
 	vector<string> lineTokens, fileFolder, tokenizedFileName, folderPath;
 	string line, fileName, content,path;
 
@@ -1406,7 +1469,7 @@ readDat ()
 		if (line[0] == 'D') 
 		{
 			path = line.substr(6,line.size()-6);
-			createFolder(path);
+			createFolder(path,false);
 			line = "";
 
 		}
@@ -1436,7 +1499,7 @@ readDat ()
 			tempFolder = current;
 
 			/* Create file in durectory */
-			create(fileName);
+			create(fileName,false);
 			line = "";
 
 		} 
@@ -1456,7 +1519,7 @@ readDat ()
 
 			/* Open file and write content */
 			File openedFile(fileName + ".txt", "write", false);
-			openedFile.write(content);
+			openedFile.write(content,false);
 			content = "";
 		}
 	}
@@ -1505,11 +1568,12 @@ help ()
 /* Prompts user to enter in their command, and once it is taken, it is tokenized based
    On spaces and the vector of resulting strings is returned. */
 vector<string> 
-getCommand () 
+getCommand (ifstream& input) 
 {
 	string command;
 	cout << pathFromRoot(current) << "> ";
 	getline(cin, command);
+	//getline(input,command);
 	return tokenize(command, ' ');
 }
 
@@ -1519,7 +1583,7 @@ getCommand ()
    Respective functions, and returns boolean to main to update running status of 
    Program. */
 bool 
-processCommand (vector<string> tokens) 
+processCommand (vector<string> tokens,ifstream& input) 
 {
 	string filename;
 	bool loop = true;
@@ -1543,13 +1607,14 @@ processCommand (vector<string> tokens)
 
 			while (inLoop) 
 			{
-				vector<string> tokens = getCommand();
+				vector<string> tokens = getCommand(input);
 
-				if (tokens.size() == 1 && tokens[0] == "wr")
-					openedFile.write(openedFile.getInput());
+				if (tokens.size() == 1 && tokens[0] == "wr"){
+					openedFile.write(openedFile.getInput(input),true);
+				}
 
 				else if (tokens.size() == 2 && tokens[0] == "wrat" && isNumber(tokens[1]))
-					openedFile.writeAt(openedFile.getInput(), stoi(tokens[1]) - 1);
+					openedFile.writeAt(openedFile.getInput(input), stoi(tokens[1]) - 1);
 
 				else if (tokens.size() == 2 && tokens[0] == "chmod")
 					openedFile.changeMode(tokens[1]);
@@ -1595,7 +1660,7 @@ processCommand (vector<string> tokens)
 		changeDir(tokens[1]);
 	
 	else if (tokens.size() == 2 && tokens[0] == "cr")
-		create(tokens[1]);
+		create(tokens[1],true);
 	
 	else if (tokens.size() == 3 && tokens[0] == "mv") 
 		move(tokens[1], tokens[2]);
@@ -1604,7 +1669,7 @@ processCommand (vector<string> tokens)
 		deleteFile(tokens[1]);
 	
 	else if (tokens.size() == 2 && tokens[0] == "mkdir")
-		createFolder(tokens[1]);
+		createFolder(tokens[1],true);
 	
 	else if (tokens.size() == 1 && tokens[0] == "map"){
 		printSpace();
@@ -1625,15 +1690,8 @@ processCommand (vector<string> tokens)
 	}
 	
 	else if (tokens.size() == 1 && tokens[0] == "end") 
-	{
-		dat.open(DATPATH);
-		out = "";
-		cout << "Writing .dat file ..." << endl;
-		end(rootFolder);
-		dat << out;
-		cout << "Complete" << endl;
 		loop = false;
-	}
+	
 	else 
 		cout << "Invalid command. Type help for user guide." << endl;
 
@@ -1655,10 +1713,12 @@ main (int argc, const char* argv[])
 	bool loop = true;
 	printSpace();
 
+	ifstream threadIn;
+	threadIn.open("thread inputs/1.txt");
 	while (loop) 
 	{
-		vector<string> tokens = getCommand();
-		loop = processCommand(tokens);
+		vector<string> tokens = getCommand(threadIn);
+		loop = processCommand(tokens,threadIn);
 	}
 
 	free((char*)start);
