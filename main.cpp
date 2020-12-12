@@ -180,6 +180,38 @@ enterDat(string path,bool file,string name)
 	dat.close();
 }
 
+
+void
+removeDat(string path,bool file){
+	
+	string line = "",prevText = "",endText = "";
+	datIn.open(DATPATH);
+	while(getline(datIn,line)){
+		if(line[0] == 'F' || line[0] == 'D')
+			if(line.substr(2,line.size()-2) == path)
+				break;
+		prevText+=line + "\n";
+	}
+	getline(datIn,line);
+	
+	if(file){
+		if(line[0] == '\a'){
+			do{
+				getline(datIn,line);
+			}while(line[0]!='\a');
+			getline(datIn,line);
+		}
+	}
+	endText+=line+"\n";
+	while(getline(datIn,line))
+		endText+=line+"\n";
+
+	datIn.close();
+	dat.open(DATPATH);
+	dat << prevText + endText;
+	dat.close();
+}
+
 /* Takes in the files' name as an argument and tells which index it will be found at. 
    If the file does not exist in the current directory, it returns -1 (error). */
 int 
@@ -602,17 +634,17 @@ public:
 			topText += line + "\n";
 		}
 
-		topText += line + "\n";
+		topText += line;
 
 		if(fileSize!=0)
-			data = "#\n" + read(0,fileSize) + "\n#\n";
+			data = "\a\n" + read(0,fileSize) + "\n\a\n";
 
 		//skip the data stored in that file if any
 		getline(datIn,line);
-		if(line[0] == '#'){
+		if(line[0] == '\a'){
 			do{
 				getline(datIn,line);
-			}while(line[0]!='#');
+			}while(line[0]!='\a');
 			getline(datIn,line);
 		}
 		
@@ -624,7 +656,7 @@ public:
 
 		datIn.close();
 		dat.open(DATPATH);
-		dat << topText + data +	endText;
+		dat << topText + data +	endText.substr(0,endText.length()-1);
 		dat.close();
 
 	}
@@ -1365,7 +1397,8 @@ deleteFile (string filename)
 					 pgTblPtr));
 		}
 
-		current->files.erase(current->files.begin() + getFileNo(filename));	
+		current->files.erase(current->files.begin() + getFileNo(filename));
+		removeDat(pathFromRoot(current)+"/"+filename,true);	
 	}
 }
 
@@ -1423,6 +1456,51 @@ listFiles (Folder* dir)
 	}
 
 	cout << disp;
+}
+
+
+
+void
+removeChildren(Folder* dir){
+	tempFolder = dir;
+	if(dir->subdir.size() == 0 && dir->files.size() == 0)
+		return;
+	
+	for(int i = 0; i<dir->files.size();i++)
+		deleteFile(dir->files[i]->name);
+
+	for(int i = 0; i<dir->subdir.size();i++){
+		current = dir->subdir[i];
+		removeDat(pathFromRoot(current),false);
+		removeChildren(current);
+	}
+	removeDat(pathFromRoot(dir),false);
+	dir->subdir.clear();
+
+}
+
+
+/* Recursive function to delete all files and folders in th giver folder */
+void 
+deleteFolder(string folderName){
+
+	tempFolder = current;
+	if(!folderExists){
+		cout<<"The folder does not exist in current directory"<<endl;
+		return;
+	}
+
+	Folder * temp = current;
+	for(int i = 0; i<current->subdir.size();i++){
+		if (current->subdir[i]->dirName == folderName){
+			current = current->subdir[i];
+			current->parent->subdir.erase(current->parent->subdir.begin()+i);
+			break;
+		}
+	}
+	removeChildren(current);
+	current = temp;
+
 }
 
 
@@ -1504,12 +1582,12 @@ readDat ()
 
 		} 
 		/* Condition if data is to be written in file */
-		else if (line[0] == '#') 
+		else if (line[0] == '\a') 
 		{
 			/* Concatenate content until -1 is encountered again */
 			while (getline(datIn, line)) 
 			{
-				if (line[0] == '#')
+				if (line[0] == '\a')
 					break;
 				content += line + "\n";
 			}
@@ -1554,6 +1632,7 @@ help ()
 
 	cout << "close\t\tClose the opened file\t\t\t\t\t\tclose" << endl;
 	cout << "del\t\tDelete a file at the specified path\t\t\t\tdel ./folder/foo" << endl;
+	cout << "rem\t\tDelete all files and folders in specified folder\t\trem folder" << endl;
 	cout << "mv\t\tMove file from one location to another\t\t\t\tmv ./subf/filename ../sf/" << endl;
 	cout << "map\t\tDisplay memory map\t\t\t\t\t\tmap" << endl;
 	cout << "end\t\tTerminate program\t\t\t\t\t\ttend" << endl;
@@ -1667,6 +1746,9 @@ processCommand (vector<string> tokens,ifstream& input)
 	
 	else if (tokens.size() == 2 && tokens[0] == "del")
 		deleteFile(tokens[1]);
+
+	else if (tokens.size() == 2 && tokens[0] == "rem")
+		deleteFolder(tokens[1]);	
 	
 	else if (tokens.size() == 2 && tokens[0] == "mkdir")
 		createFolder(tokens[1],true);
