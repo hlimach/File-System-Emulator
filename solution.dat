@@ -1,11 +1,7 @@
-D	root/sharique
-D	root/sharique/haleem
-D	root/sharique/haleem/maha
-F	root/file1.txt
-#
-you fatmam . this is updated file 1
-#
-F	root/sharique/file2.txt
-#
-thi
-#
+
+D	root/abc
+D	root/bcr
+F	root/a.txt
+F	root/b.txt
+F	root/c.txt
+F	root/bcr/r.txt

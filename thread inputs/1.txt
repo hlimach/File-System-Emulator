@@ -1,0 +1,8 @@
+cr a
+open a.txt write
+wr
+thesis some text for file a
+-1
+close
+ls
+end

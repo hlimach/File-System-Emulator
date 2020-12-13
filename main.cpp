@@ -13,7 +13,7 @@
 #define NUMPAGES (MEMSIZE / PAGESIZE)	 /* Total pages in memory. */
 #define LASTENTRY ((PAGESIZE / 2) - 1)	 /* Last entry point for a page table. */
 #define MAXENTRIES ((PAGESIZE / 2) - 3)	 /* Maximum entries possible in a page table */
-#define DATPATH "F:/nust/sem 5/Operating Systems/OS_Proj/solution.dat"
+#define DATPATH "solution.dat"
 
 using namespace std;
 
@@ -51,7 +51,6 @@ tokenize (string command, char delimiter)
 }
 
 
-
 /* Prints number of bytes available by iterating over free list*/
 void
 printSpace()
@@ -60,9 +59,6 @@ printSpace()
 		 " bytes" << endl;
 
 }
-
-
-
 
 
 /* Gets a char pointer to a page and returns the page number that it is supposed to 
@@ -176,15 +172,15 @@ enterDat(string path,bool file,string name)
 		prevText += "D\t" + path + "/" + name; 
 	
 	dat.open(DATPATH);
-	dat<<prevText;
+	dat << prevText;
 	dat.close();
 }
 
 
 void
-removeDat(string path,bool file){
-	
-	string line = "",prevText = "",endText = "";
+removeDat (string path,bool file)
+{
+	string line = "", prevText = "", endText = "";
 	datIn.open(DATPATH);
 	while(getline(datIn,line)){
 		if(line[0] == 'F' || line[0] == 'D')
@@ -687,7 +683,7 @@ public:
 		else 
 		{
 			string input, line;
-			while (getline(in, line)) 
+			while (getline(cin, line)) 
 			{
 				if (line == "-1")
 					break;
@@ -1272,11 +1268,8 @@ locateFile (vector<string> tokens, bool destFile)
 				/* In case it is a destination file and it does not exist yet. */
 				else if (destFile) {
 					cout << "Creating destination file..." << endl;
-					current = tempFolder;
-					create(tokens.back(),true);
-					filePosDir = current->files.size() - 1;
-					tempFile = tempFolder->files[filePosDir];
 					cout << "New file created." << endl;
+					tempFile = NULL;
 					found = true;
 					return;
 				}
@@ -1288,67 +1281,6 @@ locateFile (vector<string> tokens, bool destFile)
 				}
 			}
 		}
-	}
-}
-
-
-
-/* Takes in two paths for source and destination file, and moves the source file to
-   The Destination file. */
-void 
-move (string srcPath, string destPath) 
-{
-	vector<string> tokenSrcFile = tokenize(srcPath, '/');
-	vector<string> tokenDestFile = tokenize(destPath, '/');
-
-	int srcPos, destPos;
-	FileNode* srcFile, * destFile;
-	Folder* srcFolder, * destFolder;
-
-	/* Checks if source file exists, in which case it records its variables. */
-	locateFile(tokenSrcFile, false);
-	bool srcFileFound = found;
-	if (srcFileFound) 
-	{
-		srcFile = tempFile;
-		srcFolder = tempFolder;
-		srcPos = filePosDir;
-	}
-	else
-		return;
-
-	/* Checks if destination file exists, in which case it records its variables. */
-	locateFile(tokenDestFile, true);
-	bool destFileFound = found;
-	if (destFileFound) 
-	{
-		destFile = tempFile;
-		destFolder = tempFolder;
-		destPos = filePosDir;
-	}
-	else
-		return;
-
-	/* Checks if both specified files are not the same, because for a cut paste within
-	   The same file, the move within function should be invoked. */
-	if (srcFile != destFile) 
-	{
-		if (destFile->pgTblPtr != NULL) 
-		{
-			current = destFolder;
-			File openFile(tokenDestFile[tokenDestFile.size() - 1], "write", false);
-			openFile.truncate(0);
-		}
-
-		destFile->pgTblPtr = srcFile->pgTblPtr;
-		srcFile->pgTblPtr = NULL;
-		(srcFolder->files).erase(srcFolder->files.begin() + srcPos);
-	}
-	else 
-	{
-		cout << "Invalid Arguments. To move within a file, plese open the file first."
-			 << endl;
-		return;
 	}
 }
 
@@ -1399,6 +1331,68 @@ deleteFile (string filename)
 
 		current->files.erase(current->files.begin() + getFileNo(filename));
 		removeDat(pathFromRoot(current)+"/"+filename,true);	
+	}
+}
+
+
+
+/* Takes in two paths for source and destination file, and moves the source file to
+   The Destination file. */
+void 
+move (string srcPath, string destPath) 
+{
+	vector<string> tokenSrcFile = tokenize(srcPath, '/');
+	vector<string> tokenDestFile = tokenize(destPath, '/');
+
+	int srcPos, destPos;
+	FileNode* srcFile, * destFile;
+	Folder* srcFolder, * destFolder;
+
+	/* Checks if source file exists, in which case it records its variables. */
+	locateFile(tokenSrcFile, false);
+	bool srcFileFound = found;
+	if (srcFileFound) 
+	{
+		srcFile = tempFile;
+		srcFolder = tempFolder;
+		srcPos = filePosDir;
+	}
+	else
+		return;
+
+	/* Checks if destination file exists, in which case it records its variables. */
+	locateFile(tokenDestFile, true);
+	bool destFileFound = found;
+	if (destFileFound) 
+	{
+		destFile = tempFile;
+		destFolder = tempFolder;
+		destPos = filePosDir;
+	}
+	else
+		return;
+
+	/* Checks if both specified files are not the same, because for a cut paste within
+	   The same file, the move within function should be invoked. */
+	if (srcFile != destFile) 
+	{
+		if (destFile != NULL) 
+		{
+			Folder *temp = current;
+			current = destFolder;
+			deleteFile(tokenDestFile.back());
+			current = temp;
+		}
+
+		srcFile->name = tokenDestFile.back();
+		destFolder->files.push_back(srcFile);
+		srcFolder->files.erase(srcFolder->files.begin() + srcPos);
+	}
+	else 
+	{
+		cout << "Invalid Arguments. To move within a file, plese open the file first."
+			 << endl;
+		return;
 	}
 }
 
@@ -1650,9 +1644,9 @@ vector<string>
 getCommand (ifstream& input) 
 {
 	string command;
-	//cout << pathFromRoot(current) << "> ";
-	//getline(cin, command);
-	getline(input,command);
+	cout << pathFromRoot(current) << "> ";
+	getline(cin, command);
+	// getline(input,command);
 	return tokenize(command, ' ');
 }
 
