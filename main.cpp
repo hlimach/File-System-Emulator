@@ -178,6 +178,40 @@ enterDat(string path,bool file,string name)
 
 
 void
+moveDat(string oldPath,string newPath)
+{
+	string line = "",prevText = "",data = "";
+	datIn.open(DATPATH);
+	while(getline(datIn,line)){
+		if(line[0] == 'F')
+			if(line.substr(2,line.size()-2) == oldPath)
+				break;
+		prevText+=line + "\n";
+	}
+	
+	getline(datIn,line);
+	
+	if(line[0] == '\a'){
+		data += line + "\n";
+		do{
+			getline(datIn,line);
+			data += line + "\n";
+		}while(line[0]!='\a');
+		getline(datIn,line);
+	}
+
+	
+	prevText+=line+"\n";
+	while(getline(datIn,line))
+		prevText+=line+"\n";
+
+	datIn.close();
+	dat.open(DATPATH);
+	dat << prevText + "F\t" + newPath + "\n" + data.substr(0,data.length()-1);
+	dat.close();
+}
+
+void
 removeDat (string path,bool file)
 {
 	string line = "", prevText = "", endText = "";
@@ -187,6 +221,15 @@ removeDat (string path,bool file)
 			if(line.substr(2,line.size()-2) == path)
 				break;
 		prevText+=line + "\n";
+	}
+	
+	if (datIn.eof()) {
+
+		datIn.close();
+		dat.open(DATPATH);
+		dat << prevText;
+		dat.close();
+		return;
 	}
 	getline(datIn,line);
 	
@@ -204,7 +247,7 @@ removeDat (string path,bool file)
 
 	datIn.close();
 	dat.open(DATPATH);
-	dat << prevText + endText;
+	dat << prevText + endText.substr(0,endText.length()-1);
 	dat.close();
 }
 
@@ -634,6 +677,15 @@ public:
 
 		if(fileSize!=0)
 			data = "\a\n" + read(0,fileSize) + "\n\a\n";
+
+		if(datIn.eof()){	
+			
+			datIn.close();
+			dat.open(DATPATH);
+			dat << topText + data;
+			dat.close();
+			return;
+		}
 
 		//skip the data stored in that file if any
 		getline(datIn,line);
@@ -1384,6 +1436,7 @@ move (string srcPath, string destPath)
 			current = temp;
 		}
 
+		moveDat(pathFromRoot(srcFolder) +"/"+ srcFile->name,pathFromRoot(destFolder) +"/"+ tokenDestFile.back());
 		srcFile->name = tokenDestFile.back();
 		destFolder->files.push_back(srcFile);
 		srcFolder->files.erase(srcFolder->files.begin() + srcPos);
@@ -1483,7 +1536,7 @@ deleteFolder(string folderName){
 		cout<<"The folder does not exist in current directory"<<endl;
 		return;
 	}
-
+	removeDat(pathFromRoot(current)+"/"+folderName,false);
 	Folder * temp = current;
 	for(int i = 0; i<current->subdir.size();i++){
 		if (current->subdir[i]->dirName == folderName){
@@ -1494,6 +1547,7 @@ deleteFolder(string folderName){
 	}
 	removeChildren(current);
 	current = temp;
+	tempFolder = current;
 
 }
 
