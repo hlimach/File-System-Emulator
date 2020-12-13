@@ -7,6 +7,7 @@
 #include <vector>
 #include <fstream>
 #include <assert.h>
+#include <thread>
 
 #define PAGESIZE 16						 /* Size of each page in memory. */
 #define MEMSIZE 16384					 /* Total memory reserved for file data. */
@@ -139,6 +140,12 @@ int filePosDir;
 
 /* To let functions know if the needed file is found. */
 bool fileFound, found;
+
+/* 10 threads for processing */
+thread th[10];
+
+/* 10  input streams for 10 threads of input File*/
+ifstream threadIn[10];
 
 
 /* Returns string path from root upto the current working directory. */
@@ -735,7 +742,7 @@ public:
 		else 
 		{
 			string input, line;
-			while (getline(cin, line)) 
+			while (getline(in, line)) 
 			{
 				if (line == "-1")
 					break;
@@ -1698,9 +1705,9 @@ vector<string>
 getCommand (ifstream& input) 
 {
 	string command;
-	cout << pathFromRoot(current) << "> ";
-	getline(cin, command);
-	// getline(input,command);
+	//cout << pathFromRoot(current) << "> ";
+	//getline(cin, command);
+	getline(input,command);
 	return tokenize(command, ' ');
 }
 
@@ -1829,6 +1836,19 @@ processCommand (vector<string> tokens,ifstream& input)
 }
 
 
+void
+startProcess(int i)
+{
+	string path = "thread inputs/" + to_string(i+1) + ".txt";
+	threadIn[i].open(path);
+	bool loop = true;
+	while (loop) 
+	{
+		vector<string> tokens = getCommand(threadIn[i]);
+		loop = processCommand(tokens,threadIn[i]);
+	}
+}
+
 
 int 
 main (int argc, const char* argv[]) 
@@ -1840,16 +1860,12 @@ main (int argc, const char* argv[])
 	for (short int i = NUMPAGES - 1; i >= 0; i--)
 		freeList.push(i);
 
-	bool loop = true;
 	printSpace();
+	for(int i = 0;i<1;i++)
+		th[i] = thread(startProcess,i);
 
-	ifstream threadIn;
-	threadIn.open("thread inputs/1.txt");
-	while (loop) 
-	{
-		vector<string> tokens = getCommand(threadIn);
-		loop = processCommand(tokens,threadIn);
-	}
+	for(int i = 0;i<1;i++)
+		th[i].join();
 
 	free((char*)start);
 	return 0;
