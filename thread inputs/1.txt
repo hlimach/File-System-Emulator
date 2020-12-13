@@ -1,8 +1,8 @@
-cr a
-open a.txt write
-wr
-thesis some text for file a
--1
+rdat
+ls
+open file1.txt read
+rd
 close
+mv file1.txt b.txt
 ls
 end
