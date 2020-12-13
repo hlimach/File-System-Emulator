@@ -634,7 +634,7 @@ public:
 			topText += line + "\n";
 		}
 
-		topText += line;
+		topText += line +"\n";
 
 		if(fileSize!=0)
 			data = "\a\n" + read(0,fileSize) + "\n\a\n";
@@ -687,7 +687,7 @@ public:
 		else 
 		{
 			string input, line;
-			while (getline(cin, line)) 
+			while (getline(in, line)) 
 			{
 				if (line == "-1")
 					break;
@@ -1650,9 +1650,9 @@ vector<string>
 getCommand (ifstream& input) 
 {
 	string command;
-	cout << pathFromRoot(current) << "> ";
-	getline(cin, command);
-	//getline(input,command);
+	//cout << pathFromRoot(current) << "> ";
+	//getline(cin, command);
+	getline(input,command);
 	return tokenize(command, ' ');
 }
 
