@@ -17,7 +17,7 @@
 #define NUMPAGES (MEMSIZE / PAGESIZE)	 /* Total pages in memory. */
 #define LASTENTRY ((PAGESIZE / 2) - 1)	 /* Last entry point for a page table. */
 #define MAXENTRIES ((PAGESIZE / 2) - 3)	 /* Maximum entries possible in a page table */
-#define DATPATH "solution.dat"
+#define DATPATH "../disk_data.dat"
 
 using namespace std;
 

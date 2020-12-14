@@ -1,5 +1,5 @@
-#include "config.h"
-#include "globals.h"
+#include "headers/config.h"
+#include "headers/globals.h"
 
 /* Points to the starting location of the allocated memory. */
 const char* start;

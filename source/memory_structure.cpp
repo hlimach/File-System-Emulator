@@ -1,9 +1,9 @@
-#include "config.h"
-#include "memory_structure.h"
-#include "globals.h"
-#include "util.h"
-#include "dat.h"
-#include "file.h"
+#include "headers/config.h"
+#include "headers/memory_structure.h"
+#include "headers/globals.h"
+#include "headers/util.h"
+#include "headers/dat.h"
+#include "headers/file.h"
 
 FileNode :: FileNode(string fileName)
 : name(fileName), pgTblPtr(NULL)

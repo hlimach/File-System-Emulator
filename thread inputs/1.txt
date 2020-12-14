@@ -1,8 +1,18 @@
-rdat
-ls
-open file1.txt read
+cr a
+open a.txt write
+wr
+this is
+sample text
+for file a.txt
+for testing
+-1
+chmod read
 rd
 close
-mv file1.txt b.txt
+cr b
+mkdir xyz
 ls
+mv a.txt c
+ls
+map
 end

@@ -1,8 +1,8 @@
-#include "config.h"
-#include "util.h"
-#include "globals.h"
-#include "file.h"
-#include "dat.h"
+#include "headers/config.h"
+#include "headers/util.h"
+#include "headers/globals.h"
+#include "headers/file.h"
+#include "headers/dat.h"
 
 /* user guide. */
 void 
@@ -339,7 +339,7 @@ getCommand (ifstream& input)
 	string command;
 	//cout << pathFromRoot(current) << "> ";
 	//getline(cin, command);
-	getline(input,command);
+	getline(input, command);
 	return tokenize(command, ' ');
 }
 

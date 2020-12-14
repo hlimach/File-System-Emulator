@@ -1,10 +1,10 @@
-#include "config.h"
-#include "util.h"
-#include "memory_structure.h"
-#include "globals.h"
-#include "dat.h"
-#include "file.h"
-#include "threads.h"
+#include "headers/config.h"
+#include "headers/util.h"
+#include "headers/memory_structure.h"
+#include "headers/globals.h"
+#include "headers/dat.h"
+#include "headers/file.h"
+#include "headers/threads.h"
 
 
 int 

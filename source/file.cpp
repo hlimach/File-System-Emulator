@@ -1,7 +1,7 @@
-#include "config.h"
-#include "file.h"
-#include "globals.h"
-#include "util.h"
+#include "headers/config.h"
+#include "headers/file.h"
+#include "headers/globals.h"
+#include "headers/util.h"
 
 File :: File (string name, string md, bool printInf) 
 : filename(name), pageTable(current->files[getFileNo(filename)]->pgTblPtr),

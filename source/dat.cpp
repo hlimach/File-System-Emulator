@@ -1,11 +1,11 @@
-#include "config.h"
-#include "globals.h"
-#include "dat.h"
-#include "util.h"
-#include "file.h"
+#include "headers/config.h"
+#include "headers/globals.h"
+#include "headers/dat.h"
+#include "headers/util.h"
+#include "headers/file.h"
 
 void
-enterDat (string path, bool file,string name)
+enterDat (string path, bool file, string name)
 {
 	string prevText = "", line = "";
 
@@ -28,7 +28,7 @@ enterDat (string path, bool file,string name)
 
 
 void
-moveDat (string oldPath,string newPath)
+moveDat (string oldPath, string newPath)
 {
 	string line = "", prevText = "", data = "";
 	datIn.open(DATPATH);
