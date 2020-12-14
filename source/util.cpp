@@ -334,12 +334,12 @@ memMap (Folder* dir)
 /* Prompts user to enter in their command, and once it is taken, it is tokenized based
    On spaces and the vector of resulting strings is returned. */
 vector<string> 
-getCommand (ifstream& input) 
+getCommand (ifstream& input,int i) 
 {
 	string command;
-	//cout << pathFromRoot(current) << "> ";
 	//getline(cin, command);
 	getline(input, command);
+	cout << "user"+to_string(i+1)+"$ "+pathFromRoot(current) << "> "<< command << endl;
 	return tokenize(command, ' ');
 }
 
@@ -349,7 +349,7 @@ getCommand (ifstream& input)
    Respective functions, and returns boolean to main to update running status of 
    Program. */
 bool 
-processCommand (vector<string> tokens, ifstream& input) 
+processCommand (vector<string> tokens, ifstream& input,int i) 
 {
 	string filename;
 	bool loop = true;
@@ -373,7 +373,7 @@ processCommand (vector<string> tokens, ifstream& input)
 
 				while (inLoop) 
 				{
-					vector<string> tokens = getCommand(input);
+					vector<string> tokens = getCommand(input,i);
 
 					if (tokens.size() == 1 && tokens[0] == "wr")
 						openedFile.write(openedFile.getInput(input),true);

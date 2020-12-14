@@ -10,6 +10,7 @@
 int 
 main (int argc, const char* argv[]) 
 {
+	int numberOfThreads;
 	current = rootFolder;
 	tempFolder = rootFolder;
 	start = (char*)malloc(MEMSIZE);
@@ -19,10 +20,12 @@ main (int argc, const char* argv[])
 
 	printSpace();
 
-	for(int i = 0; i < 1; i++)
+	cout<<"Enter number of users (1-10): ";
+	cin >> numberOfThreads;
+	for(int i = 0; i < numberOfThreads; i++)
 		th[i] = thread(startProcess, i);
 
-	for(int i = 0; i < 1; i++)
+	for(int i = 0; i < numberOfThreads; i++)
 		th[i].join();
 
 	free((char*)start);

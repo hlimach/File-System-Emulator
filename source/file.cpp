@@ -406,6 +406,7 @@ getInput (ifstream& in)
 		string input, line;
 		while (getline(in, line)) 
 		{
+			cout << line << endl;
 			if (line == "-1")
 				break;
 

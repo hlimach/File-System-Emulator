@@ -11,7 +11,7 @@ startProcess(int i)
 	bool loop = true;
 	while (loop) 
 	{
-		vector<string> tokens = getCommand(threadIn[i]);
-		loop = processCommand(tokens, threadIn[i]);
+		vector<string> tokens = getCommand(threadIn[i],i);
+		loop = processCommand(tokens, threadIn[i],i);
 	}
 }

@@ -12,7 +12,7 @@ close
 cr b
 mkdir xyz
 ls
-mv a.txt c
+mv a.txt c.txt
 ls
 map
 end

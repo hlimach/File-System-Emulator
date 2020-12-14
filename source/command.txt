@@ -1,0 +1,1 @@
+g++ -o main main.cpp util.cpp memory_structure.cpp globals.cpp dat.cpp file.cpp threads.cpp
