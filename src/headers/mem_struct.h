@@ -1,5 +1,5 @@
-#ifndef MEMORY_STRUCTURE_H
-#define MEMORY_STRUCTURE_H
+#ifndef MEM_STRUCT_H
+#define MEM_STRUCT_H
 
 /* Class for file nodes in the tree structure to be maintained for memory management. 
    It is a leaf node. */

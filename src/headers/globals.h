@@ -1,7 +1,7 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
-#include "memory_structure.h"
+#include "mem_struct.h"
 
 extern const char* start;
 extern stack <short int> freeList;

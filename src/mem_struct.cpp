@@ -1,5 +1,5 @@
 #include "headers/config.h"
-#include "headers/memory_structure.h"
+#include "headers/mem_struct.h"
 #include "headers/globals.h"
 #include "headers/util.h"
 #include "headers/dat.h"

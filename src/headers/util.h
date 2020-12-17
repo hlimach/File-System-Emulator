@@ -2,7 +2,7 @@
 #define UTIL_H
 
 #include "config.h"
-#include "memory_structure.h"
+#include "mem_struct.h"
 
 void help ();
 vector<string> tokenize (string, char);
