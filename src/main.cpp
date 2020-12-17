@@ -13,14 +13,14 @@ main (int argc, const char* argv[])
 	int numberOfThreads;
 	current = rootFolder;
 	tempFolder = rootFolder;
-	start = (char*)malloc(MEMSIZE);
+	start = (char*) malloc(MEMSIZE);
 
 	for (short int i = NUMPAGES - 1; i >= 0; i--)
 		freeList.push(i);
 
 	printSpace();
 
-	cout<<"Enter number of users (1-10): ";
+	cout << "Enter number of users (1-10): ";
 	cin >> numberOfThreads;
 	for(int i = 0; i < numberOfThreads; i++)
 		th[i] = thread(startProcess, i);
