@@ -94,21 +94,21 @@ pathFromRoot (Folder* dir)
 /* Takes in the files' name as an argument and tells which index it will be found at. 
    If the file does not exist in the current directory, it returns -1 (error). */
 int 
-getFileNo (string name) 
+getFileNo (string name,int threadNo) 
 {
 	int i;
-	bool found = false;
+	bool found[threadNo] = false;
 
-	for (i = 0; i < current->files.size(); i++) 
+	for (i = 0; i < current[threadNo]->files.size(); i++) 
 	{
-		if (current->files[i]->name == name) 
+		if (current[threadNo]->files[i]->name == name) 
 		{
-			found = true;
+			found[threadNo] = true;
 			break;
 		}
 	}
 
-	if (found)
+	if (found[threadNo])
 		return i;
 	else
 		return -1;
@@ -118,14 +118,14 @@ getFileNo (string name)
 /* Function takes in the wanted files' name as argument accesses the temporary folders'
    File directory and iterates it fully returns true if it is found. */
 bool 
-fileExists (string filename) 
+fileExists (string filename, int threadNo) 
 {
-	for (int j = 0; j < tempFolder->files.size(); j++) 
+	for (int j = 0; j < tempFolder[threadNo]->files.size(); j++) 
 	{
-		if (tempFolder->files[j]->name == filename) 
+		if (tempFolder[threadNo]->files[j]->name == filename) 
 		{
-			filePosDir = j;
-			tempFile = tempFolder->files[j];
+			filePosDir[threadNo] = j;
+			tempFile[threadNo] = tempFolder[threadNo]->files[j];
 			return true;
 		}
 	}
@@ -136,13 +136,13 @@ fileExists (string filename)
 /* Function folderExists takes in directory name as argument accesses the temporary 
    Folder's subdirectory and iterates it fully returns true if it is found. */
 bool 
-folderExists (string dirName) 
+folderExists (string dirName, int threadNo) 
 {
-	for (int j = 0; j < tempFolder->subdir.size(); j++) 
+	for (int j = 0; j < tempFolder[threadNo]->subdir.size(); j++) 
 	{
-		if (tempFolder->subdir[j]->dirName == dirName) 
+		if (tempFolder[threadNo]->subdir[j]->dirName == dirName) 
 		{
-			tempFolder = tempFolder->subdir[j];
+			tempFolder[threadNo] = tempFolder[threadNo]->subdir[j];
 			return true;
 		}
 	}
@@ -152,20 +152,20 @@ folderExists (string dirName)
 
 /* Lists all the files and folders in the current working directory. */
 void 
-listDir () 
+listDir (int threadNo) 
 {
-	if (current->subdir.size() == 0 && current->files.size() == 0) 
+	if (current[threadNo]->subdir.size() == 0 && current[threadNo]->files.size() == 0) 
 	{
 		cout << "Directory is empty." << endl;
 		return;
 	}
 	else 
 	{
-		for (int i = 0; i < current->subdir.size(); i++)
-			cout << current->subdir[i]->dirName << "\t";
+		for (int i = 0; i < current[threadNo]->subdir.size(); i++)
+			cout << current[threadNo]->subdir[i]->dirName << "\t";
 
-		for (int i = 0; i < current->files.size(); i++)
-			cout << current->files[i]->name << "\t";
+		for (int i = 0; i < current[threadNo]->files.size(); i++)
+			cout << current[threadNo]->files[i]->name << "\t";
 
 		cout << endl;
 	}
@@ -188,10 +188,10 @@ isNumber (string s)
    Exists, the fucntion updates pointers to tempFile.cIf the path exists, file does
    Not exist, and its a destination file, the function creates the file. */
 void 
-locateFile (vector<string> tokens, bool destFile) 
+locateFile (vector<string> tokens, bool destFile, int threadNo) 
 {
-	found = true;
-	tempFolder = current;
+	found[threadNo] = true;
+	tempFolder[threadNo] = current[threadNo];
 	int i = 0;
 
 	/* If the first token is '.', then it works in current directory. */
@@ -202,13 +202,13 @@ locateFile (vector<string> tokens, bool destFile)
 	{
 		if (tokens[i] == "..") 
 		{
-			if (tempFolder->parent == NULL) 
+			if (tempFolder[threadNo]->parent == NULL) 
 			{
 				cout << "Parent of root does not exist." << endl;
-				found = false;
+				found[threadNo] = false;
 				return;
 			}
-			tempFolder = tempFolder->parent;
+			tempFolder[threadNo] = tempFolder[threadNo]->parent;
 		}
 		else 
 		{
@@ -217,12 +217,12 @@ locateFile (vector<string> tokens, bool destFile)
 			   Exited. */
 			if (i != tokens.size() - 1) 
 			{
-				bool checkFolder = folderExists(tokens[i]);
+				bool checkFolder = folderExists(tokens[i],threadNo);
 				if (!checkFolder) 
 				{
 					cout << "Invalid path. A folder in the specified path does not exist."
 						 << endl;
-					found = false;
+					found[threadNo] = false;
 					return;
 				}
 			}
@@ -232,23 +232,23 @@ locateFile (vector<string> tokens, bool destFile)
 			else 
 			{
 				/* In case it exists. */
-				if (fileExists(tokens[i])) 
+				if (fileExists(tokens[i],threadNo)) 
 				{
-					found = true;
+					found[threadNo] = true;
 					return;
 				}
 				/* In case it is a destination file and it does not exist yet. */
 				else if (destFile) {
 					cout << "Creating destination file..." << endl;
 					cout << "New file created." << endl;
-					tempFile = NULL;
-					found = true;
+					tempFile[threadNo] = NULL;
+					found[threadNo] = true;
 					return;
 				}
 				/* In case it is a source file and it does not exist. */
 				else if (!destFile) {
 					cout << "The specified file does not exist." << endl;
-					found = false;
+					found[threadNo] = false;
 					return;
 				}
 			}
@@ -317,10 +317,10 @@ listFiles (Folder* dir)
 /* Recursive function for memory map. Lists all files in a directory, then is called
    On each subdirectory. */
 void 
-memMap (Folder* dir) 
+memMap (Folder* dir, int threadNo) 
 {	
-	tempFolder = dir;
-	current = dir;
+	tempFolder[threadNo] = dir;
+	current[threadNo] = dir;
 	listFiles(dir);
 
 	if (dir->subdir.size() == 0)
@@ -334,12 +334,12 @@ memMap (Folder* dir)
 /* Prompts user to enter in their command, and once it is taken, it is tokenized based
    On spaces and the vector of resulting strings is returned. */
 vector<string> 
-getCommand (ifstream& input,int i) 
+getCommand (ifstream& input,int threadNo) 
 {
 	string command;
 	//getline(cin, command);
 	getline(input, command);
-	cout << "user"+to_string(i+1)+"$ "+pathFromRoot(current) << "> "<< command << endl;
+	cout << "user"+to_string(threadNo+1)+"$ "+pathFromRoot(current[threadNo]) << "> "<< command << endl;
 	return tokenize(command, ' ');
 }
 
@@ -349,7 +349,7 @@ getCommand (ifstream& input,int i)
    Respective functions, and returns boolean to main to update running status of 
    Program. */
 bool 
-processCommand (vector<string> tokens, ifstream& input,int i) 
+processCommand (vector<string> tokens, ifstream& input,int threadNo) 
 {
 	string filename;
 	bool loop = true;
@@ -363,9 +363,9 @@ processCommand (vector<string> tokens, ifstream& input,int i)
 			 || tokens[2] == "read")) 
 		{
 
-			filePosDir = getFileNo(tokens[1]);
+			filePosDir[threadNo] = getFileNo(tokens[1],threadNo);
 
-			if (fileExists(tokens[1])) 
+			if (fileExists(tokens[1],threadNo)) 
 			{
 				File openedFile(tokens[1], tokens[2], true);
 
@@ -373,7 +373,7 @@ processCommand (vector<string> tokens, ifstream& input,int i)
 
 				while (inLoop) 
 				{
-					vector<string> tokens = getCommand(input,i);
+					vector<string> tokens = getCommand(input,threadNo);
 
 					if (tokens.size() == 1 && tokens[0] == "wr")
 						openedFile.write(openedFile.getInput(input),true);
@@ -415,7 +415,7 @@ processCommand (vector<string> tokens, ifstream& input,int i)
 						cout << "Invalid command. Type help for user guide." << endl;
 				}
 
-				filePosDir = -1;
+				filePosDir[threadNo] = -1;
 			}
 			else
 			{
@@ -426,13 +426,13 @@ processCommand (vector<string> tokens, ifstream& input,int i)
 	}
 
 	else if (tokens.size() == 1 && tokens[0] == "ls") 
-		listDir();
+		listDir(threadNo);
 
 	else if (tokens.size() == 2 && tokens[0] == "cd")
 		changeDir(tokens[1]);
 	
 	else if (tokens.size() == 2 && tokens[0] == "cr")
-		create(tokens[1],true);
+		create(tokens[1]);
 	
 	else if (tokens.size() == 3 && tokens[0] == "mv") 
 		move(tokens[1], tokens[2]);
@@ -448,9 +448,9 @@ processCommand (vector<string> tokens, ifstream& input,int i)
 	
 	else if (tokens.size() == 1 && tokens[0] == "map"){
 		printSpace();
-		Folder *currentFolder = current;
+		Folder *currentFolder = current[threadNo];
 		memMap(rootFolder);
-		current = currentFolder;
+		current[threadNo] = currentFolder;
 	}
 
 	else if (tokens.size() == 1 && tokens[0] == "help")
