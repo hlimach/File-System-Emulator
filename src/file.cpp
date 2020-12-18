@@ -3,8 +3,8 @@
 #include "headers/globals.h"
 #include "headers/util.h"
 
-File :: File (string name, string md, bool printInf) 
-: filename(name), pageTable(current->files[getFileNo(filename)]->pgTblPtr),
+File :: File (string name, string md, bool printInf, int threadNo) 
+: filename(name), pageTable(current[threadNo]->files[getFileNo(filename)]->pgTblPtr),
   fileSize(getFileSize()), mode(md), page(NULL), printInfo(printInf)
 {
 	printFileInfo();
@@ -19,6 +19,7 @@ printFileInfo()
 		cout << "File opened: " << filename << ", mode: " << mode << ", size: "
 			 << fileSize << " bytes." << endl;
 }
+
 
 /* For any given page number within memory, its pointer is returned. */
 char* File :: 
@@ -89,9 +90,9 @@ setPageTablePtr (short int * pageTbl)
 
 /* Resets page table pointer to point to the starting page table. */
 void File ::
-resetPageTblPtr () 
+resetPageTblPtr (int threadNo) 
 {
-	pageTable = current->files[getFileNo(filename)]->pgTblPtr;
+	pageTable = current[threadNo]->files[getFileNo(filename)]->pgTblPtr;
 }
 
 
@@ -240,7 +241,6 @@ chunkManipulation (int startFrom, int chunkSize, bool read, string data)
 		 startFrom + chunkSize) 
 		text += pageTableData(data, startPage, endPage, startByte, limit, temp,
 			 read);
-	
 
 	/* If the reading is not within a page table then send starting byte 
 	   And starting page in the beginning, loop until needed pages are in
@@ -316,8 +316,7 @@ read (int startFrom, int readUpTo)
     	text = chunkManipulation(startFrom, readUpTo, true, "");
     	resetPageTblPtr();
 		return text;
-    }
-    
+    }  
 }
 
 
@@ -374,18 +373,17 @@ updateDat (string path)
 	dat.open(DATPATH);
 	dat << topText + data +	endText.substr(0, endText.length() - 1);
 	dat.close();
-
 }
 
 
 /* Makes necessary changes and calls updateDat function */
 void File ::
-callUpdateDat ()
+callUpdateDat (int threadNo)
 {
 	bool prevPrintInfo = printInfo;
 	printInfo = false;
 	changeMode("read");
-	updateDat(pathFromRoot(current) + "/" +filename);
+	updateDat(pathFromRoot(current[threadNo]) + "/" +filename);
 	changeMode("write");
 	printInfo = prevPrintInfo; 
 }
@@ -489,6 +487,7 @@ createPageTableAndWriteData (string input, int neededPages, int limit,
             neededPages -= MAXENTRIES;
             pageTablePageNum = getNextPageTableNum();
         }
+        
         /* If the needed pages are less than the maximum entries allowed in a
            Page table, then this control branch is taken. It assigns the pages
            Needed, writes into them, assigns the page count to be the amount of
@@ -513,7 +512,7 @@ createPageTableAndWriteData (string input, int neededPages, int limit,
 /* Write function is invoked whenever user wishes to write into a new file or to
    Append to an existing file. */
 void File ::
-write (string input , bool updatedat) 
+write (string input , bool updatedat, int threadNo) 
 {
 	int neededPages = 0, byteCount = 0;
     short int limit;
@@ -535,7 +534,7 @@ write (string input , bool updatedat)
         short int pageTablePageNum = freeList.top();
         freeList.pop();
         char* page = getPagePtr(pageTablePageNum);
-        current->files[getFileNo(filename)]->pgTblPtr = (short int*) page;
+        current[threadNo]->files[getFileNo(filename)]->pgTblPtr = (short int*) page;
         pageTable = (short int*) page;
 
         /* Calculates needed pages and limit, then it calls onto function which

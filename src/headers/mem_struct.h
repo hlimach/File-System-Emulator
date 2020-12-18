@@ -32,13 +32,13 @@ public:
 };
 
 
-bool traverseTree (int, vector<string>, bool);
-void createFolder (string, bool);
-void changeDir (string);
-void create (string, bool);
-void deleteFile (string);
-void move (string, string);
-void removeChildren (Folder*);
-void deleteFolder(string);
+bool traverseTree (int, vector<string>, bool, int);
+void createFolder (string, bool, int);
+void changeDir (string, int);
+void create (string, bool, int);
+void deleteFile (string, int);
+void move (string, string, int);
+void removeChildren (Folder*, int);
+void deleteFolder(string, int);
 
 #endif

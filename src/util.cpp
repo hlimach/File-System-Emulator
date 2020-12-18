@@ -94,7 +94,7 @@ pathFromRoot (Folder* dir)
 /* Takes in the files' name as an argument and tells which index it will be found at. 
    If the file does not exist in the current directory, it returns -1 (error). */
 int 
-getFileNo (string name,int threadNo) 
+getFileNo (string name, int threadNo) 
 {
 	int i;
 	bool found[threadNo] = false;
@@ -334,12 +334,13 @@ memMap (Folder* dir, int threadNo)
 /* Prompts user to enter in their command, and once it is taken, it is tokenized based
    On spaces and the vector of resulting strings is returned. */
 vector<string> 
-getCommand (ifstream& input,int threadNo) 
+getCommand (ifstream& input, int threadNo) 
 {
 	string command;
 	//getline(cin, command);
 	getline(input, command);
-	cout << "user"+to_string(threadNo+1)+"$ "+pathFromRoot(current[threadNo]) << "> "<< command << endl;
+	cout << "user" + to_string(threadNo+1) + "$ " + pathFromRoot(current[threadNo]) <<
+		 "> " << command << endl;
 	return tokenize(command, ' ');
 }
 
@@ -349,7 +350,7 @@ getCommand (ifstream& input,int threadNo)
    Respective functions, and returns boolean to main to update running status of 
    Program. */
 bool 
-processCommand (vector<string> tokens, ifstream& input,int threadNo) 
+processCommand (vector<string> tokens, ifstream& input, int threadNo) 
 {
 	string filename;
 	bool loop = true;

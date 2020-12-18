@@ -14,35 +14,33 @@ private:
 	bool printInfo;
 
 public:
-	File (string name, string md, bool printInf);
+	File (string name, string md, bool printInf, int threadNo);
 
 	void printFileInfo ();
-	char* getPagePtr (short int x);
+	char* getPagePtr (short int);
 	short int getByteLimit ();
 	short int getPageCount ();
 	short int getNextPageTableNum ();
-	void setByteLimit (int limit);
-	void setPageCount (int count);
-	void setNextPageTableNum (int nextPageNum);	
-	void setPageTablePtr (short int * pageTbl);
-	void resetPageTblPtr ();
+	void setByteLimit (int);
+	void setPageCount (int);
+	void setNextPageTableNum (int);	
+	void setPageTablePtr (short int*);
+	void resetPageTblPtr (int);
 	int getFileSize ();
-	void changeMode (string md);
-	string pageTableData (string input, int startPage, int lastPage, int startByte,
-		 int limit, int &byteCount, bool read);
-    string chunkManipulation (int startFrom, int chunkSize, bool read, string data);
-	string read (int startFrom, int readUpTo);
-	void updateDat(string path);
-	void callUpdateDat ();
-	string getInput (ifstream& in);
-	void assignPages (int start, int last);
-	void calcLimit (int &neededPages, short int &limit, int inputSize, int macro);
-	void createPageTableAndWriteData (string input, int neededPages, int limit, 
-		 int &byteCount, int pageTablePageNum);
-	void write (string input , bool updatedat);
-	void writeAt (string data, int writeAt);
-	void truncate (int size);
-	void moveWithin (int from, int size, int to);
+	void changeMode (string);
+	string pageTableData (string, int, int, int, int, int&, bool);
+    string chunkManipulation (int, int, bool, string);
+	string read (int, int);
+	void updateDat (string);
+	void callUpdateDat (int);
+	string getInput (ifstream&);
+	void assignPages (int, int);
+	void calcLimit (int&, short int&, int, int);
+	void createPageTableAndWriteData (string, int, int, int&, int);
+	void write (string, bool, int);
+	void writeAt (string, int);
+	void truncate (int);
+	void moveWithin (int, int, int);
 
 };
 

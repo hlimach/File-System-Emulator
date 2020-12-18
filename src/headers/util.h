@@ -9,16 +9,15 @@ vector<string> tokenize (string, char);
 void printSpace();
 int getPageNum (char*);
 string pathFromRoot (Folder*);
-int getFileNo (string);
-bool fileExists (string);
-bool folderExists (string);
-void listDir ();
+int getFileNo (string, int);
+bool fileExists (string, int);
+bool folderExists (string, int);
+void listDir (int);
 bool isNumber (string);
-void locateFile (vector<string>, bool);
+void locateFile (vector<string>, bool, int);
 void listFiles (Folder*);
-void memMap (Folder*);
-vector<string> getCommand (ifstream&,int);
-bool processCommand (vector<string> tokens, ifstream& input,int);
-
+void memMap (Folder*, int);
+vector<string> getCommand (ifstream&, int);
+bool processCommand (vector<string> tokens, ifstream& input, int);
 
 #endif

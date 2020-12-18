@@ -18,7 +18,7 @@ Folder :: Folder(string name)
 /* Traverses tree according to given path. If a folder within the path is not found, 
    The loop is exited, and the boolean found is set to false. */
 bool
-traverseTree (int i, vector<string> tokens, bool change,int threadNo)
+traverseTree (int i, vector<string> tokens, bool change, int threadNo)
 {
 	int lim = tokens.size() - 1;
 	if (change)
@@ -51,7 +51,7 @@ traverseTree (int i, vector<string> tokens, bool change,int threadNo)
 /* Fucntion createFolder accepts argument path for folder creation traverses the tree
    From current path, and if the path exists it creates a node for subdirectory. */
 void 
-createFolder (string path,bool updatedat,int threadNo) 
+createFolder (string path,bool updatedat, int threadNo) 
 {
 	bool createable = true;
 	tempFolder[threadNo] = current[threadNo];
@@ -89,7 +89,7 @@ createFolder (string path,bool updatedat,int threadNo)
    Directory and if path exists updates the current working directory to specified 
    Path. */
 void 
-changeDir (string path,int threadNo) 
+changeDir (string path, int threadNo) 
 {
 	bool changable = true;
 	vector<string> tokens = tokenize(path, '/');
@@ -121,7 +121,7 @@ changeDir (string path,int threadNo)
 /* Creates a file node at the current working directory and pushes it into its' files
    List. This does not assign any pages. */
 void 
-create (string filename,bool updatedat,int threadNo) 
+create (string filename,bool updatedat, int threadNo) 
 {
 	filename += ".txt";
 
@@ -140,7 +140,7 @@ create (string filename,bool updatedat,int threadNo)
 /* Takes in file name as an argument. Works on current working directory. If a file
    Of the same name exists, it is deleted. */
 void 
-deleteFile (string filename,int threadNo) 
+deleteFile (string filename, int threadNo) 
 {
 	/* If a file of the given name does not exist in current working directory. */
 	if (!fileExists(filename)) 
@@ -186,11 +186,10 @@ deleteFile (string filename,int threadNo)
 }
 
 
-
 /* Takes in two paths for source and destination file, and moves the source file to
    The Destination file. */
 void 
-move (string srcPath, string destPath,int threadNo) 
+move (string srcPath, string destPath, int threadNo) 
 {
 	vector<string> tokenSrcFile = tokenize(srcPath, '/');
 	vector<string> tokenDestFile = tokenize(destPath, '/');
@@ -250,7 +249,7 @@ move (string srcPath, string destPath,int threadNo)
 
 
 void
-removeChildren (Folder* dir,int threadNo)
+removeChildren (Folder* dir, int threadNo)
 {
 	tempFolder[threadNo] = dir;
 
@@ -275,7 +274,7 @@ removeChildren (Folder* dir,int threadNo)
 
 /* Recursive function to delete all files and folders in the given folder */
 void 
-deleteFolder(string folderName,int threadNo)
+deleteFolder(string folderName, int threadNo)
 {
 	tempFolder[threadNo] = current[threadNo];
 

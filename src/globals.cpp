@@ -17,22 +17,19 @@ ofstream dat;
 /* To read from .dat file whenever required. */
 ifstream datIn;
 
-/* String is used to gather all text to be written into .dat file. */
-string out;
-
 /* Current folder pointer stores pointer to current working directory, whereas 
    tempFolder pointer is used for temporary actions/ tracking. */
-Folder* current, * tempFolder;
+Folder* current[10], *tempFolder[10];
 
 /* Pointer tempFile points to File node to store its value if found. */
-FileNode* tempFile;
+FileNode* tempFile[10];
 
 /* Int filePosDir tells us which index in the vector of the current directory the 
    Needed file will be found. */
-int filePosDir;
+int filePosDir[10];
 
 /* To let functions know if the needed file is found. */
-bool fileFound, found;
+bool fileFound[10], found[10];
 
 /* 10 threads for processing */
 thread th[10];
