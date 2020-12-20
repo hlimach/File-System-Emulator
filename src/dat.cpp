@@ -197,7 +197,7 @@ readDat ()
 
 			/* Open file and write content */
 			File openedFile(fileName + ".txt", "write", false, 0);
-			openedFile.write(content, false, 0);
+			openedFile.write(content, false);
 			content = "";
 		}
 	}

@@ -97,18 +97,18 @@ int
 getFileNo (string name, int threadNo) 
 {
 	int i;
-	bool found[threadNo] = false;
+	bool found = false;
 
 	for (i = 0; i < current[threadNo]->files.size(); i++) 
 	{
 		if (current[threadNo]->files[i]->name == name) 
 		{
-			found[threadNo] = true;
+			found = true;
 			break;
 		}
 	}
 
-	if (found[threadNo])
+	if (found)
 		return i;
 	else
 		return -1;
@@ -259,7 +259,7 @@ locateFile (vector<string> tokens, bool destFile, int threadNo)
 
 /* Lists all files in current directory along with their information. */
 void 
-listFiles (Folder* dir, threadNo) 
+listFiles (Folder* dir, int threadNo) 
 {
 	if (dir->files.size() == 0)
 		return;
@@ -377,28 +377,28 @@ processCommand (vector<string> tokens, ifstream& input, int threadNo)
 					vector<string> tokens = getCommand(input,threadNo);
 
 					if (tokens.size() == 1 && tokens[0] == "wr")
-						openedFile.write(openedFile.getInput(input),true,threadNo);
+						openedFile.write(openedFile.getInput(input),true);
 
 					else if (tokens.size() == 2 && tokens[0] == "wrat" && isNumber(tokens[1]))
-						openedFile.writeAt(openedFile.getInput(input), stoi(tokens[1]) - 1,threadNo);
+						openedFile.writeAt(openedFile.getInput(input), stoi(tokens[1]) - 1);
 
 					else if (tokens.size() == 2 && tokens[0] == "chmod")
 						openedFile.changeMode(tokens[1]);
 
 					else if (tokens.size() == 1 && tokens[0] == "rd")
-						cout << openedFile.read(0, openedFile.getFileSize(),threadNo) << endl;
+						cout << openedFile.read(0, openedFile.getFileSize()) << endl;
 
 					else if (tokens.size() == 3 && tokens[0] == "rf" && isNumber(tokens[1])
 						 && isNumber(tokens[2]))
-						cout << openedFile.read(stoi(tokens[1]) - 1, stoi(tokens[2]),threadNo)
+						cout << openedFile.read(stoi(tokens[1]) - 1, stoi(tokens[2]))
 							 << endl;
 
 					else if (tokens.size() == 2 && tokens[0] == "trun" && isNumber(tokens[1]))
-						openedFile.truncate(stoi(tokens[1]),threadNo);
+						openedFile.truncate(stoi(tokens[1]));
 
 					else if (tokens.size() == 4 && tokens[0] == "mvin" && isNumber(tokens[1])
 						 && isNumber(tokens[2]) && isNumber(tokens[3]))
-						openedFile.moveWithin(stoi(tokens[1]), stoi(tokens[2]), stoi(tokens[3]),threadNo);
+						openedFile.moveWithin(stoi(tokens[1]), stoi(tokens[2]), stoi(tokens[3]));
 
 					else if (tokens.size() == 1 && tokens[0] == "end")
 						cout << "Close file before ending program." << endl;
@@ -433,7 +433,7 @@ processCommand (vector<string> tokens, ifstream& input, int threadNo)
 		changeDir(tokens[1],threadNo);
 	
 	else if (tokens.size() == 2 && tokens[0] == "cr")
-		create(tokens[1],threadNo);
+		create(tokens[1],true,threadNo);
 	
 	else if (tokens.size() == 3 && tokens[0] == "mv") 
 		move(tokens[1], tokens[2],threadNo);

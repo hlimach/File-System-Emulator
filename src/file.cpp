@@ -4,7 +4,7 @@
 #include "headers/util.h"
 
 File :: File (string name, string md, bool printInf, int threadNo) 
-: filename(name), pageTable(current[threadNo]->files[getFileNo(filename)]->pgTblPtr),
+: filename(name), pageTable(current[threadNo]->files[getFileNo(filename,threadNo)]->pgTblPtr),
   fileSize(getFileSize()), threadNum(threadNo), mode(md), page(NULL), printInfo(printInf)
 {
 	printFileInfo();
@@ -92,7 +92,7 @@ setPageTablePtr (short int * pageTbl)
 void File ::
 resetPageTblPtr () 
 {
-	pageTable = current[threadNum]->files[getFileNo(filename)]->pgTblPtr;
+	pageTable = current[threadNum]->files[getFileNo(filename,threadNum)]->pgTblPtr;
 }
 
 
@@ -534,7 +534,7 @@ write (string input, bool updatedat)
         short int pageTablePageNum = freeList.top();
         freeList.pop();
         char* page = getPagePtr(pageTablePageNum);
-        current[threadNum]->files[getFileNo(filename)]->pgTblPtr = (short int*) page;
+        current[threadNum]->files[getFileNo(filename,threadNum)]->pgTblPtr = (short int*) page;
         pageTable = (short int*) page;
 
         /* Calculates needed pages and limit, then it calls onto function which
