@@ -11,8 +11,6 @@ int
 main (int argc, const char* argv[]) 
 {
 	int numberOfThreads;
-	current = rootFolder;
-	tempFolder = rootFolder;
 	start = (char*) malloc(MEMSIZE);
 
 	for (short int i = NUMPAGES - 1; i >= 0; i--)
