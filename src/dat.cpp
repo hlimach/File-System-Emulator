@@ -4,6 +4,9 @@
 #include "headers/util.h"
 #include "headers/file.h"
 
+
+/* Whenever a new file or folder is created, this function is called so it appends
+   To the end of the existing .dat file, updating it. */
 void
 enterDat (string path, bool file, string name)
 {
@@ -27,6 +30,9 @@ enterDat (string path, bool file, string name)
 }
 
 
+/* Whenever a file is moved, this function is called. It gets the path of the file,
+   Removes its entry from the .dat file, and adds it to the end with the updated
+   Path. */
 void
 moveDat (string oldPath, string newPath)
 {
@@ -67,6 +73,8 @@ moveDat (string oldPath, string newPath)
 	dat.close();
 }
 
+
+/* Whenever a file or folder is deleted, it removes its entry from the .dat file. */
 void
 removeDat (string path, bool file)
 {
@@ -140,7 +148,7 @@ readDat ()
 		if (line[0] == 'D') 
 		{
 			path = line.substr(6, line.size() - 6);
-			createFolder(path, false,0);
+			createFolder(path, false, 0);
 			line = "";
 		}
 		else if (line[0] == 'F') 
@@ -163,15 +171,16 @@ readDat ()
 				for (int i = 0; i < fileFolder.size(); i++) 
 					line += fileFolder[i] + "/";
 				
-				changeDir(line,0);
+				changeDir(line, 0);
 			}
 
 			tempFolder[0] = current[0];
 
 			/* Create file in durectory */
-			create(fileName,false,0);
+			create(fileName, false, 0);
 			line = "";
 		} 
+
 		/* Condition if data is to be written in file */
 		else if (line[0] == '\a') 
 		{
@@ -187,13 +196,13 @@ readDat ()
 			current[0] = tempFolder[0];
 
 			/* Open file and write content */
-			File openedFile(fileName + ".txt", "write", false,0);
-			openedFile.write(content, false,0);
+			File openedFile(fileName + ".txt", "write", false, 0);
+			openedFile.write(content, false, 0);
 			content = "";
 		}
 	}
 
-	current = rootFolder;
-	tempFolder = current;
+	current[0] = rootFolder;
+	tempFolder[0] = current[0];
 	datIn.close();
 }

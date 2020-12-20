@@ -5,7 +5,7 @@
 
 File :: File (string name, string md, bool printInf, int threadNo) 
 : filename(name), pageTable(current[threadNo]->files[getFileNo(filename)]->pgTblPtr),
-  fileSize(getFileSize()), mode(md), page(NULL), printInfo(printInf)
+  fileSize(getFileSize()), threadNum(threadNo), mode(md), page(NULL), printInfo(printInf)
 {
 	printFileInfo();
 }
@@ -90,9 +90,9 @@ setPageTablePtr (short int * pageTbl)
 
 /* Resets page table pointer to point to the starting page table. */
 void File ::
-resetPageTblPtr (int threadNo) 
+resetPageTblPtr () 
 {
-	pageTable = current[threadNo]->files[getFileNo(filename)]->pgTblPtr;
+	pageTable = current[threadNum]->files[getFileNo(filename)]->pgTblPtr;
 }
 
 
@@ -378,12 +378,12 @@ updateDat (string path)
 
 /* Makes necessary changes and calls updateDat function */
 void File ::
-callUpdateDat (int threadNo)
+callUpdateDat ()
 {
 	bool prevPrintInfo = printInfo;
 	printInfo = false;
 	changeMode("read");
-	updateDat(pathFromRoot(current[threadNo]) + "/" +filename);
+	updateDat(pathFromRoot(current[threadNum]) + "/" +filename);
 	changeMode("write");
 	printInfo = prevPrintInfo; 
 }
@@ -512,7 +512,7 @@ createPageTableAndWriteData (string input, int neededPages, int limit,
 /* Write function is invoked whenever user wishes to write into a new file or to
    Append to an existing file. */
 void File ::
-write (string input , bool updatedat, int threadNo) 
+write (string input, bool updatedat) 
 {
 	int neededPages = 0, byteCount = 0;
     short int limit;
@@ -534,7 +534,7 @@ write (string input , bool updatedat, int threadNo)
         short int pageTablePageNum = freeList.top();
         freeList.pop();
         char* page = getPagePtr(pageTablePageNum);
-        current[threadNo]->files[getFileNo(filename)]->pgTblPtr = (short int*) page;
+        current[threadNum]->files[getFileNo(filename)]->pgTblPtr = (short int*) page;
         pageTable = (short int*) page;
 
         /* Calculates needed pages and limit, then it calls onto function which
