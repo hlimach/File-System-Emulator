@@ -6,7 +6,7 @@
 void
 startProcess(int i)
 {
-	string path = "../inputs/" + to_string(i + 1) + ".txt";
+	string path = "../threads/" + to_string(i + 1) + ".txt";
 	threadIn[i].open(path);
 	bool loop = true;
 	while (loop) 
