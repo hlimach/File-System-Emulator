@@ -135,12 +135,12 @@ readDat ()
 
 	while (getline(datIn, line)) 
 	{
-		current = rootFolder;
+		current[0] = rootFolder;
 
 		if (line[0] == 'D') 
 		{
 			path = line.substr(6, line.size() - 6);
-			createFolder(path, false);
+			createFolder(path, false,0);
 			line = "";
 		}
 		else if (line[0] == 'F') 
@@ -163,13 +163,13 @@ readDat ()
 				for (int i = 0; i < fileFolder.size(); i++) 
 					line += fileFolder[i] + "/";
 				
-				changeDir(line);
+				changeDir(line,0);
 			}
 
-			tempFolder = current;
+			tempFolder[0] = current[0];
 
 			/* Create file in durectory */
-			create(fileName,false);
+			create(fileName,false,0);
 			line = "";
 		} 
 		/* Condition if data is to be written in file */
@@ -184,11 +184,11 @@ readDat ()
 			}
 
 			content = content.substr(0, content.size() - 1);
-			current = tempFolder;
+			current[0] = tempFolder[0];
 
 			/* Open file and write content */
-			File openedFile(fileName + ".txt", "write", false);
-			openedFile.write(content, false);
+			File openedFile(fileName + ".txt", "write", false,0);
+			openedFile.write(content, false,0);
 			content = "";
 		}
 	}

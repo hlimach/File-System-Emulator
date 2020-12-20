@@ -37,7 +37,7 @@ traverseTree (int i, vector<string> tokens, bool change, int threadNo)
         }
         else
         {
-            bool folderFound = folderExists(tokens[i]);
+            bool folderFound = folderExists(tokens[i],threadNo);
             if (!folderFound)
             {
                 return false;
@@ -63,12 +63,12 @@ createFolder (string path,bool updatedat, int threadNo)
 		return;
 	}
 	else {
-		createable = traverseTree(0, tokens, false);
+		createable = traverseTree(0, tokens, false,threadNo);
 
 		/* If the path exists, a folder of the same name does not already exist, and
 		   The name of the folder is neither '.' nor '..', then a folder at the 
 		   Specified path is successfully created. */
-		if (createable && !folderExists(tokens.back()) && (tokens.back() != "." ||
+		if (createable && !folderExists(tokens.back(),threadNo) && (tokens.back() != "." ||
 			 tokens.back() != "..")) 
 		{
 			tempFolder[threadNo]->subdir.push_back(new Folder(tokens.back()));
@@ -80,7 +80,7 @@ createFolder (string path,bool updatedat, int threadNo)
 	tempFolder[threadNo] = current[threadNo];
 
 	if (updatedat)
-		enterDat(pathFromRoot(current), false, path);
+		enterDat(pathFromRoot(current[threadNo]), false, path);
 
 }
 
@@ -108,7 +108,7 @@ changeDir (string path, int threadNo)
 		if (tokens[0] == ".")
 			i = 0;
 
-		changable = traverseTree(i, tokens, true);
+		changable = traverseTree(i, tokens, true,threadNo);
 
 		if (changable)
 			current[threadNo] = tempFolder[threadNo];
@@ -125,9 +125,9 @@ create (string filename,bool updatedat, int threadNo)
 {
 	filename += ".txt";
 
-	if (!fileExists(filename)) 
+	if (!fileExists(filename,threadNo)) 
 	{
-		current->files.push_back(new FileNode(filename));
+		current[threadNo]->files.push_back(new FileNode(filename));
 		
 		if (updatedat)
 			enterDat(pathFromRoot(current[threadNo]), true, filename);
@@ -143,7 +143,7 @@ void
 deleteFile (string filename, int threadNo) 
 {
 	/* If a file of the given name does not exist in current working directory. */
-	if (!fileExists(filename)) 
+	if (!fileExists(filename,threadNo)) 
 	{
 		cout << "Error: file does not exist" << endl;
 		return;
@@ -152,7 +152,7 @@ deleteFile (string filename, int threadNo)
 	{
 		/* Get page table pointer of this file, and open the file. */
 		short int* pageTable = current[threadNo]->files[getFileNo(filename)]->pgTblPtr;
-		File delFile(filename, "read", false);
+		File delFile(filename, "read", false,threadNo);
 
 		/* If the file is not empty, then start deletion process. */
 		if (pageTable != NULL) 
@@ -199,8 +199,8 @@ move (string srcPath, string destPath, int threadNo)
 	Folder* srcFolder, * destFolder;
 
 	/* Checks if source file exists, in which case it records its variables. */
-	locateFile(tokenSrcFile, false);
-	bool srcFileFound = found;
+	locateFile(tokenSrcFile, false,threadNo);
+	bool srcFileFound = found[threadNo];
 	if (srcFileFound) 
 	{
 		srcFile = tempFile[threadNo];
@@ -211,8 +211,8 @@ move (string srcPath, string destPath, int threadNo)
 		return;
 
 	/* Checks if destination file exists, in which case it records its variables. */
-	locateFile(tokenDestFile, true);
-	bool destFileFound = found;
+	locateFile(tokenDestFile, true,threadNo);
+	bool destFileFound = found[threadNo];
 	if (destFileFound) 
 	{
 		destFile = tempFile[threadNo];
@@ -230,7 +230,7 @@ move (string srcPath, string destPath, int threadNo)
 		{
 			Folder *temp = current[threadNo];
 			current[threadNo] = destFolder;
-			deleteFile(tokenDestFile.back());
+			deleteFile(tokenDestFile.back(),threadNo);
 			current[threadNo] = temp;
 		}
 
@@ -261,7 +261,7 @@ removeChildren (Folder* dir, int threadNo)
 
 	for (int i = 0; i < dir->subdir.size(); i++)
 	{
-		current = dir->subdir[i];
+		current[threadNo] = dir->subdir[i];
 		removeDat(pathFromRoot(current[threadNo]), false);
 		removeChildren(current[threadNo]);
 	}
@@ -284,7 +284,7 @@ deleteFolder(string folderName, int threadNo)
 		return;
 	}
 
-	removeDat(pathFromRoot(current) + "/" + folderName,false);
+	removeDat(pathFromRoot(current[threadNo]) + "/" + folderName,false);
 	Folder * temp = current[threadNo];
 
 	for (int i = 0; i < current[threadNo]->subdir.size();i++)

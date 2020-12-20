@@ -19,7 +19,8 @@ ifstream datIn;
 
 /* Current folder pointer stores pointer to current working directory, whereas 
    tempFolder pointer is used for temporary actions/ tracking. */
-Folder* current[10], *tempFolder[10];
+Folder* current[10] = {rootFolder,rootFolder,rootFolder,rootFolder,rootFolder,rootFolder,rootFolder,rootFolder,rootFolder,rootFolder}; 
+Folder* tempFolder[10] = {rootFolder,rootFolder,rootFolder,rootFolder,rootFolder,rootFolder,rootFolder,rootFolder,rootFolder,rootFolder};
 
 /* Pointer tempFile points to File node to store its value if found. */
 FileNode* tempFile[10];
