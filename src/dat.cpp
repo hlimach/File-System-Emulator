@@ -5,28 +5,38 @@
 #include "headers/file.h"
 
 
+/* opens file stream whenever required to read or write to .dat file */
+void
+openStream(bool overwrite)
+{
+	if(!overwrite)
+		datStream.open(DATPATH, ios::out | ios::in | ios::app );
+	else
+		datStream.open(DATPATH,ios::out);
+}
+
+
+/* closes file stream when read or write operation is completed */
+void
+closeStream()
+{
+	datStream.close();
+}
+
 /* Whenever a new file or folder is created, this function is called so it appends
    To the end of the existing .dat file, updating it. */
 void
 enterDat (string path, bool file, string name)
 {
-	string prevText = "", line = "";
-
-	datIn.open(DATPATH);
-
-	while(getline(datIn, line))
-		prevText += line + "\n";
-	
-	datIn.close();
-
+	string data = "";
 	if(file)
-		prevText += "F\t" + path + "/" + name; 
+		data = "F\t" + path + "/" + name; 
 	else
-		prevText += "D\t" + path + "/" + name; 
+		data = "D\t" + path + "/" + name; 
 	
-	dat.open(DATPATH);
-	dat << prevText;
-	dat.close();
+	openStream(false);
+	datStream << data << endl;
+	closeStream();
 }
 
 
@@ -37,9 +47,9 @@ void
 moveDat (string oldPath, string newPath)
 {
 	string line = "", prevText = "", data = "";
-	datIn.open(DATPATH);
+	openStream(false);
 
-	while (getline(datIn, line))
+	while (getline(datStream, line))
 	{
 		if (line[0] == 'F')
 			if (line.substr(2, line.size() - 2) == oldPath)
@@ -48,29 +58,29 @@ moveDat (string oldPath, string newPath)
 		prevText += line + "\n";
 	}
 	
-	getline (datIn, line);
+	getline (datStream, line);
 	
 	if (line[0] == '\a')
 	{
 		data += line + "\n";
 		do
 		{
-			getline(datIn,line);
+			getline(datStream,line);
 			data += line + "\n";
 		} while(line[0]!='\a');
 
-		getline(datIn,line);
+		getline(datStream,line);
 	}
 
 	prevText += line + "\n";
 
-	while (getline(datIn, line))
+	while (getline(datStream, line))
 		prevText += line + "\n";
 
-	datIn.close();
-	dat.open(DATPATH);
-	dat << prevText + "F\t" + newPath + "\n" + data.substr(0, data.length() - 1);
-	dat.close();
+	closeStream();
+	openStream(true);
+	datStream << prevText + "F\t" + newPath + "\n" + data.substr(0, data.length() - 1);
+	closeStream();
 }
 
 
@@ -79,9 +89,9 @@ void
 removeDat (string path, bool file)
 {
 	string line = "", prevText = "", endText = "";
-	datIn.open(DATPATH);
+	openStream(false);
 
-	while (getline(datIn, line))
+	while (getline(datStream, line))
 	{
 		if (line[0] == 'F' || line[0] == 'D')
 			if (line.substr(2, line.size() - 2) == path)
@@ -90,37 +100,37 @@ removeDat (string path, bool file)
 		prevText += line + "\n";
 	}
 	
-	if (datIn.eof()) 
+	if (datStream.eof()) 
 	{
-		datIn.close();
-		dat.open(DATPATH);
-		dat << prevText;
-		dat.close();
+		closeStream();
+		openStream(true);
+		datStream << prevText;
+		closeStream();
 		return;
 	}
 
-	getline(datIn,line);
+	getline(datStream,line);
 	
 	if (file)
 	{
 		if (line[0] == '\a'){
 			do
 			{
-				getline(datIn,line);
+				getline(datStream,line);
 			} while(line[0]!='\a');
 
-			getline(datIn,line);
+			getline(datStream,line);
 		}
 	}
 	endText += line + "\n";
 
-	while (getline(datIn, line))
+	while (getline(datStream, line))
 		endText+=line+"\n";
+	closeStream();
 
-	datIn.close();
-	dat.open(DATPATH);
-	dat << prevText + endText.substr(0, endText.length() - 1);
-	dat.close();
+	openStream(true);
+	datStream << prevText + endText.substr(0, endText.length() - 1);
+	closeStream();
 }
 
 
@@ -132,7 +142,8 @@ readDat ()
 	vector<string> fileFolder;
 	string line, fileName, content, path;
 
-	datIn.open(DATPATH);
+	openStream(false);
+	datStream.seekg(0);
 
 	while (!freeList.empty())
 		freeList.pop();
@@ -141,7 +152,7 @@ readDat ()
 		freeList.push(i);
 
 
-	while (getline(datIn, line)) 
+	while (getline(datStream, line)) 
 	{
 		current[0] = rootFolder;
 
@@ -185,7 +196,7 @@ readDat ()
 		else if (line[0] == '\a') 
 		{
 			/* Concatenate content until -1 is encountered again */
-			while (getline(datIn, line)) 
+			while (getline(datStream, line)) 
 			{
 				if (line[0] == '\a')
 					break;
@@ -204,5 +215,5 @@ readDat ()
 
 	current[0] = rootFolder;
 	tempFolder[0] = current[0];
-	datIn.close();
+	closeStream();
 }

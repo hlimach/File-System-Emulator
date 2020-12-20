@@ -156,18 +156,18 @@ listDir (int threadNo)
 {
 	if (current[threadNo]->subdir.size() == 0 && current[threadNo]->files.size() == 0) 
 	{
-		cout << "Directory is empty." << endl;
+		threadOut[threadNo] << "Directory is empty." << endl;
 		return;
 	}
 	else 
 	{
 		for (int i = 0; i < current[threadNo]->subdir.size(); i++)
-			cout << current[threadNo]->subdir[i]->dirName << "\t";
+			threadOut[threadNo] << current[threadNo]->subdir[i]->dirName << "\t";
 
 		for (int i = 0; i < current[threadNo]->files.size(); i++)
-			cout << current[threadNo]->files[i]->name << "\t";
+			threadOut[threadNo] << current[threadNo]->files[i]->name << "\t";
 
-		cout << endl;
+		threadOut[threadNo] << endl;
 	}
 }
 
@@ -204,7 +204,7 @@ locateFile (vector<string> tokens, bool destFile, int threadNo)
 		{
 			if (tempFolder[threadNo]->parent == NULL) 
 			{
-				cout << "Parent of root does not exist." << endl;
+				threadOut[threadNo] << "Parent of root does not exist." << endl;
 				found[threadNo] = false;
 				return;
 			}
@@ -220,7 +220,7 @@ locateFile (vector<string> tokens, bool destFile, int threadNo)
 				bool checkFolder = folderExists(tokens[i],threadNo);
 				if (!checkFolder) 
 				{
-					cout << "Invalid path. A folder in the specified path does not exist."
+					threadOut[threadNo] << "Invalid path. A folder in the specified path does not exist."
 						 << endl;
 					found[threadNo] = false;
 					return;
@@ -239,15 +239,15 @@ locateFile (vector<string> tokens, bool destFile, int threadNo)
 				}
 				/* In case it is a destination file and it does not exist yet. */
 				else if (destFile) {
-					cout << "Creating destination file..." << endl;
-					cout << "New file created." << endl;
+					threadOut[threadNo] << "Creating destination file..." << endl;
+					threadOut[threadNo] << "New file created." << endl;
 					tempFile[threadNo] = NULL;
 					found[threadNo] = true;
 					return;
 				}
 				/* In case it is a source file and it does not exist. */
 				else if (!destFile) {
-					cout << "The specified file does not exist." << endl;
+					threadOut[threadNo] << "The specified file does not exist." << endl;
 					found[threadNo] = false;
 					return;
 				}
@@ -310,7 +310,7 @@ listFiles (Folder* dir, int threadNo)
 		}	
 	}
 
-	cout << disp;
+	threadOut[threadNo] << disp;
 }
 
 
@@ -339,7 +339,7 @@ getCommand (ifstream& input, int threadNo)
 	string command;
 	//getline(cin, command);
 	getline(input, command);
-	cout << "user" + to_string(threadNo+1) + "$ " + pathFromRoot(current[threadNo]) <<
+	threadOut[threadNo] << "user" + to_string(threadNo+1) + "$ " + pathFromRoot(current[threadNo]) <<
 		 "> " << command << endl;
 	return tokenize(command, ' ');
 }
@@ -358,7 +358,7 @@ processCommand (vector<string> tokens, ifstream& input, int threadNo)
 	if (tokens[0] == "open") 
 	{
 		if (tokens.size() == 2 || (tokens[2] != "read" && tokens[2] != "write"))
-			cout << "Please input mode (read|write)" << endl;
+			threadOut[threadNo] << "Please input mode (read|write)" << endl;
 
 		else if (tokens.size() == 3 && tokens[0] == "open" && (tokens[2] == "write"
 			 || tokens[2] == "read")) 
@@ -386,11 +386,11 @@ processCommand (vector<string> tokens, ifstream& input, int threadNo)
 						openedFile.changeMode(tokens[1]);
 
 					else if (tokens.size() == 1 && tokens[0] == "rd")
-						cout << openedFile.read(0, openedFile.getFileSize()) << endl;
+						threadOut[threadNo] << openedFile.read(0, openedFile.getFileSize()) << endl;
 
 					else if (tokens.size() == 3 && tokens[0] == "rf" && isNumber(tokens[1])
 						 && isNumber(tokens[2]))
-						cout << openedFile.read(stoi(tokens[1]) - 1, stoi(tokens[2]))
+						threadOut[threadNo] << openedFile.read(stoi(tokens[1]) - 1, stoi(tokens[2]))
 							 << endl;
 
 					else if (tokens.size() == 2 && tokens[0] == "trun" && isNumber(tokens[1]))
@@ -401,26 +401,26 @@ processCommand (vector<string> tokens, ifstream& input, int threadNo)
 						openedFile.moveWithin(stoi(tokens[1]), stoi(tokens[2]), stoi(tokens[3]));
 
 					else if (tokens.size() == 1 && tokens[0] == "end")
-						cout << "Close file before ending program." << endl;
+						threadOut[threadNo] << "Close file before ending program." << endl;
 
 					else if (tokens.size() == 1 && tokens[0] == "help")
 						help();
 
 					else if (tokens.size() == 1 && tokens[0] == "close") 
 					{
-						cout << "File closed." << endl;
+						threadOut[threadNo] << "File closed." << endl;
 						inLoop = false;
 					}
 
 					else
-						cout << "Invalid command. Type help for user guide." << endl;
+						threadOut[threadNo] << "Invalid command. Type help for user guide." << endl;
 				}
 
 				filePosDir[threadNo] = -1;
 			}
 			else
 			{
-				cout << "The file does not exist." << endl;
+				threadOut[threadNo] << "The file does not exist." << endl;
 				return loop;
 			}
 		}
@@ -459,9 +459,9 @@ processCommand (vector<string> tokens, ifstream& input, int threadNo)
 
 	else if (tokens.size() == 1 && tokens[0] == "rdat") 
 	{
-		cout << "reading .dat file ..." << endl;
+		threadOut[threadNo] << "reading .dat file ..." << endl;
 		readDat();
-		cout << "Complete" << endl;
+		threadOut[threadNo] << "Complete" << endl;
 		printSpace();
 	}
 	
@@ -469,7 +469,7 @@ processCommand (vector<string> tokens, ifstream& input, int threadNo)
 		loop = false;
 	
 	else 
-		cout << "Invalid command. Type help for user guide." << endl;
+		threadOut[threadNo] << "Invalid command. Type help for user guide." << endl;
 
 	return loop;
 }

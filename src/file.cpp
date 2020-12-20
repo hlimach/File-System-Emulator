@@ -2,6 +2,7 @@
 #include "headers/file.h"
 #include "headers/globals.h"
 #include "headers/util.h"
+#include "headers/dat.h"
 
 File :: File (string name, string md, bool printInf, int threadNo) 
 : filename(name), pageTable(current[threadNo]->files[getFileNo(filename,threadNo)]->pgTblPtr),
@@ -16,7 +17,7 @@ void File ::
 printFileInfo()
 {
 	if (printInfo)
-		cout << "File opened: " << filename << ", mode: " << mode << ", size: "
+		threadOut[threadNum] << "File opened: " << filename << ", mode: " << mode << ", size: "
 			 << fileSize << " bytes." << endl;
 }
 
@@ -140,12 +141,12 @@ changeMode (string md)
 	{
 		mode = md;
 		if(printInfo){
-			cout << "File opened: " << filename << ", mode: " << mode << ", size: " <<
+			threadOut[threadNum] << "File opened: " << filename << ", mode: " << mode << ", size: " <<
 			 fileSize << " bytes." << endl;
 		}
 	}
 	else
-		cout << "Please enter a valid mode (read|write)." << endl;
+		threadOut[threadNum] << "Please enter a valid mode (read|write)." << endl;
 }
 
 
@@ -276,17 +277,17 @@ read (int startFrom, int readUpTo)
 	resetPageTblPtr();
     if (mode != "read") 
     {
-        cout << "Please open file in \"read\" mode for this function." << endl;
+        threadOut[threadNum] << "Please open file in \"read\" mode for this function." << endl;
         return "";
     }
     else if (pageTable == NULL) 
     {
-        cout << "The file has no content to display." << endl;
+        threadOut[threadNum] << "The file has no content to display." << endl;
         return "";
     }
     else if ((readUpTo - startFrom > fileSize) || (startFrom + readUpTo > fileSize) || (startFrom < 0)) 
 	{
-		cout << "Out of bound exception. Given limit exceeds total file limit at "
+		threadOut[threadNum] << "Out of bound exception. Given limit exceeds total file limit at "
 			 << fileSize << " bytes." << endl;
 		return "";
 	}
@@ -324,11 +325,11 @@ read (int startFrom, int readUpTo)
 void File ::
 updateDat (string path)
 {
-	datIn.open(DATPATH);
+	openStream(false);
 	string line = "", topText = "", data = "", endText = "";
 	
 	//read top text untill file is found
-	while (getline(datIn, line))
+	while (getline(datStream, line))
 	{	
 		if (line[0] == 'F')
 			if (line.substr(2, line.size() - 2) == path)
@@ -342,37 +343,37 @@ updateDat (string path)
 	if (fileSize != 0)
 		data = "\a\n" + read(0, fileSize) + "\n\a\n";
 
-	if (datIn.eof())
+	if (datStream.eof())
 	{		
-		datIn.close();
-		dat.open(DATPATH);
-		dat << topText + data;
-		dat.close();
+		closeStream();
+		openStream(true);
+		datStream << topText + data;
+		closeStream();
 		return;
 	}
 
 	//skip the data stored in that file if any
-	getline(datIn,line);
+	getline(datStream,line);
 	if (line[0] == '\a')
 	{
 		do
 		{
-			getline(datIn,line);
+			getline(datStream,line);
 		} while(line[0]!='\a');
 
-		getline(datIn,line);
+		getline(datStream,line);
 	}
 	
 	//read after the file is found and data is skipped
 	endText += line + "\n";
 
-	while (getline(datIn, line))
+	while (getline(datStream, line))
 		endText += line + "\n";
 
-	datIn.close();
-	dat.open(DATPATH);
-	dat << topText + data +	endText.substr(0, endText.length() - 1);
-	dat.close();
+	closeStream();
+	openStream(true);
+	datStream << topText + data +	endText.substr(0, endText.length() - 1);
+	closeStream();
 }
 
 
@@ -396,7 +397,7 @@ getInput (ifstream& in)
 {
 	if (mode != "write") 
 	{
-		cout << "Please open file in \"write\" mode for this function." << endl;
+		threadOut[threadNum] << "Please open file in \"write\" mode for this function." << endl;
 		return "";
 	} 
 	else 
@@ -404,7 +405,7 @@ getInput (ifstream& in)
 		string input, line;
 		while (getline(in, line)) 
 		{
-			cout << line << endl;
+			threadOut[threadNum] << line << endl;
 			if (line == "-1")
 				break;
 
@@ -522,7 +523,7 @@ write (string input, bool updatedat)
 	
 	else if (input.size() > (freeList.size() * PAGESIZE)) 
     {
-        cout << "Not enough memory available. " << 
+        threadOut[threadNum] << "Not enough memory available. " << 
         	 "Please reduce input size or delete other files." << endl;
         return;
     }
@@ -606,7 +607,7 @@ write (string input, bool updatedat)
 		callUpdateDat();
 	
 	if (printInfo)
-		cout << "Updated file size: " << fileSize << endl;
+		threadOut[threadNum] << "Updated file size: " << fileSize << endl;
 }
 
 
@@ -620,13 +621,13 @@ writeAt (string data, int writeAt)
 
 	else  if (pageTable == NULL) 
 	{
-		cout << "Invalid command. Cannot call 'Write At' on an empty file." << endl;
+		threadOut[threadNum] << "Invalid command. Cannot call 'Write At' on an empty file." << endl;
 		return;
 	}
 
 	else if (writeAt > fileSize || writeAt < 0) 
 	{
-		cout << "Out of bound exception. Given byte is greater than file size of " 
+		threadOut[threadNum] << "Out of bound exception. Given byte is greater than file size of " 
 			<< fileSize << " bytes." << endl;
 		return;
 	}
@@ -651,12 +652,12 @@ truncate (int size)
 {
 	if (mode != "write") 
 	{
-		cout << "Please open file in \"write\" mode for this function" << endl;
+		threadOut[threadNum] << "Please open file in \"write\" mode for this function" << endl;
 		return;
 	}
 	else if (size > fileSize) 
 	{
-		cout << "Out of bound exception. Given byte is greater than file size of "
+		threadOut[threadNum] << "Out of bound exception. Given byte is greater than file size of "
 			 << fileSize << " bytes." << endl;
 		return;
 	}
@@ -716,7 +717,7 @@ truncate (int size)
         fileSize = getFileSize();
 
         if (printInfo)
-            cout << "File size reduced to " << fileSize << " bytes." << endl;
+            threadOut[threadNum] << "File size reduced to " << fileSize << " bytes." << endl;
     }
 	callUpdateDat();
 }
@@ -732,22 +733,22 @@ moveWithin (int from, int size, int to)
 
 	if ((to > from && to < from + size) || to < 0 || from < 0 || size < 0) 
 	{
-		cout << "Invalid byte arguments." << endl;
+		threadOut[threadNum] << "Invalid byte arguments." << endl;
 		return;
 	}
 	else if (mode != "write") 
 	{
-		cout << "Please open file in \"write\" mode." << endl;
+		threadOut[threadNum] << "Please open file in \"write\" mode." << endl;
 		return;
 	}
 	else if (pageTable == NULL) 
 	{
-		cout << "Invalid command. Cannot call 'Write At' on an empty file." << endl;
+		threadOut[threadNum] << "Invalid command. Cannot call 'Write At' on an empty file." << endl;
 		return;
 	}
 	else if (from + size > fileSize) 
 	{
-		cout << "Out of bound exception. Specified chunk exceeds out of file size of "
+		threadOut[threadNum] << "Out of bound exception. Specified chunk exceeds out of file size of "
 			  << fileSize << " bytes." << endl;
 		return;
 	}

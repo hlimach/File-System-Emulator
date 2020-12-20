@@ -11,11 +11,8 @@ stack <short int> freeList;
 /* The starting folder of this system : "root". */
 Folder* rootFolder = new Folder("root");
 
-/* To write into .dat file at end of program to save file info. */
-ofstream dat;
-
-/* To read from .dat file whenever required. */
-ifstream datIn;
+/* To read and write to .dat file whenever required. */
+fstream datStream;
 
 /* Current folder pointer stores pointer to current working directory, whereas 
    tempFolder pointer is used for temporary actions/ tracking. */
@@ -39,3 +36,6 @@ thread th[10];
 
 /* 10  input streams for 10 threads of input File*/
 ifstream threadIn[10];
+
+/* 10 output streams for 10 threads of output file*/
+ofstream threadOut[10];

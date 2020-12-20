@@ -30,7 +30,7 @@ traverseTree (int i, vector<string> tokens, bool change, int threadNo)
         {
             if (tempFolder[threadNo]->parent == NULL)
             {
-                cout << "Parent of root does not exist." << endl;
+                threadOut[threadNo] << "Parent of root does not exist." << endl;
                 return false;
             }
             tempFolder[threadNo] = tempFolder[threadNo]->parent;
@@ -59,7 +59,7 @@ createFolder (string path,bool updatedat, int threadNo)
 
 	if (tokens.size() == 0) 
 	{
-		cout << "Invalid path entered." << endl;
+		threadOut[threadNo] << "Invalid path entered." << endl;
 		return;
 	}
 	else {
@@ -75,7 +75,7 @@ createFolder (string path,bool updatedat, int threadNo)
 			tempFolder[threadNo]->subdir.back()->parent = tempFolder[threadNo];
 		}
 		else
-			cout << "Error: cannot create directory in specified path." << endl;
+			threadOut[threadNo] << "Error: cannot create directory in specified path." << endl;
 	}
 	tempFolder[threadNo] = current[threadNo];
 
@@ -96,7 +96,7 @@ changeDir (string path, int threadNo)
 
 	if (tokens.size() == 0) 
 	{
-		cout << "Invalid path entered." << endl;
+		threadOut[threadNo] << "Invalid path entered." << endl;
 		return;
 	}
 	else 
@@ -113,7 +113,7 @@ changeDir (string path, int threadNo)
 		if (changable)
 			current[threadNo] = tempFolder[threadNo];
 		else
-			cout << "Error: cannot change directory to specified path." << endl;
+			threadOut[threadNo] << "Error: cannot change directory to specified path." << endl;
 	}
 }
 
@@ -133,7 +133,7 @@ create (string filename,bool updatedat, int threadNo)
 			enterDat(pathFromRoot(current[threadNo]), true, filename);
 	}
 	else
-		cout << "A file of same name already exists." << endl;
+		threadOut[threadNo] << "A file of same name already exists." << endl;
 }
 
 
@@ -145,7 +145,7 @@ deleteFile (string filename, int threadNo)
 	/* If a file of the given name does not exist in current working directory. */
 	if (!fileExists(filename,threadNo)) 
 	{
-		cout << "Error: file does not exist" << endl;
+		threadOut[threadNo] << "Error: file does not exist" << endl;
 		return;
 	}
 	else 
@@ -241,7 +241,7 @@ move (string srcPath, string destPath, int threadNo)
 	}
 	else 
 	{
-		cout << "Invalid Arguments. To move within a file, plese open the file first."
+		threadOut[threadNo] << "Invalid Arguments. To move within a file, plese open the file first."
 			 << endl;
 		return;
 	}
@@ -280,7 +280,7 @@ deleteFolder(string folderName, int threadNo)
 
 	if (!folderExists)
 	{
-		cout << "The folder does not exist in current directory" << endl;
+		threadOut[threadNo] << "The folder does not exist in current directory" << endl;
 		return;
 	}
 
