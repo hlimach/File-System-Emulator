@@ -259,7 +259,7 @@ locateFile (vector<string> tokens, bool destFile, int threadNo)
 
 /* Lists all files in current directory along with their information. */
 void 
-listFiles (Folder* dir) 
+listFiles (Folder* dir, threadNo) 
 {
 	if (dir->files.size() == 0)
 		return;
@@ -276,7 +276,7 @@ listFiles (Folder* dir)
 
 		if (dir->files[i]->pgTblPtr != NULL) 
 		{
-			File openFile(dir->files[i]->name, "read", false);
+			File openFile(dir->files[i]->name, "read", false,threadNo);
             pgTbl = dir->files[i]->pgTblPtr;
             int nextPageTableNum = getPageNum((char *) pgTbl), temp = 0;
 
@@ -321,13 +321,13 @@ memMap (Folder* dir, int threadNo)
 {	
 	tempFolder[threadNo] = dir;
 	current[threadNo] = dir;
-	listFiles(dir);
+	listFiles(dir,threadNo);
 
 	if (dir->subdir.size() == 0)
 		return;
 
 	for (int i = 0; i < dir->subdir.size(); i++)
-		memMap(dir->subdir[i]);
+		memMap(dir->subdir[i],threadNo);
 }
 
 
@@ -368,7 +368,7 @@ processCommand (vector<string> tokens, ifstream& input, int threadNo)
 
 			if (fileExists(tokens[1],threadNo)) 
 			{
-				File openedFile(tokens[1], tokens[2], true);
+				File openedFile(tokens[1], tokens[2], true,threadNo);
 
 				bool inLoop = true;
 
@@ -377,28 +377,28 @@ processCommand (vector<string> tokens, ifstream& input, int threadNo)
 					vector<string> tokens = getCommand(input,threadNo);
 
 					if (tokens.size() == 1 && tokens[0] == "wr")
-						openedFile.write(openedFile.getInput(input),true);
+						openedFile.write(openedFile.getInput(input),true,threadNo);
 
 					else if (tokens.size() == 2 && tokens[0] == "wrat" && isNumber(tokens[1]))
-						openedFile.writeAt(openedFile.getInput(input), stoi(tokens[1]) - 1);
+						openedFile.writeAt(openedFile.getInput(input), stoi(tokens[1]) - 1,threadNo);
 
 					else if (tokens.size() == 2 && tokens[0] == "chmod")
 						openedFile.changeMode(tokens[1]);
 
 					else if (tokens.size() == 1 && tokens[0] == "rd")
-						cout << openedFile.read(0, openedFile.getFileSize()) << endl;
+						cout << openedFile.read(0, openedFile.getFileSize(),threadNo) << endl;
 
 					else if (tokens.size() == 3 && tokens[0] == "rf" && isNumber(tokens[1])
 						 && isNumber(tokens[2]))
-						cout << openedFile.read(stoi(tokens[1]) - 1, stoi(tokens[2]))
+						cout << openedFile.read(stoi(tokens[1]) - 1, stoi(tokens[2]),threadNo)
 							 << endl;
 
 					else if (tokens.size() == 2 && tokens[0] == "trun" && isNumber(tokens[1]))
-						openedFile.truncate(stoi(tokens[1]));
+						openedFile.truncate(stoi(tokens[1]),threadNo);
 
 					else if (tokens.size() == 4 && tokens[0] == "mvin" && isNumber(tokens[1])
 						 && isNumber(tokens[2]) && isNumber(tokens[3]))
-						openedFile.moveWithin(stoi(tokens[1]), stoi(tokens[2]), stoi(tokens[3]));
+						openedFile.moveWithin(stoi(tokens[1]), stoi(tokens[2]), stoi(tokens[3]),threadNo);
 
 					else if (tokens.size() == 1 && tokens[0] == "end")
 						cout << "Close file before ending program." << endl;
@@ -430,27 +430,27 @@ processCommand (vector<string> tokens, ifstream& input, int threadNo)
 		listDir(threadNo);
 
 	else if (tokens.size() == 2 && tokens[0] == "cd")
-		changeDir(tokens[1]);
+		changeDir(tokens[1],threadNo);
 	
 	else if (tokens.size() == 2 && tokens[0] == "cr")
-		create(tokens[1]);
+		create(tokens[1],threadNo);
 	
 	else if (tokens.size() == 3 && tokens[0] == "mv") 
-		move(tokens[1], tokens[2]);
+		move(tokens[1], tokens[2],threadNo);
 	
 	else if (tokens.size() == 2 && tokens[0] == "del")
-		deleteFile(tokens[1]);
+		deleteFile(tokens[1],threadNo);
 
 	else if (tokens.size() == 2 && tokens[0] == "rem")
-		deleteFolder(tokens[1]);	
+		deleteFolder(tokens[1],threadNo);	
 	
 	else if (tokens.size() == 2 && tokens[0] == "mkdir")
-		createFolder(tokens[1],true);
+		createFolder(tokens[1],true,threadNo);
 	
 	else if (tokens.size() == 1 && tokens[0] == "map"){
 		printSpace();
 		Folder *currentFolder = current[threadNo];
-		memMap(rootFolder);
+		memMap(rootFolder,threadNo);
 		current[threadNo] = currentFolder;
 	}
 
