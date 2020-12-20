@@ -151,7 +151,7 @@ deleteFile (string filename, int threadNo)
 	else 
 	{
 		/* Get page table pointer of this file, and open the file. */
-		short int* pageTable = current[threadNo]->files[getFileNo(filename)]->pgTblPtr;
+		short int* pageTable = current[threadNo]->files[getFileNo(filename,threadNo)]->pgTblPtr;
 		File delFile(filename, "read", false,threadNo);
 
 		/* If the file is not empty, then start deletion process. */
@@ -176,11 +176,11 @@ deleteFile (string filename, int threadNo)
 
 			} while (nextPageTableNum != -1);
 
-			freeList.push(getPageNum((char *) current[threadNo]->files[getFileNo(filename)]->
+			freeList.push(getPageNum((char *) current[threadNo]->files[getFileNo(filename,threadNo)]->
 					 pgTblPtr));
 		}
 
-		current[threadNo]->files.erase(current[threadNo]->files.begin() + getFileNo(filename));
+		current[threadNo]->files.erase(current[threadNo]->files.begin() + getFileNo(filename,threadNo));
 		removeDat(pathFromRoot(current[threadNo]) + "/" + filename,true);	
 	}
 }
@@ -257,13 +257,13 @@ removeChildren (Folder* dir, int threadNo)
 		return;
 	
 	for (int i = 0; i < dir->files.size(); i++)
-		deleteFile(dir->files[i]->name);
+		deleteFile(dir->files[i]->name,threadNo);
 
 	for (int i = 0; i < dir->subdir.size(); i++)
 	{
 		current[threadNo] = dir->subdir[i];
 		removeDat(pathFromRoot(current[threadNo]), false);
-		removeChildren(current[threadNo]);
+		removeChildren(current[threadNo],threadNo);
 	}
 
 	removeDat(pathFromRoot(dir), false);
@@ -297,7 +297,7 @@ deleteFolder(string folderName, int threadNo)
 		}
 	}
 
-	removeChildren(current[threadNo]);
+	removeChildren(current[threadNo],threadNo);
 	current[threadNo] = temp;
 	tempFolder[threadNo] = current[threadNo];
 
