@@ -7,12 +7,9 @@
 
 /* opens file stream whenever required to read or write to .dat file */
 void
-openStream(bool overwrite)
-{
-	if(!overwrite)
-		datStream.open(DATPATH, ios::out | ios::in | ios::app );
-	else
-		datStream.open(DATPATH,ios::out);
+openStream()
+{	mtx.lock();
+	datStream.open(DATPATH, ios::out | ios::in | ios::app );
 }
 
 
@@ -21,6 +18,7 @@ void
 closeStream()
 {
 	datStream.close();
+	mtx.unlock();
 }
 
 /* Whenever a new file or folder is created, this function is called so it appends
@@ -34,7 +32,7 @@ enterDat (string path, bool file, string name)
 	else
 		data = "D\t" + path + "/" + name; 
 	
-	openStream(false);
+	openStream();
 	datStream << data << endl;
 	closeStream();
 }
@@ -46,8 +44,9 @@ enterDat (string path, bool file, string name)
 void
 moveDat (string oldPath, string newPath)
 {
+	ofstream overWriteDat;
 	string line = "", prevText = "", data = "";
-	openStream(false);
+	openStream();
 
 	while (getline(datStream, line))
 	{
@@ -77,9 +76,10 @@ moveDat (string oldPath, string newPath)
 	while (getline(datStream, line))
 		prevText += line + "\n";
 
-	closeStream();
-	openStream(true);
-	datStream << prevText + "F\t" + newPath + "\n" + data.substr(0, data.length() - 1);
+	
+	overWriteDat.open(DATPATH);
+	overWriteDat << prevText + "F\t" + newPath + "\n" + data.substr(0, data.length() - 1);
+	overWriteDat.close();
 	closeStream();
 }
 
@@ -88,8 +88,9 @@ moveDat (string oldPath, string newPath)
 void
 removeDat (string path, bool file)
 {
+	ofstream overWriteDat;
 	string line = "", prevText = "", endText = "";
-	openStream(false);
+	openStream();
 
 	while (getline(datStream, line))
 	{
@@ -102,9 +103,9 @@ removeDat (string path, bool file)
 	
 	if (datStream.eof()) 
 	{
-		closeStream();
-		openStream(true);
-		datStream << prevText;
+		overWriteDat.open(DATPATH);
+		overWriteDat << prevText;
+		overWriteDat.close();
 		closeStream();
 		return;
 	}
@@ -126,10 +127,10 @@ removeDat (string path, bool file)
 
 	while (getline(datStream, line))
 		endText+=line+"\n";
-	closeStream();
-
-	openStream(true);
-	datStream << prevText + endText.substr(0, endText.length() - 1);
+	
+	overWriteDat.open(DATPATH);
+	overWriteDat << prevText + endText.substr(0, endText.length() - 1);
+	overWriteDat.close();
 	closeStream();
 }
 
@@ -142,7 +143,7 @@ readDat ()
 	vector<string> fileFolder;
 	string line, fileName, content, path;
 
-	openStream(false);
+	openStream();
 	datStream.seekg(0);
 
 	while (!freeList.empty())

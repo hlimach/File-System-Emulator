@@ -14,6 +14,7 @@ private:
 	bool printInfo;
 
 public:
+	File();
 	File (string name, string md, bool printInf, int threadNo);
 
 	void printFileInfo ();

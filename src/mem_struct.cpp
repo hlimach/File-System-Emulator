@@ -143,6 +143,7 @@ void
 deleteFile (string filename, int threadNo) 
 {
 	/* If a file of the given name does not exist in current working directory. */
+	tempFolder[threadNo] = current[threadNo];
 	if (!fileExists(filename,threadNo)) 
 	{
 		threadOut[threadNo] << "Error: file does not exist" << endl;

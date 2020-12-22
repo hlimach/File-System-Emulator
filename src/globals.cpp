@@ -1,6 +1,9 @@
 #include "headers/config.h"
 #include "headers/globals.h"
 
+/* lockable object to prevent muultiple threads accessing shared data */
+mutex mtx;
+
 /* Points to the starting location of the allocated memory. */
 const char* start;
 
@@ -23,6 +26,9 @@ Folder* tempFolder[10] = {rootFolder, rootFolder, rootFolder, rootFolder, rootFo
 
 /* Pointer tempFile points to File node to store its value if found. */
 FileNode* tempFile[10];
+
+/* 10 instances of open files for 10 threads */
+File* openedFiles = new File[10];
 
 /* Int filePosDir tells us which index in the vector of the current directory the 
    Needed file will be found. */

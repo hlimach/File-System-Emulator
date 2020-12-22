@@ -2,13 +2,16 @@
 #define GLOBALS_H
 
 #include "mem_struct.h"
+#include "file.h"
 
+extern mutex mtx;
 extern const char* start;
 extern stack <short int> freeList;
 extern Folder* rootFolder;
 extern fstream datStream;
 extern Folder* current[10], *tempFolder[10];
 extern FileNode* tempFile[10];
+extern File* openedFiles;
 extern int filePosDir[10];
 extern bool fileFound[10], found[10];
 extern thread th[10];

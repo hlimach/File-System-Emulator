@@ -4,6 +4,9 @@
 #include "headers/util.h"
 #include "headers/dat.h"
 
+File :: File ()
+{}
+
 File :: File (string name, string md, bool printInf, int threadNo) 
 : filename(name), pageTable(current[threadNo]->files[getFileNo(filename,threadNo)]->pgTblPtr),
   fileSize(getFileSize()), threadNum(threadNo), mode(md), page(NULL), printInfo(printInf)
@@ -282,7 +285,7 @@ read (int startFrom, int readUpTo)
     }
     else if (pageTable == NULL) 
     {
-        threadOut[threadNum] << "The file has no content to display." << endl;
+        cout << "The file has no content to display." << endl;
         return "";
     }
     else if ((readUpTo - startFrom > fileSize) || (startFrom + readUpTo > fileSize) || (startFrom < 0)) 
@@ -325,7 +328,8 @@ read (int startFrom, int readUpTo)
 void File ::
 updateDat (string path)
 {
-	openStream(false);
+	ofstream overWriteDat;
+	openStream();
 	string line = "", topText = "", data = "", endText = "";
 	
 	//read top text untill file is found
@@ -342,12 +346,13 @@ updateDat (string path)
 
 	if (fileSize != 0)
 		data = "\a\n" + read(0, fileSize) + "\n\a\n";
+	
 
 	if (datStream.eof())
 	{		
-		closeStream();
-		openStream(true);
-		datStream << topText + data;
+		overWriteDat.open(DATPATH);
+		overWriteDat << topText + data;
+		overWriteDat.close();
 		closeStream();
 		return;
 	}
@@ -370,9 +375,9 @@ updateDat (string path)
 	while (getline(datStream, line))
 		endText += line + "\n";
 
-	closeStream();
-	openStream(true);
-	datStream << topText + data +	endText.substr(0, endText.length() - 1);
+	overWriteDat.open(DATPATH);
+	overWriteDat << topText + data +	endText.substr(0, endText.length() - 1);
+	overWriteDat.close();
 	closeStream();
 }
 
@@ -607,7 +612,7 @@ write (string input, bool updatedat)
 		callUpdateDat();
 	
 	if (printInfo)
-		threadOut[threadNum] << "Updated file size: " << fileSize << endl;
+		cout << "Updated file size: " << fileSize << endl;
 }
 
 

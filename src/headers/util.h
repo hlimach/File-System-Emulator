@@ -6,7 +6,7 @@
 
 void help ();
 vector<string> tokenize (string, char);
-void printSpace();
+void printSpace(int);
 int getPageNum (char*);
 string pathFromRoot (Folder*);
 int getFileNo (string, int);

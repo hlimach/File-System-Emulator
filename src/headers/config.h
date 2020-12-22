@@ -11,6 +11,7 @@
 #include <fstream>
 #include <assert.h>
 #include <thread>
+#include <mutex>
 
 #define PAGESIZE 16						 /* Size of each page in memory. */
 #define MEMSIZE 16384					 /* Total memory reserved for file data. */

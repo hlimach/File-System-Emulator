@@ -61,9 +61,9 @@ tokenize (string command, char delimiter)
 
 /* Prints number of bytes available by iterating over free list*/
 void
-printSpace()
+printSpace(int threadNo)
 {
-	cout << "Memory available: " << freeList.size() * PAGESIZE << "/" << MEMSIZE <<
+	threadOut[threadNo] << "Memory available: " << freeList.size() * PAGESIZE << "/" << MEMSIZE <<
 		 " bytes" << endl;
 }
 
@@ -368,37 +368,38 @@ processCommand (vector<string> tokens, ifstream& input, int threadNo)
 
 			if (fileExists(tokens[1],threadNo)) 
 			{
-				File openedFile(tokens[1], tokens[2], true,threadNo);
-
+				//File openedFile(tokens[1], tokens[2], true,threadNo);
+				cout << "before creating" << endl;
+				openedFiles[threadNo] = File(tokens[1], tokens[2], true, threadNo);
 				bool inLoop = true;
-
+				cout << "after creating" << endl;
 				while (inLoop) 
 				{
 					vector<string> tokens = getCommand(input,threadNo);
 
 					if (tokens.size() == 1 && tokens[0] == "wr")
-						openedFile.write(openedFile.getInput(input),true);
+						openedFiles[threadNo].write(openedFiles[threadNo].getInput(input),true);
 
 					else if (tokens.size() == 2 && tokens[0] == "wrat" && isNumber(tokens[1]))
-						openedFile.writeAt(openedFile.getInput(input), stoi(tokens[1]) - 1);
+						openedFiles[threadNo].writeAt(openedFiles[threadNo].getInput(input), stoi(tokens[1]) - 1);
 
 					else if (tokens.size() == 2 && tokens[0] == "chmod")
-						openedFile.changeMode(tokens[1]);
+						openedFiles[threadNo].changeMode(tokens[1]);
 
 					else if (tokens.size() == 1 && tokens[0] == "rd")
-						threadOut[threadNo] << openedFile.read(0, openedFile.getFileSize()) << endl;
+						threadOut[threadNo] << openedFiles[threadNo].read(0, openedFiles[threadNo].getFileSize()) << endl;
 
 					else if (tokens.size() == 3 && tokens[0] == "rf" && isNumber(tokens[1])
 						 && isNumber(tokens[2]))
-						threadOut[threadNo] << openedFile.read(stoi(tokens[1]) - 1, stoi(tokens[2]))
+						threadOut[threadNo] << openedFiles[threadNo].read(stoi(tokens[1]) - 1, stoi(tokens[2]))
 							 << endl;
 
 					else if (tokens.size() == 2 && tokens[0] == "trun" && isNumber(tokens[1]))
-						openedFile.truncate(stoi(tokens[1]));
+						openedFiles[threadNo].truncate(stoi(tokens[1]));
 
 					else if (tokens.size() == 4 && tokens[0] == "mvin" && isNumber(tokens[1])
 						 && isNumber(tokens[2]) && isNumber(tokens[3]))
-						openedFile.moveWithin(stoi(tokens[1]), stoi(tokens[2]), stoi(tokens[3]));
+						openedFiles[threadNo].moveWithin(stoi(tokens[1]), stoi(tokens[2]), stoi(tokens[3]));
 
 					else if (tokens.size() == 1 && tokens[0] == "end")
 						threadOut[threadNo] << "Close file before ending program." << endl;
@@ -448,7 +449,7 @@ processCommand (vector<string> tokens, ifstream& input, int threadNo)
 		createFolder(tokens[1],true,threadNo);
 	
 	else if (tokens.size() == 1 && tokens[0] == "map"){
-		printSpace();
+		printSpace(threadNo);
 		Folder *currentFolder = current[threadNo];
 		memMap(rootFolder,threadNo);
 		current[threadNo] = currentFolder;
@@ -462,7 +463,7 @@ processCommand (vector<string> tokens, ifstream& input, int threadNo)
 		threadOut[threadNo] << "reading .dat file ..." << endl;
 		readDat();
 		threadOut[threadNo] << "Complete" << endl;
-		printSpace();
+		printSpace(threadNo);
 	}
 	
 	else if (tokens.size() == 1 && tokens[0] == "end") 

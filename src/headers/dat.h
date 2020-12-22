@@ -3,7 +3,7 @@
 
 #include "config.h"
 
-void openStream (bool);
+void openStream ();
 void closeStream ();
 void enterDat (string, bool, string);
 void moveDat (string, string);

@@ -1,0 +1,9 @@
+mkdir sharique
+cd sharique
+cr file1
+open file1.txt write
+wr
+hello jeeeee
+-1
+close
+end
