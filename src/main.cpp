@@ -20,6 +20,7 @@ main (int argc, const char* argv[])
 
 	cout << "Enter number of users (1-10): ";
 	cin >> numberOfThreads;
+
 	
 	for(int i = 0; i < numberOfThreads; i++){
 		printSpace(i);

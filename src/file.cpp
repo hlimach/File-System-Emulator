@@ -8,9 +8,10 @@ File :: File ()
 {}
 
 File :: File (string name, string md, bool printInf, int threadNo) 
-: filename(name), pageTable(current[threadNo]->files[getFileNo(filename,threadNo)]->pgTblPtr),
-  fileSize(getFileSize()), threadNum(threadNo), mode(md), page(NULL), printInfo(printInf)
+: threadNum(threadNo),filename(name), pageTable(current[threadNo]->files[getFileNo(filename,threadNo)]->pgTblPtr),
+	mode(md), page(NULL), printInfo(printInf)
 {
+	fileSize = getFileSize();
 	printFileInfo();
 }
 
@@ -21,7 +22,7 @@ printFileInfo()
 {
 	if (printInfo)
 		threadOut[threadNum] << "File opened: " << filename << ", mode: " << mode << ", size: "
-			 << fileSize << " bytes." << endl;
+			 << fileSize << " bytes." << endl;		 
 }
 
 
@@ -285,7 +286,7 @@ read (int startFrom, int readUpTo)
     }
     else if (pageTable == NULL) 
     {
-        cout << "The file has no content to display." << endl;
+        threadOut[threadNum] << "The file has no content to display." << endl;
         return "";
     }
     else if ((readUpTo - startFrom > fileSize) || (startFrom + readUpTo > fileSize) || (startFrom < 0)) 
@@ -612,7 +613,7 @@ write (string input, bool updatedat)
 		callUpdateDat();
 	
 	if (printInfo)
-		cout << "Updated file size: " << fileSize << endl;
+		threadOut[threadNum] << "Updated file size: " << fileSize << endl;
 }
 
 

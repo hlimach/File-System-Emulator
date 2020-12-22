@@ -368,11 +368,10 @@ processCommand (vector<string> tokens, ifstream& input, int threadNo)
 
 			if (fileExists(tokens[1],threadNo)) 
 			{
-				//File openedFile(tokens[1], tokens[2], true,threadNo);
-				cout << "before creating" << endl;
+				
 				openedFiles[threadNo] = File(tokens[1], tokens[2], true, threadNo);
 				bool inLoop = true;
-				cout << "after creating" << endl;
+				
 				while (inLoop) 
 				{
 					vector<string> tokens = getCommand(input,threadNo);

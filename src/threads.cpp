@@ -16,6 +16,5 @@ startProcess(int i)
 		vector<string> tokens = getCommand(threadIn[i],i);
 		loop = processCommand(tokens, threadIn[i],i);
 	}
-	
 	//threadOut[i].close();
 }
