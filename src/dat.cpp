@@ -56,7 +56,6 @@ moveDat (string oldPath, string newPath)
 
 		prevText += line + "\n";
 	}
-	
 	getline (datStream, line);
 	
 	if (line[0] == '\a')
@@ -70,13 +69,14 @@ moveDat (string oldPath, string newPath)
 
 		getline(datStream,line);
 	}
-
-	prevText += line + "\n";
-
-	while (getline(datStream, line))
+	if(!datStream.eof())
+	{
 		prevText += line + "\n";
 
-	
+		while (getline(datStream, line))
+			prevText += line + "\n";
+	}
+
 	overWriteDat.open(DATPATH);
 	overWriteDat << prevText + "F\t" + newPath + "\n" + data.substr(0, data.length() - 1);
 	overWriteDat.close();
