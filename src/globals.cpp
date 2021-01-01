@@ -17,6 +17,7 @@ Folder* rootFolder = new Folder("root");
 /* To read and write to .dat file whenever required. */
 fstream datStream;
 
+/* vector of threads and socket number for each thread corresponding to each user*/
 vector<int> sockets;
 vector <thread> threads;
 
@@ -46,3 +47,6 @@ ifstream threadIn[10];
 
 /* 10 output streams for 10 threads of output file*/
 ofstream threadOut[10];
+
+/* Global string to which will be sent from server to client*/
+string serverResponse;

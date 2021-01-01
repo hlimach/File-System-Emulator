@@ -20,6 +20,7 @@ extern bool fileFound[10], found[10];
 extern thread th[10];
 extern ifstream threadIn[10];
 extern ofstream threadOut[10];
+extern string serverResponse;
 
 
 #endif

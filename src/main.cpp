@@ -18,7 +18,7 @@ main (int argc, const char* argv[])
 	for (short int i = NUMPAGES - 1; i >= 0; i--)
 		freeList.push(i);
 	
-	// Creating socket file descriptor 
+	cout << "Establishing connection ... " << endl; 
 	int server_fd = establishConn(address);
     
     if(server_fd == -1)
@@ -26,8 +26,8 @@ main (int argc, const char* argv[])
         cout << "conn failed" << endl;
         return 0;
     }
+	cout << "Connection established! ready for users ... " << endl;
 
-	cout << "Listening" << endl;
     
 	int i = 0;
 

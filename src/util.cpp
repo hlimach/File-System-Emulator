@@ -166,27 +166,24 @@ folderExists (string dirName, int threadNo)
 void 
 listDir (int threadNo) 
 {
-	string output = "";
+
 	char *op;
 
 	if (current[threadNo]->subdir.size() == 0 && current[threadNo]->files.size() == 0) 
 	{
-		output = "Directory is empty.\n";
+		serverResponse += "Directory is empty.\n";
 		return;
 	}
 	else 
 	{
 		for (int i = 0; i < current[threadNo]->subdir.size(); i++)
-			output += current[threadNo]->subdir[i]->dirName + "\t";
+			serverResponse += current[threadNo]->subdir[i]->dirName + "\t";
 
 		for (int i = 0; i < current[threadNo]->files.size(); i++)
-			output += current[threadNo]->files[i]->name + "\t";
+			serverResponse += current[threadNo]->files[i]->name + "\t";
 
-		output += "\n";
+		serverResponse += "\n";
 	}
-	op = convertMessage(output,output.size());
-	send(sockets[threadNo], op, strlen(op), 0);
-
 }
 
 
@@ -357,14 +354,14 @@ getCommand (ifstream& input, int threadNo)
 {
 	int valread;
 	string command;
-	string output = "";
 	
 	char *op;
 	char buffer[1024] = {0};
 	
-	output =  "user" + to_string(threadNo+1) + "$ " + pathFromRoot(current[threadNo]) + ">";
-	op = convertMessage(output,output.size());
+	serverResponse +=  "user" + to_string(threadNo+1) + "$ " + pathFromRoot(current[threadNo]) + ">";
+	op = convertMessage(serverResponse,serverResponse.size());
 	send(sockets[threadNo], op, strlen(op), 0);
+	serverResponse = "";
 
 	valread = read(sockets[threadNo], buffer, 1024);
 	command = buffer; 
