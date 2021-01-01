@@ -411,6 +411,7 @@ getInput (ifstream& in)
 		string input, line;
 		while (getline(in, line)) 
 		{
+			line.erase(line.find_last_not_of("\n\r")+1);
 			threadOut[threadNum] << line << endl;
 			if (line == "-1")
 				break;

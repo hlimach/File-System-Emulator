@@ -59,6 +59,18 @@ tokenize (string command, char delimiter)
 }
 
 
+
+/* converts given string into an array of character */
+char *
+convertMessage (string message,int length)
+{
+	char * msg = (char *) malloc(length);
+    strcpy(msg,message.c_str());
+	return msg;
+}
+
+
+
 /* Prints number of bytes available by iterating over free list*/
 void
 printSpace(int threadNo)
@@ -154,21 +166,27 @@ folderExists (string dirName, int threadNo)
 void 
 listDir (int threadNo) 
 {
+	string output = "";
+	char *op;
+
 	if (current[threadNo]->subdir.size() == 0 && current[threadNo]->files.size() == 0) 
 	{
-		threadOut[threadNo] << "Directory is empty." << endl;
+		output = "Directory is empty.\n";
 		return;
 	}
 	else 
 	{
 		for (int i = 0; i < current[threadNo]->subdir.size(); i++)
-			threadOut[threadNo] << current[threadNo]->subdir[i]->dirName << "\t";
+			output += current[threadNo]->subdir[i]->dirName + "\t";
 
 		for (int i = 0; i < current[threadNo]->files.size(); i++)
-			threadOut[threadNo] << current[threadNo]->files[i]->name << "\t";
+			output += current[threadNo]->files[i]->name + "\t";
 
-		threadOut[threadNo] << endl;
+		output += "\n";
 	}
+	op = convertMessage(output,output.size());
+	send(sockets[threadNo], op, strlen(op), 0);
+
 }
 
 
@@ -331,16 +349,26 @@ memMap (Folder* dir, int threadNo)
 }
 
 
+
 /* Prompts user to enter in their command, and once it is taken, it is tokenized based
    On spaces and the vector of resulting strings is returned. */
 vector<string> 
 getCommand (ifstream& input, int threadNo) 
 {
+	int valread;
 	string command;
-	//getline(cin, command);
-	getline(input, command);
-	threadOut[threadNo] << "user" + to_string(threadNo+1) + "$ " + pathFromRoot(current[threadNo]) <<
-		 "> " << command << endl;
+	string output = "";
+	
+	char *op;
+	char buffer[1024] = {0};
+	
+	output =  "user" + to_string(threadNo+1) + "$ " + pathFromRoot(current[threadNo]) + ">";
+	op = convertMessage(output,output.size());
+	send(sockets[threadNo], op, strlen(op), 0);
+
+	valread = read(sockets[threadNo], buffer, 1024);
+	command = buffer; 
+	cout << command << endl;
 	return tokenize(command, ' ');
 }
 
@@ -357,8 +385,9 @@ processCommand (vector<string> tokens, ifstream& input, int threadNo)
 
 	if (tokens[0] == "open") 
 	{
+
 		if (tokens.size() == 2 || (tokens[2] != "read" && tokens[2] != "write"))
-			threadOut[threadNo] << "Please input mode (read|write)" << endl;
+			threadOut[threadNo] << "Please specify input mode (read|write)" << endl;
 
 		else if (tokens.size() == 3 && tokens[0] == "open" && (tokens[2] == "write"
 			 || tokens[2] == "read")) 

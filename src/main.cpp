@@ -5,30 +5,41 @@
 #include "headers/dat.h"
 #include "headers/file.h"
 #include "headers/threads.h"
+#include "headers/server.h"
 
 
 int 
 main (int argc, const char* argv[]) 
 {
-	int numberOfThreads;
+	int new_socket; 
+	struct sockaddr_in address; 
 	start = (char*) malloc(MEMSIZE);
 
 	for (short int i = NUMPAGES - 1; i >= 0; i--)
 		freeList.push(i);
-
 	
+	// Creating socket file descriptor 
+	int server_fd = establishConn(address);
+    
+    if(server_fd == -1)
+    {
+        cout << "conn failed" << endl;
+        return 0;
+    }
 
-	cout << "Enter number of users (1-10): ";
-	cin >> numberOfThreads;
+	cout << "Listening" << endl;
+    
+	int i = 0;
 
-	
-	for(int i = 0; i < numberOfThreads; i++){
-		printSpace(i);
-		th[i] = thread(startProcess, i);
+	while (1) {
+		
+        sockets.push_back(getSocket(address,server_fd));
+		current.push_back(rootFolder);
+		tempFolder.push_back(rootFolder);
+		tempFile.push_back(new FileNode("empty"));
+        threads.push_back(thread(startProcess,i));
+		i++;
 	}
-	
-	for(int i = 0; i < numberOfThreads; i++)
-		th[i].join();
 
 
 	free((char*)start);

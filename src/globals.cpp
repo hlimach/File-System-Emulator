@@ -17,15 +17,16 @@ Folder* rootFolder = new Folder("root");
 /* To read and write to .dat file whenever required. */
 fstream datStream;
 
+vector<int> sockets;
+vector <thread> threads;
+
 /* Current folder pointer stores pointer to current working directory, whereas 
    tempFolder pointer is used for temporary actions/ tracking. */
-Folder* current[10] = {rootFolder, rootFolder, rootFolder, rootFolder, rootFolder,
-		 rootFolder, rootFolder, rootFolder, rootFolder, rootFolder}; 
-Folder* tempFolder[10] = {rootFolder, rootFolder, rootFolder, rootFolder, rootFolder,
-		 rootFolder, rootFolder, rootFolder, rootFolder, rootFolder}; 
+vector<Folder*>current;
+vector<Folder*>tempFolder;
 
 /* Pointer tempFile points to File node to store its value if found. */
-FileNode* tempFile[10];
+vector<FileNode*>tempFile;
 
 /* 10 instances of open files for 10 threads */
 File* openedFiles = new File[10];
