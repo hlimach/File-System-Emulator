@@ -76,7 +76,7 @@ void
 printSpace(int threadNo)
 {
 	serverResponse += "Memory available: " + to_string(freeList.size() * PAGESIZE) + "/" + 
-			MEMSIZE + " bytes\n";
+			to_string(MEMSIZE) + " bytes\n";
 }
 
 
@@ -368,6 +368,7 @@ getCommand (int threadNo)
 	int valread;
 	string command;
 	
+	cout << "waiting on user " + users[threadNo] << endl;
 	valread = read(sockets[threadNo], buffer, 1024);
 	command = buffer; 
 	cout << command << endl;
@@ -408,10 +409,10 @@ processCommand (vector<string> tokens, int threadNo)
 					vector<string> tokens = getCommand(threadNo);
 
 					if (tokens.size() == 1 && tokens[0] == "wr")
-						openedFiles.write(openedFiles.getInput(input),true);
+						openedFiles.write(openedFiles.getInput(threadNo),true);
 
 					else if (tokens.size() == 2 && tokens[0] == "wrat" && isNumber(tokens[1]))
-						openedFiles.writeAt(openedFiles.getInput(input), stoi(tokens[1]) - 1);
+						openedFiles.writeAt(openedFiles.getInput(threadNo), stoi(tokens[1]) - 1);
 
 					else if (tokens.size() == 2 && tokens[0] == "chmod")
 						openedFiles.changeMode(tokens[1]);

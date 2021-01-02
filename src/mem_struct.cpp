@@ -5,6 +5,9 @@
 #include "headers/dat.h"
 #include "headers/file.h"
 
+FileNode :: FileNode ()
+{}
+
 FileNode :: FileNode(string fileName)
 : name(fileName), pgTblPtr(NULL)
 {}

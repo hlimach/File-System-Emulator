@@ -34,7 +34,7 @@ public:
 	string read (int, int);
 	void updateDat (string);
 	void callUpdateDat ();
-	string getInput (ifstream&);
+	string getInput (int);
 	void assignPages (int, int);
 	void calcLimit (int&, short int&, int, int);
 	void createPageTableAndWriteData (string, int, int, int&, int);

@@ -15,7 +15,7 @@ extern vector <Folder*> current;
 extern vector <string> users;
 extern vector <Folder*> tempFolder;
 extern vector <FileNode*> tempFile;
-extern File* openedFiles;
+extern File openedFiles;
 extern vector <int> filePosDir;
 extern vector <bool> fileFound, found;
 extern string serverResponse;

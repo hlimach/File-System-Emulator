@@ -399,7 +399,7 @@ callUpdateDat ()
 /* Prompts user to input data for the write functions. It stops taking input once 
    The user enters '-1' in a new line and presses enter. */
 string File ::
-getInput (ifstream& in) 
+getInput (int threadNo) 
 {
 	if (mode != "write") 
 	{
@@ -409,7 +409,7 @@ getInput (ifstream& in)
 	else 
 	{
 		string input, line;
-		while (getline(in, line)) 
+		while (getline(cin, line)) 
 		{
 			line.erase(line.find_last_not_of("\n\r")+1);
 			serverResponse += line + "\n";
@@ -530,8 +530,8 @@ write (string input, bool updatedat)
 	
 	else if (input.size() > (freeList.size() * PAGESIZE)) 
     {
-        serverResponse += "Not enough memory available. "
-        	 + "Please reduce input size or delete other files.\n";
+        serverResponse += "Not enough memory available. ";
+		serverResponse += "Please reduce input size or delete other files.\n";
         return;
     }
 
@@ -756,7 +756,7 @@ moveWithin (int from, int size, int to)
 	else if (from + size > fileSize) 
 	{
 		serverResponse += "Out of bounds. Specified chunk exceeds out of file size of "
-			  + to_String(fileSize) + " bytes.\n";
+			  + to_string(fileSize) + " bytes.\n";
 		return;
 	}
 	else

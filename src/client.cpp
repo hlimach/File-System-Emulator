@@ -6,24 +6,29 @@
 #include <unistd.h> 
 #include <string.h> 
 #include <thread>
+#include <vector>
+#include <sstream>
+#include<ctype.h>
 #define PORT 95
 
 
 /* Gets the input string and returns it as a vector of strings, tokenized by the 
    Delimiter assigned. */
 bool
-checkIP (string ipAddr) 
+checkIP (std::string ipAddr) 
 {
-	string s;
-	stringstream ss(ipAddr);
-	vector<string> nums;
+	std::string s;
+	std::stringstream ss(ipAddr);
+	std::vector<std::string> nums;
 
 	while (getline(ss, s, '.')) 
 	{
-		if (isdigit(s) == false)
-			return false;
-
+		
 		nums.push_back(s);
+		
+		for (int i = 0; i < s.length(); i++)
+		if (isdigit(s[i]) == false)
+			return false;
 	}
 
 	if (nums.size() != 4)
@@ -63,6 +68,8 @@ main()
 			std::cout << "Invalid IP provided." << std::endl;
 	} while (isIP == false);
 
+	char * ipPtr = convertMessage(ipAddr);
+
 	int sock = 0, valread; 
 	struct sockaddr_in serv_addr; 
 	char *msgPtr; 
@@ -77,7 +84,7 @@ main()
 	serv_addr.sin_port = htons(PORT); 
 	
 	// Convert IPv4 and IPv6 addresses from text to binary form 
-	if(inet_pton(AF_INET, ipAddr, &serv_addr.sin_addr)<=0) 
+	if(inet_pton(AF_INET, ipPtr, &serv_addr.sin_addr)<=0) 
 	{ 
 		std::cout << "\nInvalid address/ Address not supported" << std::endl;
 		exit(EXIT_FAILURE); 
@@ -101,8 +108,7 @@ main()
         
         valread = read(sock, buffer, 1024); 
 	    std::cout << buffer << " ";
-	    
-        std::getline(std::cin,msg);
+        std::getline(std::cin >> std::ws,msg);
         msgPtr = convertMessage(msg);
 	    send(sock, msgPtr, strlen(msgPtr), 0); 
         
