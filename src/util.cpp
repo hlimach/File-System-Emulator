@@ -62,7 +62,7 @@ tokenize (string command, char delimiter)
 
 /* converts given string into an array of character */
 char *
-convertMessage (string message,int length)
+convertMessage (string message, int length)
 {
 	char * msg = (char *) malloc(length);
     strcpy(msg,message.c_str());
@@ -365,13 +365,14 @@ getCommand (int threadNo)
 	sendResponse(threadNo);
 
 	char buffer[1024] = {0};
-	int valread;
 	string command;
-	
-	cout << "waiting on user " + users[threadNo] << endl;
-	valread = read(sockets[threadNo], buffer, 1024);
-	command = buffer; 
-	cout << command << endl;
+
+	if (read(sockets[threadNo], buffer, 1024) == 0)
+		command = "end";
+	else
+		command = buffer;
+
+	cout << users[threadNo] << ": " << command << endl;
 	return tokenize(command, ' ');
 }
 
@@ -409,7 +410,7 @@ processCommand (vector<string> tokens, int threadNo)
 					vector<string> tokens = getCommand(threadNo);
 
 					if (tokens.size() == 1 && tokens[0] == "wr")
-						openedFiles.write(openedFiles.getInput(threadNo),true);
+						openedFiles.write(openedFiles.getInput(threadNo), true);
 
 					else if (tokens.size() == 2 && tokens[0] == "wrat" && isNumber(tokens[1]))
 						openedFiles.writeAt(openedFiles.getInput(threadNo), stoi(tokens[1]) - 1);

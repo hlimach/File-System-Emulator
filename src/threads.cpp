@@ -27,10 +27,10 @@ startProcess (int i)
 			vector<string> tokens = getCommand(i);
 			loop = processCommand(tokens, i);
 		}
-		cout << "user " + to_string(i + 1) + " left" << endl;
+		cout << "user " + user + " left" << endl;
 	}
 	catch (...) 
 	{
-		cout << "user " + to_string(i + 1) + " left" << endl;
+		cout << "user " + user + " left" << endl;
 	}
 }

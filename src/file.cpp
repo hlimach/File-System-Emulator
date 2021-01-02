@@ -408,18 +408,20 @@ getInput (int threadNo)
 	} 
 	else 
 	{
-		string input, line;
-		while (getline(cin, line)) 
-		{
-			line.erase(line.find_last_not_of("\n\r")+1);
-			serverResponse += line + "\n";
-			if (line == "-1")
-				break;
+		string input = "";
+		char* op;
+		char buffer[16384] = {0};
+		serverResponse = "";
+		serverResponse = "%^";
+		op = convertMessage(serverResponse, serverResponse.size());
+		::send(sockets[threadNo], op, strlen(op), 0);
+		serverResponse = "";
 
-			input += line;
-			input += "\n";
-		}
-		input = input.substr(0, input.size() - 1);
+		if (::read(sockets[threadNo], buffer, 16384) == 0)
+			input = "";
+		else
+			input = buffer;
+
 		return input;
 	}
 }

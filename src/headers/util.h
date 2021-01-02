@@ -4,6 +4,7 @@
 #include "config.h"
 #include "mem_struct.h"
 
+char* convertMessage (string, int);
 void help ();
 vector<string> tokenize (string, char);
 void printSpace(int);

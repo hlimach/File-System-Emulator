@@ -8,7 +8,8 @@
 #include <thread>
 #include <vector>
 #include <sstream>
-#include<ctype.h>
+#include <ctype.h>
+
 #define PORT 95
 
 
@@ -23,7 +24,6 @@ checkIP (std::string ipAddr)
 
 	while (getline(ss, s, '.')) 
 	{
-		
 		nums.push_back(s);
 		
 		for (int i = 0; i < s.length(); i++)
@@ -37,12 +37,30 @@ checkIP (std::string ipAddr)
 		return true;
 }
 
-char *
-convertMessage (std::string message)
+/* Converts message into char pointer. */
+char*
+convertMessage (std::string message, int length)
 {
-    char *msg;
-    strcpy(msg,message.c_str());
+    char* msg = (char*) malloc(length);
+    strcpy(msg, message.c_str());
     return msg;
+}
+
+/* Used to write into an opened file. */
+std::string
+writeFile()
+{
+	std::string input = "", line;
+	while (std::getline(std::cin>>std::ws, line)) 
+	{
+		if (line == "-1")
+			break;
+
+		input += line;
+		input += "\n";
+	}
+	input = input.substr(0, input.size() - 1);
+	return input;
 }
 
 
@@ -50,27 +68,31 @@ int
 main() 
 { 
 	// Obtain username and ip address from client
-	std::string user, ipAddr;
-	bool isIP;
-
-	std::cout << "Welcome! "; 
+	std::string user = "";
+	std::cout << "Welcome! ";
 	std::cout << "Please enter username: (20 or less characters, cannot contain spaces)"
 		 << std::endl;
 	std::cin >> user;
+	
+	std::string ipAddr;
+	
+	bool isIP = true;
 	
 	do
 	{
 		std::cout << "Please specify ip address:" << std::endl;
 		std::cin >> ipAddr;
 		isIP = checkIP(ipAddr);
-
+		
 		if (isIP == false)
 			std::cout << "Invalid IP provided." << std::endl;
+
 	} while (isIP == false);
 
-	char * ipPtr = convertMessage(ipAddr);
+	std::cout << "Sending over IP " << ipAddr << std::endl;
+	char* ipPtr = convertMessage(ipAddr, ipAddr.size());
 
-	int sock = 0, valread; 
+	int sock = 0; 
 	struct sockaddr_in serv_addr; 
 	char *msgPtr; 
 	
@@ -84,7 +106,7 @@ main()
 	serv_addr.sin_port = htons(PORT); 
 	
 	// Convert IPv4 and IPv6 addresses from text to binary form 
-	if(inet_pton(AF_INET, ipPtr, &serv_addr.sin_addr)<=0) 
+	if(inet_pton(AF_INET, ipPtr, &serv_addr.sin_addr) <= 0) 
 	{ 
 		std::cout << "\nInvalid address/ Address not supported" << std::endl;
 		exit(EXIT_FAILURE); 
@@ -97,24 +119,34 @@ main()
 	}
 
 	// First message sent to server is the username
-	msgPtr = convertMessage(user);
+	msgPtr = convertMessage(user, user.size());
 	send(sock, msgPtr, strlen(msgPtr), 0); 
 
     std::string msg = "";
     while(1)
     {
-        char buffer[1024] = {0};
+        char buffer[16384] = {0};
 	    msg = "";
+
+        if(read(sock, buffer, 16384) == 0)
+        {
+        	std::cout << "Server unresponsive. Please try again later." << std::endl;
+        	break;
+        }
+
+        if (buffer[0] == '%' && buffer[1] == '^')
+        	msg = writeFile();
         
-        valread = read(sock, buffer, 1024); 
-	    std::cout << buffer << " ";
-        std::getline(std::cin >> std::ws,msg);
-        msgPtr = convertMessage(msg);
-	    send(sock, msgPtr, strlen(msgPtr), 0); 
+        else
+        {
+	    	std::cout << buffer << " ";
+	    	std::getline(std::cin >> std::ws, msg);
+        }
+        
+        msgPtr = convertMessage(msg, msg.size());
+	    send(sock, msgPtr, strlen(msgPtr), 0);
         
         if(msg == "end")
             break;
     }
-
-    std::cout << "leaving bye" << std::endl;
 } 

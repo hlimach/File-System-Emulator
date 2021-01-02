@@ -43,6 +43,9 @@ main (int argc, const char* argv[])
 		current.push_back(rootFolder);
 		tempFolder.push_back(rootFolder);
 		tempFile.push_back(new FileNode());
+		filePosDir.push_back(-1);
+		fileFound.push_back(false);
+		found.push_back(false);
 
 		// Pushing this thread into vector and starting communication
         threads.push_back(thread(startProcess, i));
