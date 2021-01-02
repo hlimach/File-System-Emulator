@@ -18,35 +18,27 @@ Folder* rootFolder = new Folder("root");
 fstream datStream;
 
 /* vector of threads and socket number for each thread corresponding to each user*/
-vector<int> sockets;
+vector <int> sockets;
 vector <thread> threads;
+vector <string> users;
 
 /* Current folder pointer stores pointer to current working directory, whereas 
    tempFolder pointer is used for temporary actions/ tracking. */
-vector<Folder*>current;
-vector<Folder*>tempFolder;
+vector <Folder*> current;
+vector <Folder*> tempFolder;
 
 /* Pointer tempFile points to File node to store its value if found. */
-vector<FileNode*>tempFile;
+vector <FileNode*> tempFile;
 
 /* 10 instances of open files for 10 threads */
-File* openedFiles = new File[10];
+File openedFiles;
 
 /* Int filePosDir tells us which index in the vector of the current directory the 
    Needed file will be found. */
-int filePosDir[10];
+vector <int> filePosDir;
 
 /* To let functions know if the needed file is found. */
-bool fileFound[10], found[10];
-
-/* 10 threads for processing */
-thread th[10];
-
-/* 10  input streams for 10 threads of input File*/
-ifstream threadIn[10];
-
-/* 10 output streams for 10 threads of output file*/
-ofstream threadOut[10];
+vector <bool> fileFound, found;
 
 /* Global string to which will be sent from server to client*/
 string serverResponse;

@@ -7,14 +7,11 @@
 #include <sys/socket.h> 
 #include <stdlib.h> 
 #include <netinet/in.h> 
-#include <string.h> 
-#include <thread>
+#include <string.h>
 #include <vector>
 #include <errno.h>
-#include <array>
 #define PORT 95
 
-void thFunc(int);
 int establishConn(struct sockaddr_in &);
 int getSocket(struct sockaddr_in &, int);
 

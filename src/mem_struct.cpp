@@ -30,7 +30,7 @@ traverseTree (int i, vector<string> tokens, bool change, int threadNo)
         {
             if (tempFolder[threadNo]->parent == NULL)
             {
-                threadOut[threadNo] << "Parent of root does not exist." << endl;
+                serverResponse += "Parent of root does not exist.\n";
                 return false;
             }
             tempFolder[threadNo] = tempFolder[threadNo]->parent;
@@ -59,7 +59,7 @@ createFolder (string path,bool updatedat, int threadNo)
 
 	if (tokens.size() == 0) 
 	{
-		threadOut[threadNo] << "Invalid path entered." << endl;
+		serverResponse += "Invalid path entered.\n";
 		return;
 	}
 	else {
@@ -75,7 +75,7 @@ createFolder (string path,bool updatedat, int threadNo)
 			tempFolder[threadNo]->subdir.back()->parent = tempFolder[threadNo];
 		}
 		else
-			threadOut[threadNo] << "Error: cannot create directory in specified path." << endl;
+			serverResponse += "Error: cannot create directory in specified path.\n";
 	}
 	tempFolder[threadNo] = current[threadNo];
 
@@ -96,7 +96,7 @@ changeDir (string path, int threadNo)
 
 	if (tokens.size() == 0) 
 	{
-		threadOut[threadNo] << "Invalid path entered." << endl;
+		serverResponse += "Invalid path entered.\n";
 		return;
 	}
 	else 
@@ -113,7 +113,7 @@ changeDir (string path, int threadNo)
 		if (changable)
 			current[threadNo] = tempFolder[threadNo];
 		else
-			threadOut[threadNo] << "Error: cannot change directory to specified path." << endl;
+			serverResponse += "Error: cannot change directory to specified path.\n";
 	}
 }
 
@@ -133,7 +133,7 @@ create (string filename,bool updatedat, int threadNo)
 			enterDat(pathFromRoot(current[threadNo]), true, filename);
 	}
 	else
-		threadOut[threadNo] << "A file of same name already exists." << endl;
+		serverResponse += "A file of same name already exists.\n";
 }
 
 
@@ -146,7 +146,7 @@ deleteFile (string filename, int threadNo)
 	tempFolder[threadNo] = current[threadNo];
 	if (!fileExists(filename,threadNo)) 
 	{
-		threadOut[threadNo] << "Error: file does not exist" << endl;
+		serverResponse += "Error: file does not exist\n";
 		return;
 	}
 	else 
@@ -235,15 +235,16 @@ move (string srcPath, string destPath, int threadNo)
 			current[threadNo] = temp;
 		}
 
-		moveDat(pathFromRoot(srcFolder) +"/"+ srcFile->name,pathFromRoot(destFolder) +"/"+ tokenDestFile.back());
+		moveDat(pathFromRoot(srcFolder) + "/" + srcFile->name,pathFromRoot(destFolder) 
+			+ "/" + tokenDestFile.back());
+
 		srcFile->name = tokenDestFile.back();
 		destFolder->files.push_back(srcFile);
 		srcFolder->files.erase(srcFolder->files.begin() + srcPos);
 	}
 	else 
 	{
-		threadOut[threadNo] << "Invalid Arguments. To move within a file, plese open the file first."
-			 << endl;
+		serverResponse += "To move within a file, please open the file first.\n";
 		return;
 	}
 }
@@ -264,7 +265,7 @@ removeChildren (Folder* dir, int threadNo)
 	{
 		current[threadNo] = dir->subdir[i];
 		removeDat(pathFromRoot(current[threadNo]), false);
-		removeChildren(current[threadNo],threadNo);
+		removeChildren(current[threadNo], threadNo);
 	}
 
 	removeDat(pathFromRoot(dir), false);
@@ -281,7 +282,7 @@ deleteFolder(string folderName, int threadNo)
 
 	if (!folderExists)
 	{
-		threadOut[threadNo] << "The folder does not exist in current directory" << endl;
+		serverResponse += "The folder does not exist in current directory\n";
 		return;
 	}
 

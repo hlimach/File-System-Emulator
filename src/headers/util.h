@@ -17,7 +17,8 @@ bool isNumber (string);
 void locateFile (vector<string>, bool, int);
 void listFiles (Folder*);
 void memMap (Folder*, int);
+void sendResponse (int);
 vector<string> getCommand (ifstream&, int);
-bool processCommand (vector<string> tokens, ifstream& input, int);
+bool processCommand (vector<string>, int);
 
 #endif

@@ -21,8 +21,8 @@ void File ::
 printFileInfo()
 {
 	if (printInfo)
-		threadOut[threadNum] << "File opened: " << filename << ", mode: " << mode << ", size: "
-			 << fileSize << " bytes." << endl;		 
+		serverResponse += "File opened: " + filename + ", mode: " + mode + ", size: " + 
+			to_string(fileSize) + " bytes.\n";
 }
 
 
@@ -145,12 +145,12 @@ changeMode (string md)
 	{
 		mode = md;
 		if(printInfo){
-			threadOut[threadNum] << "File opened: " << filename << ", mode: " << mode << ", size: " <<
-			 fileSize << " bytes." << endl;
+			serverResponse += "File opened: " + filename + ", mode: " + mode + 
+				", size: " + to_string(fileSize) + " bytes.\n";
 		}
 	}
 	else
-		threadOut[threadNum] << "Please enter a valid mode (read|write)." << endl;
+		serverResponse += "Please enter a valid mode (read|write).\n";
 }
 
 
@@ -281,18 +281,18 @@ read (int startFrom, int readUpTo)
 	resetPageTblPtr();
     if (mode != "read") 
     {
-        threadOut[threadNum] << "Please open file in \"read\" mode for this function." << endl;
+        serverResponse += "Please open file in \"read\" mode for this function.\n";
         return "";
     }
     else if (pageTable == NULL) 
     {
-        threadOut[threadNum] << "The file has no content to display." << endl;
+        serverResponse += "The file has no content to display.\n";
         return "";
     }
     else if ((readUpTo - startFrom > fileSize) || (startFrom + readUpTo > fileSize) || (startFrom < 0)) 
 	{
-		threadOut[threadNum] << "Out of bound exception. Given limit exceeds total file limit at "
-			 << fileSize << " bytes." << endl;
+		serverResponse += "Out of bounds. Given limit exceeds total file limit at "
+			 + to_string(fileSize) + " bytes.\n";
 		return "";
 	}
     else if (startFrom == 0 && readUpTo == fileSize)
@@ -377,7 +377,7 @@ updateDat (string path)
 		endText += line + "\n";
 
 	overWriteDat.open(DATPATH);
-	overWriteDat << topText + data +	endText.substr(0, endText.length() - 1);
+	overWriteDat << topText + data + endText.substr(0, endText.length() - 1);
 	overWriteDat.close();
 	closeStream();
 }
@@ -403,7 +403,7 @@ getInput (ifstream& in)
 {
 	if (mode != "write") 
 	{
-		threadOut[threadNum] << "Please open file in \"write\" mode for this function." << endl;
+		serverResponse += "Please open file in \"write\" mode for this function.\n";
 		return "";
 	} 
 	else 
@@ -412,7 +412,7 @@ getInput (ifstream& in)
 		while (getline(in, line)) 
 		{
 			line.erase(line.find_last_not_of("\n\r")+1);
-			threadOut[threadNum] << line << endl;
+			serverResponse += line + "\n";
 			if (line == "-1")
 				break;
 
@@ -530,8 +530,8 @@ write (string input, bool updatedat)
 	
 	else if (input.size() > (freeList.size() * PAGESIZE)) 
     {
-        threadOut[threadNum] << "Not enough memory available. " << 
-        	 "Please reduce input size or delete other files." << endl;
+        serverResponse += "Not enough memory available. "
+        	 + "Please reduce input size or delete other files.\n";
         return;
     }
 
@@ -614,7 +614,7 @@ write (string input, bool updatedat)
 		callUpdateDat();
 	
 	if (printInfo)
-		threadOut[threadNum] << "Updated file size: " << fileSize << endl;
+		serverResponse += "Updated file size: " + to_string(fileSize) + "\n";
 }
 
 
@@ -628,14 +628,14 @@ writeAt (string data, int writeAt)
 
 	else  if (pageTable == NULL) 
 	{
-		threadOut[threadNum] << "Invalid command. Cannot call 'Write At' on an empty file." << endl;
+		serverResponse += "Invalid command. Cannot call 'Write At' on an empty file.\n";
 		return;
 	}
 
 	else if (writeAt > fileSize || writeAt < 0) 
 	{
-		threadOut[threadNum] << "Out of bound exception. Given byte is greater than file size of " 
-			<< fileSize << " bytes." << endl;
+		serverResponse += "Out of bounds. Given byte is greater than file size of " 
+			+ to_string(fileSize) + " bytes.\n";
 		return;
 	}
 
@@ -659,13 +659,13 @@ truncate (int size)
 {
 	if (mode != "write") 
 	{
-		threadOut[threadNum] << "Please open file in \"write\" mode for this function" << endl;
+		serverResponse += "Please open file in \"write\" mode for this function\n";
 		return;
 	}
 	else if (size > fileSize) 
 	{
-		threadOut[threadNum] << "Out of bound exception. Given byte is greater than file size of "
-			 << fileSize << " bytes." << endl;
+		serverResponse +=  "Out of bounds. Given byte is greater than file size of "
+			 + to_string(fileSize) + " bytes.\n";
 		return;
 	}
 	else
@@ -724,7 +724,7 @@ truncate (int size)
         fileSize = getFileSize();
 
         if (printInfo)
-            threadOut[threadNum] << "File size reduced to " << fileSize << " bytes." << endl;
+            serverResponse += "File size reduced to " + to_string(fileSize) + " bytes.\n";
     }
 	callUpdateDat();
 }
@@ -740,23 +740,23 @@ moveWithin (int from, int size, int to)
 
 	if ((to > from && to < from + size) || to < 0 || from < 0 || size < 0) 
 	{
-		threadOut[threadNum] << "Invalid byte arguments." << endl;
+		serverResponse += "Invalid byte arguments.\n";
 		return;
 	}
 	else if (mode != "write") 
 	{
-		threadOut[threadNum] << "Please open file in \"write\" mode." << endl;
+		serverResponse += "Please open file in \"write\" mode.\n";
 		return;
 	}
 	else if (pageTable == NULL) 
 	{
-		threadOut[threadNum] << "Invalid command. Cannot call 'Write At' on an empty file." << endl;
+		serverResponse += "Invalid command. Cannot call 'Write At' on an empty file.\n";
 		return;
 	}
 	else if (from + size > fileSize) 
 	{
-		threadOut[threadNum] << "Out of bound exception. Specified chunk exceeds out of file size of "
-			  << fileSize << " bytes." << endl;
+		serverResponse += "Out of bounds. Specified chunk exceeds out of file size of "
+			  + to_String(fileSize) + " bytes.\n";
 		return;
 	}
 	else

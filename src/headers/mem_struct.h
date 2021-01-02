@@ -13,6 +13,7 @@ public:
 	/* Pointer pgTblPtr points to this files' page table, but is assigned NULL upon 
 	   Creation, and will only point to one once data is written into this file. */
 	FileNode (string fileName);
+	FileNode ();
 };
 
 

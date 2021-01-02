@@ -8,30 +8,30 @@
 void 
 help () 
 {
-	cout << "-------------------------------------------User Guide-------------------------------------------" << endl;
-	cout << "Command\t\tDescription\t\t\t\t\t\t\tSyntax" << endl;
-	cout << "mkdir\t\tMake new directory in given path\t\t\t\tmkdir ../folder/subf/DirName" << endl;
-	cout << "ls\t\tList files in current directory\t\t\t\t\tls" << endl;
-	cout << "cd\t\tChange directory to given path\t\t\t\t\tcd ../folder/subf/" << endl;
-	cout << "cr\t\tCreate a new file at current working directory\t\t\tcr foo" << endl;
-	cout << "open\t\tOpen a specific file at current working directory\t\topen foo read|write" << endl;
+	serverResponse += "-------------------------------------------User Guide-------------------------------------------\n";
+	serverResponse += "Command\t\tDescription\t\t\t\t\t\t\tSyntax\n";
+	serverResponse += "mkdir\t\tMake new directory in given path\t\t\t\tmkdir ../folder/subf/DirName\n";
+	serverResponse += "ls\t\tList files in current directory\t\t\t\t\tls\n";
+	serverResponse += "cd\t\tChange directory to given path\t\t\t\t\tcd ../folder/subf/\n";
+	serverResponse += "cr\t\tCreate a new file at current working directory\t\t\tcr foo\n";
+	serverResponse += "open\t\tOpen a specific file at current working directory\t\topen foo read|write\n";
 
-	cout << "wr\t\tWrite by appending to opened file\t\t\t\twr" << endl;
-	cout << "wrat\t\tWrite starting from given byte in opened file\t\t\twrat 207" << endl;
-	cout << "trun\t\tReduce opened file to given size\t\t\t\ttrun 1280" << endl;
-	cout << "mvin\t\tMove from 'start' byte of 'size' to byte 'to' (ints)\t\tmvin start size to" << endl;
-	cout << "rf\t\tReads from given start upto given number of characters\t\trf 312 50" << endl;
-	cout << "rd\t\tReturns entire content of opened file\t\t\t\trd" << endl;
-	cout << "chmod\t\tChanges mode of opened file\t\t\t\t\tchmod read|write" << endl;
+	serverResponse += "wr\t\tWrite by appending to opened file\t\t\t\twr\n";
+	serverResponse += "wrat\t\tWrite starting from given byte in opened file\t\t\twrat 207\n";
+	serverResponse += "trun\t\tReduce opened file to given size\t\t\t\ttrun 1280\n";
+	serverResponse += "mvin\t\tMove from 'start' byte of 'size' to byte 'to' (ints)\t\tmvin start size to\n";
+	serverResponse += "rf\t\tReads from given start upto given number of characters\t\trf 312 50\n";
+	serverResponse += "rd\t\tReturns entire content of opened file\t\t\t\trd\n";
+	serverResponse += "chmod\t\tChanges mode of opened file\t\t\t\t\tchmod read|write\n";
 
 
-	cout << "close\t\tClose the opened file\t\t\t\t\t\tclose" << endl;
-	cout << "del\t\tDelete a file at the specified path\t\t\t\tdel ./folder/foo" << endl;
-	cout << "rem\t\tDelete all files and folders in specified folder\t\trem folder" << endl;
-	cout << "mv\t\tMove file from one location to another\t\t\t\tmv ./subf/filename ../sf/" << endl;
-	cout << "map\t\tDisplay memory map\t\t\t\t\t\tmap" << endl;
-	cout << "end\t\tTerminate program\t\t\t\t\t\ttend" << endl;
-	cout << "rdat\t\tRead and existing .dat file generated using this program\trdat" << endl;
+	serverResponse += "close\t\tClose the opened file\t\t\t\t\t\tclose\n";
+	serverResponse += "del\t\tDelete a file at the specified path\t\t\t\tdel ./folder/foo\n";
+	serverResponse += "rem\t\tDelete all files and folders in specified folder\t\trem folder\n";
+	serverResponse += "mv\t\tMove file from one location to another\t\t\t\tmv ./subf/filename ../sf/\n";
+	serverResponse += "map\t\tDisplay memory map\t\t\t\t\t\tmap\n";
+	serverResponse += "end\t\tTerminate program\t\t\t\t\t\ttend\n";
+	serverResponse += "rdat\t\tRead and existing .dat file generated using this program\trdat\n";
 }
 
 
@@ -71,12 +71,12 @@ convertMessage (string message,int length)
 
 
 
-/* Prints number of bytes available by iterating over free list*/
+/* Prints number of bytes available by checking free list*/
 void
 printSpace(int threadNo)
 {
-	threadOut[threadNo] << "Memory available: " << freeList.size() * PAGESIZE << "/" << MEMSIZE <<
-		 " bytes" << endl;
+	serverResponse += "Memory available: " + to_string(freeList.size() * PAGESIZE) + "/" + 
+			MEMSIZE + " bytes\n";
 }
 
 
@@ -219,7 +219,7 @@ locateFile (vector<string> tokens, bool destFile, int threadNo)
 		{
 			if (tempFolder[threadNo]->parent == NULL) 
 			{
-				threadOut[threadNo] << "Parent of root does not exist." << endl;
+				serverResponse += "Parent of root does not exist.\n";
 				found[threadNo] = false;
 				return;
 			}
@@ -235,8 +235,7 @@ locateFile (vector<string> tokens, bool destFile, int threadNo)
 				bool checkFolder = folderExists(tokens[i],threadNo);
 				if (!checkFolder) 
 				{
-					threadOut[threadNo] << "Invalid path. A folder in the specified path does not exist."
-						 << endl;
+					serverResponse += "Invalid path. A folder in the path does not exist.\n";
 					found[threadNo] = false;
 					return;
 				}
@@ -254,15 +253,15 @@ locateFile (vector<string> tokens, bool destFile, int threadNo)
 				}
 				/* In case it is a destination file and it does not exist yet. */
 				else if (destFile) {
-					threadOut[threadNo] << "Creating destination file..." << endl;
-					threadOut[threadNo] << "New file created." << endl;
+					serverResponse += "Creating destination file...\n";
+					serverResponse += "New file created.\n";
 					tempFile[threadNo] = NULL;
 					found[threadNo] = true;
 					return;
 				}
 				/* In case it is a source file and it does not exist. */
 				else if (!destFile) {
-					threadOut[threadNo] << "The specified file does not exist." << endl;
+					serverResponse += "The specified file does not exist.\n";
 					found[threadNo] = false;
 					return;
 				}
@@ -325,7 +324,7 @@ listFiles (Folder* dir, int threadNo)
 		}	
 	}
 
-	threadOut[threadNo] << disp;
+	serverResponse += disp;
 }
 
 
@@ -346,23 +345,29 @@ memMap (Folder* dir, int threadNo)
 }
 
 
+/* Returns the response of the command to the client. */
+void
+sendResponse (int threadNo) 
+{
+	char *op;
+	serverResponse += users[threadNo] + "$ " + pathFromRoot(current[threadNo]) + ">";
+	op = convertMessage(serverResponse, serverResponse.size());
+	send(sockets[threadNo], op, strlen(op), 0);
+	serverResponse = "";
+}
+
 
 /* Prompts user to enter in their command, and once it is taken, it is tokenized based
    On spaces and the vector of resulting strings is returned. */
 vector<string> 
-getCommand (ifstream& input, int threadNo) 
+getCommand (int threadNo) 
 {
+	sendResponse(threadNo);
+
+	char buffer[1024] = {0};
 	int valread;
 	string command;
 	
-	char *op;
-	char buffer[1024] = {0};
-	
-	serverResponse +=  "user" + to_string(threadNo+1) + "$ " + pathFromRoot(current[threadNo]) + ">";
-	op = convertMessage(serverResponse,serverResponse.size());
-	send(sockets[threadNo], op, strlen(op), 0);
-	serverResponse = "";
-
 	valread = read(sockets[threadNo], buffer, 1024);
 	command = buffer; 
 	cout << command << endl;
@@ -375,7 +380,7 @@ getCommand (ifstream& input, int threadNo)
    Respective functions, and returns boolean to main to update running status of 
    Program. */
 bool 
-processCommand (vector<string> tokens, ifstream& input, int threadNo) 
+processCommand (vector<string> tokens, int threadNo) 
 {
 	string filename;
 	bool loop = true;
@@ -384,7 +389,7 @@ processCommand (vector<string> tokens, ifstream& input, int threadNo)
 	{
 
 		if (tokens.size() == 2 || (tokens[2] != "read" && tokens[2] != "write"))
-			threadOut[threadNo] << "Please specify input mode (read|write)" << endl;
+			serverResponse += "Please specify input mode (read|write)\n";
 
 		else if (tokens.size() == 3 && tokens[0] == "open" && (tokens[2] == "write"
 			 || tokens[2] == "read")) 
@@ -395,58 +400,57 @@ processCommand (vector<string> tokens, ifstream& input, int threadNo)
 			if (fileExists(tokens[1],threadNo)) 
 			{
 				
-				openedFiles[threadNo] = File(tokens[1], tokens[2], true, threadNo);
+				openedFiles = File(tokens[1], tokens[2], true, threadNo);
 				bool inLoop = true;
 				
 				while (inLoop) 
 				{
-					vector<string> tokens = getCommand(input,threadNo);
+					vector<string> tokens = getCommand(threadNo);
 
 					if (tokens.size() == 1 && tokens[0] == "wr")
-						openedFiles[threadNo].write(openedFiles[threadNo].getInput(input),true);
+						openedFiles.write(openedFiles.getInput(input),true);
 
 					else if (tokens.size() == 2 && tokens[0] == "wrat" && isNumber(tokens[1]))
-						openedFiles[threadNo].writeAt(openedFiles[threadNo].getInput(input), stoi(tokens[1]) - 1);
+						openedFiles.writeAt(openedFiles.getInput(input), stoi(tokens[1]) - 1);
 
 					else if (tokens.size() == 2 && tokens[0] == "chmod")
-						openedFiles[threadNo].changeMode(tokens[1]);
+						openedFiles.changeMode(tokens[1]);
 
 					else if (tokens.size() == 1 && tokens[0] == "rd")
-						threadOut[threadNo] << openedFiles[threadNo].read(0, openedFiles[threadNo].getFileSize()) << endl;
+						serverResponse += openedFiles.read(0, openedFiles.getFileSize()) + "\n";
 
 					else if (tokens.size() == 3 && tokens[0] == "rf" && isNumber(tokens[1])
 						 && isNumber(tokens[2]))
-						threadOut[threadNo] << openedFiles[threadNo].read(stoi(tokens[1]) - 1, stoi(tokens[2]))
-							 << endl;
+						serverResponse += openedFiles.read(stoi(tokens[1]) - 1, stoi(tokens[2])) + "\n";
 
 					else if (tokens.size() == 2 && tokens[0] == "trun" && isNumber(tokens[1]))
-						openedFiles[threadNo].truncate(stoi(tokens[1]));
+						openedFiles.truncate(stoi(tokens[1]));
 
 					else if (tokens.size() == 4 && tokens[0] == "mvin" && isNumber(tokens[1])
 						 && isNumber(tokens[2]) && isNumber(tokens[3]))
-						openedFiles[threadNo].moveWithin(stoi(tokens[1]), stoi(tokens[2]), stoi(tokens[3]));
+						openedFiles.moveWithin(stoi(tokens[1]), stoi(tokens[2]), stoi(tokens[3]));
 
 					else if (tokens.size() == 1 && tokens[0] == "end")
-						threadOut[threadNo] << "Close file before ending program." << endl;
+						serverResponse += "Close file before ending program.\n";
 
 					else if (tokens.size() == 1 && tokens[0] == "help")
 						help();
 
 					else if (tokens.size() == 1 && tokens[0] == "close") 
 					{
-						threadOut[threadNo] << "File closed." << endl;
+						serverResponse += "File closed.\n";
 						inLoop = false;
 					}
 
 					else
-						threadOut[threadNo] << "Invalid command. Type help for user guide." << endl;
+						serverResponse += "Invalid command. Type help for user guide.\n";
 				}
 
 				filePosDir[threadNo] = -1;
 			}
 			else
 			{
-				threadOut[threadNo] << "The file does not exist." << endl;
+				serverResponse += "The file does not exist.\n";
 				return loop;
 			}
 		}
@@ -485,9 +489,9 @@ processCommand (vector<string> tokens, ifstream& input, int threadNo)
 
 	else if (tokens.size() == 1 && tokens[0] == "rdat") 
 	{
-		threadOut[threadNo] << "reading .dat file ..." << endl;
+		serverResponse += "reading .dat file ...\n";
 		readDat();
-		threadOut[threadNo] << "Complete" << endl;
+		serverResponse += "Complete\n";
 		printSpace(threadNo);
 	}
 	
@@ -495,7 +499,7 @@ processCommand (vector<string> tokens, ifstream& input, int threadNo)
 		loop = false;
 	
 	else 
-		threadOut[threadNo] << "Invalid command. Type help for user guide." << endl;
+		serverResponse += "Invalid command. Type help for user guide.\n";
 
 	return loop;
 }

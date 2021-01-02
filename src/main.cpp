@@ -15,29 +15,37 @@ main (int argc, const char* argv[])
 	struct sockaddr_in address; 
 	start = (char*) malloc(MEMSIZE);
 
+	// Generate free list at start of program
 	for (short int i = NUMPAGES - 1; i >= 0; i--)
 		freeList.push(i);
 	
+	// Establishing connection with socket
 	cout << "Establishing connection ... " << endl; 
 	int server_fd = establishConn(address);
     
-    if(server_fd == -1)
+    // In case there is error in connection establishment
+    if (server_fd == -1)
     {
         cout << "conn failed" << endl;
         return 0;
     }
-	cout << "Connection established! ready for users ... " << endl;
 
+	cout << "Connection established! ready for users..." << endl;
     
 	int i = 0;
 
-	while (1) {
-		
-        sockets.push_back(getSocket(address,server_fd));
+	/* Initialize variables for new connection and launches separate
+	   Thread for this client. */
+	while (1) 
+	{
+		// Pushing this socket, current and temp folder, temp file
+        sockets.push_back(getSocket(address, server_fd));
 		current.push_back(rootFolder);
 		tempFolder.push_back(rootFolder);
-		tempFile.push_back(new FileNode("empty"));
-        threads.push_back(thread(startProcess,i));
+		tempFile.push_back(new FileNode());
+
+		// Pushing this thread into vector and starting communication
+        threads.push_back(thread(startProcess, i));
 		i++;
 	}
 

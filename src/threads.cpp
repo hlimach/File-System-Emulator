@@ -3,22 +3,34 @@
 #include "headers/threads.h"
 #include "headers/util.h"
 
-void
-startProcess(int i)
-{
 
+/* Keeps looping for getting and processing commands until the 
+   program is terminated. */
+void
+startProcess (int i)
+{
 	bool loop = true;
-	cout << "user " + to_string(i+1) + " added" << endl;
-	try{
+	int valread;
+	string user;
+	char buffer[20] = {0};
+	
+	valread = read(sockets[i], buffer, 20);
+	user = buffer; 
+
+	users.push_back(user);
+	cout << "User " + user + " added." << endl;
+
+	try
+	{
 		while (loop) 
 		{
-			vector<string> tokens = getCommand(threadIn[i],i);
-			loop = processCommand(tokens, threadIn[i],i);
+			vector<string> tokens = getCommand(i);
+			loop = processCommand(tokens, i);
 		}
-		cout << "user " + to_string(i+1) + " left" << endl;
+		cout << "user " + to_string(i + 1) + " left" << endl;
 	}
-	catch (...) {
-		cout << "user " + to_string(i+1) + " left" << endl;
+	catch (...) 
+	{
+		cout << "user " + to_string(i + 1) + " left" << endl;
 	}
-	//threadOut[i].close();
 }
