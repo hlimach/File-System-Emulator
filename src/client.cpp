@@ -19,7 +19,7 @@
 char*
 convertMessage (std::string message, int length)
 {
-    char* msg = (char*) malloc(length);
+    char* msg = (char*) malloc(length + 1);
     strcpy(msg, message.c_str());
     return msg;
 }
@@ -57,6 +57,7 @@ sendMessage (int sock, std::string msg)
 {
 	char *msgPtr = convertMessage(msg, msg.size());
 	send(sock, msgPtr, strlen(msgPtr), 0);
+	free(msgPtr);
 }
 
 
@@ -126,6 +127,7 @@ main()
 	
 	std::string ipAddr;
 	bool isIP = true;
+	bool fileOpened = false;
 	
 	// Prompt for IP Address until a proper one is input
 	do
@@ -175,6 +177,14 @@ main()
 
         } while (response.substr(response.size() - 2, 2) != "#$");
 
+		// set flag to true when file is opened and appropriate response is recieved
+		if(fileOpened == false && response.substr(0, 11) == "File opened")
+			fileOpened = true;
+		
+		// set flag to false when file is closed and appropriate response is recieved
+		if(fileOpened == true && response.substr(0, 13) == "File closed.\n")
+			fileOpened = false;	
+
         // Server returns %^ for for file writing function permissions
         if (buffer[0] == '%' && buffer[1] == '^')
         	msg = writeFile();
@@ -208,7 +218,7 @@ main()
         } while (msgSize != 0);
         
         // If message send is end, it means client wants to terminate
-        if (msg == "end#$")
+        if (msg == "end#$" && fileOpened == false)
             break;
 
         // Sleep after sending so that incoming packets are not lost

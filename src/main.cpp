@@ -52,7 +52,7 @@ main (int argc, const char* argv[])
 		i++;
 	}
 
-
-	free((char*)start);
+	cout << " 100" << endl;
+	//free((char*)start);
 	return 0;
 }

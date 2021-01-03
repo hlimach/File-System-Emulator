@@ -423,8 +423,12 @@ getInput (int threadNo)
 		{
 			bzero(buffer, BUFFER);
 	        if (::read(sockets[threadNo], buffer, BUFFER) == 0)
+			{
+				cout << "user " + users[threadNo] + " crashed" << endl;
 	        	input = "";
-	        else
+				serverResponse = "";
+			}
+			else
 	        {
 	        	string check = buffer;
 	        	if (check.size() == BUFFER + 1)

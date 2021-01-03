@@ -54,7 +54,6 @@ tokenize (string command, char delimiter)
 
 		tokens.push_back(s);
 	}
-
 	return tokens;
 }
 
@@ -64,7 +63,7 @@ tokenize (string command, char delimiter)
 char *
 convertMessage (string message, int length)
 {
-	char * msg = (char *) malloc(length);
+	char * msg = (char *) malloc(length + 1);
     strcpy(msg,message.c_str());
 	return msg;
 }
@@ -355,27 +354,29 @@ sendResponse (int threadNo)
     string chunk;
 
     // If response larger than buffer, it is sent in packets (chunks)
-    do
-    {
-    	if (resSize > BUFFER)
-        {
-        	chunk = serverResponse.substr(BUFFER * (itr - 1), BUFFER);
-        	itr++;
-        	resSize -= BUFFER;
-        	msgPtr = convertMessage(chunk, BUFFER);
-    		send(sockets[threadNo], msgPtr, strlen(msgPtr), 0);
-        }
-        else
-        {
-        	chunk = serverResponse.substr(BUFFER * (itr - 1), resSize);
-        	msgPtr = convertMessage(chunk, chunk.size());
-    		send(sockets[threadNo], msgPtr, strlen(msgPtr), 0);
-    		resSize = 0;
-        }
+	do
+	{
 
-    } while (resSize != 0);
-
+		if (resSize > BUFFER)
+		{
+			chunk = serverResponse.substr(BUFFER * (itr - 1), BUFFER);
+			itr++;
+			resSize -= BUFFER;
+			msgPtr = convertMessage(chunk, BUFFER);
+			send(sockets[threadNo], msgPtr, strlen(msgPtr), 0);
+		}
+		else
+		{
+			chunk = serverResponse.substr(BUFFER * (itr - 1), resSize);
+			msgPtr = convertMessage(chunk, chunk.size());
+			send(sockets[threadNo], msgPtr, strlen(msgPtr), 0);
+			resSize = 0;
+		}
+	} while (resSize != 0);
+		
     serverResponse = "";
+	free(msgPtr);
+	return;
 }
 
 
@@ -391,12 +392,16 @@ getCommand (int threadNo)
 	char buffer[BUFFER] = {0};
 	string command = "";
 
+	int valread;
+
 	// If command received is larger than buffer, it is sent in packets (chunks)
 	do 
 	{
 		bzero(buffer, BUFFER);
-		if (read(sockets[threadNo], buffer, BUFFER) == 0)
-			command = "end";
+		valread = read(sockets[threadNo], buffer, BUFFER); 
+		cout << valread << endl;
+		if (valread == 0)
+			command = "\a\a\a#$";
 		else
 			command += buffer;
 		
@@ -428,7 +433,7 @@ processCommand (vector<string> tokens, int threadNo)
 		{
 
 			filePosDir[threadNo] = getFileNo(tokens[1],threadNo);
-
+			tempFolder[threadNo] = current[threadNo];
 			if (fileExists(tokens[1],threadNo)) 
 			{
 				
@@ -463,7 +468,7 @@ processCommand (vector<string> tokens, int threadNo)
 						openedFiles.moveWithin(stoi(tokens[1]), stoi(tokens[2]), stoi(tokens[3]));
 
 					else if (tokens.size() == 1 && tokens[0] == "end")
-						serverResponse += "Close file before ending program.\n";
+						serverResponse += "Close file before ending program.\n";	
 
 					else if (tokens.size() == 1 && tokens[0] == "help")
 						help();
@@ -473,6 +478,9 @@ processCommand (vector<string> tokens, int threadNo)
 						serverResponse += "File closed.\n";
 						inLoop = false;
 					}
+
+					else if (tokens.size() == 1 && tokens[0] == "\a\a\a")
+						inLoop = false;
 
 					else
 						serverResponse += "Invalid command. Type help for user guide.\n";
@@ -532,6 +540,12 @@ processCommand (vector<string> tokens, int threadNo)
 	
 	else 
 		serverResponse += "Invalid command. Type help for user guide.\n";
-
+	
+	if(tokens.size() == 1 && tokens[0] == "\a\a\a")
+	{
+		loop = false;
+		cout << "user " + users[threadNo] + " crashed!" << endl;
+		serverResponse = "";
+	}
 	return loop;
 }
