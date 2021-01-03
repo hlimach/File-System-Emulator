@@ -23,6 +23,7 @@ When a command is received, the server:
 - Sends the response along with the updated path of the user
 - Waits for next command.
  
+Server stopped by terminating program (CTRL + C in terminal)
 
 ### Message protocol
 
@@ -73,9 +74,11 @@ If the serever crashes, the client side checks connection status before sending 
 Note: File must be opened, and in the appropriate mode for these commands to be accessible
 1. Write into file (writes from start into new a file, and appends into file with prexisting data)
    - wr
+   - text writing prompt exited by entering -1 in a new line and pressing enter
 2. Overwrite from specific position in file
    - wrat position 
    - eg. wrat 45 starts overwriting from position 45 in file
+   - text writing prompt exited by entering -1 in a new line and pressing enter
 3. Truncate file to be of a specific size
    - trun size 
    - eg. trun 300 reduces file size to be 300 bytes
