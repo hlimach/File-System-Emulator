@@ -399,7 +399,6 @@ getCommand (int threadNo)
 	{
 		bzero(buffer, BUFFER);
 		valread = read(sockets[threadNo], buffer, BUFFER); 
-		cout << valread << endl;
 		if (valread == 0)
 			command = "\a\a\a#$";
 		else
