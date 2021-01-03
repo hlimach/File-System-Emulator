@@ -65,9 +65,9 @@ If the serever crashes, the client side checks connection status before sending 
 9. Create a file in current working directory
    - cr filename
 10. Open a file in current working directory with specific mode
-   - open filename.txt read/write
+    - open filename.txt read/write
 11. End program
-   - end
+    - end
    
 ### File manipulation commands
 Note: File must be opened, and in the appropriate mode for these commands to be accessible
