@@ -349,11 +349,33 @@ memMap (Folder* dir, int threadNo)
 void
 sendResponse (int threadNo) 
 {
-	char *op;
-	serverResponse += users[threadNo] + "$ " + pathFromRoot(current[threadNo]) + ">";
-	op = convertMessage(serverResponse, serverResponse.size());
-	send(sockets[threadNo], op, strlen(op), 0);
-	serverResponse = "";
+	char *msgPtr;
+	serverResponse += users[threadNo] + "$ " + pathFromRoot(current[threadNo]) + ">#$";
+    int resSize = serverResponse.size(), itr = 1;
+    string chunk;
+
+    // If response larger than buffer, it is sent in packets (chunks)
+    do
+    {
+    	if (resSize > BUFFER)
+        {
+        	chunk = serverResponse.substr(BUFFER * (itr - 1), BUFFER);
+        	itr++;
+        	resSize -= BUFFER;
+        	msgPtr = convertMessage(chunk, BUFFER);
+    		send(sockets[threadNo], msgPtr, strlen(msgPtr), 0);
+        }
+        else
+        {
+        	chunk = serverResponse.substr(BUFFER * (itr - 1), resSize);
+        	msgPtr = convertMessage(chunk, chunk.size());
+    		send(sockets[threadNo], msgPtr, strlen(msgPtr), 0);
+    		resSize = 0;
+        }
+
+    } while (resSize != 0);
+
+    serverResponse = "";
 }
 
 
@@ -362,20 +384,28 @@ sendResponse (int threadNo)
 vector<string> 
 getCommand (int threadNo) 
 {
+	// Response of prev command sent
 	sendResponse(threadNo);
 
-	char buffer[1024] = {0};
-	string command;
+	// Buffer created for receiving commands
+	char buffer[BUFFER] = {0};
+	string command = "";
 
-	if (read(sockets[threadNo], buffer, 1024) == 0)
-		command = "end";
-	else
-		command = buffer;
-
+	// If command received is larger than buffer, it is sent in packets (chunks)
+	do 
+	{
+		bzero(buffer, BUFFER);
+		if (read(sockets[threadNo], buffer, BUFFER) == 0)
+			command = "end";
+		else
+			command += buffer;
+		
+	} while (command.substr(command.size() - 2, 2) != "#$");
+	
+	command = command.substr(0, command.size() - 2);
 	cout << users[threadNo] << ": " << command << endl;
 	return tokenize(command, ' ');
 }
-
 
 
 /* ProcessCommand takes in commands vector as arugment, forwards the commands to their

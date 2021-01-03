@@ -408,21 +408,33 @@ getInput (int threadNo)
 	} 
 	else 
 	{
-		string input = "";
-		char* op;
-		char buffer[16384] = {0};
-		serverResponse = "";
-		serverResponse = "%^";
-		op = convertMessage(serverResponse, serverResponse.size());
+		// File writing permission characters sent to client
+		serverResponse = "%^#$";
+		char* op = convertMessage(serverResponse, serverResponse.size());
 		::send(sockets[threadNo], op, strlen(op), 0);
 		serverResponse = "";
+		
+		// Buffer created for incoming text receival
+		string input = "";
+		char buffer[BUFFER] = {0};
 
-		if (::read(sockets[threadNo], buffer, 16384) == 0)
-			input = "";
-		else
-			input = buffer;
+		// If response is larger than buffer, it is received in chunks (packets)
+	    do 
+		{
+			bzero(buffer, BUFFER);
+	        if (::read(sockets[threadNo], buffer, BUFFER) == 0)
+	        	input = "";
+	        else
+	        {
+	        	string check = buffer;
+	        	if (check.size() == BUFFER + 1)
+	        		check = check.substr(0, BUFFER);
+	        	input += check;
+	        }
 
-		return input;
+        } while (input.substr(input.size() - 2, 2) != "#$");
+
+		return input.substr(0, input.size() - 2);
 	}
 }
 
