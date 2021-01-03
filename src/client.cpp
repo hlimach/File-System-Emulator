@@ -12,7 +12,7 @@
 #include <chrono>
 
 #define PORT 95
-#define BUFFER 24
+#define BUFFER 64
 
 
 /* Converts message into char pointer. */
@@ -170,7 +170,7 @@ main()
 	        else
 	        {
 	        	std::string check = buffer;
-	        	if (check.size() == BUFFER + 1)
+	        	if (check.size() > BUFFER )
 	        		check = check.substr(0, BUFFER);
 	        	response += check;
 	        }

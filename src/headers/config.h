@@ -22,7 +22,7 @@
 #define LASTENTRY ((PAGESIZE / 2) - 1)	 /* Last entry point for a page table. */
 #define MAXENTRIES ((PAGESIZE / 2) - 3)	 /* Maximum entries possible in a page table */
 #define DATPATH "../disk_data.dat"
-#define BUFFER 24
+#define BUFFER 64
 
 using namespace std;
 
