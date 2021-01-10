@@ -1,9 +1,9 @@
-#include "headers/config.h"
-#include "headers/mem_struct.h"
-#include "headers/globals.h"
-#include "headers/util.h"
-#include "headers/dat.h"
-#include "headers/file.h"
+#include "../include/config.h"
+#include "../include/mem_struct.h"
+#include "../include/globals.h"
+#include "../include/util.h"
+#include "../include/dat.h"
+#include "../include/file.h"
 
 FileNode :: FileNode ()
 {}

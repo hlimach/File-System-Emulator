@@ -1,7 +1,7 @@
-#include "headers/config.h"
-#include "headers/globals.h"
-#include "headers/threads.h"
-#include "headers/util.h"
+#include "../include/config.h"
+#include "../include/globals.h"
+#include "../include/threads.h"
+#include "../include/util.h"
 
 
 /* Keeps looping for getting and processing commands until the 

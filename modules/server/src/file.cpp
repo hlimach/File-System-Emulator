@@ -1,8 +1,8 @@
-#include "headers/config.h"
-#include "headers/file.h"
-#include "headers/globals.h"
-#include "headers/util.h"
-#include "headers/dat.h"
+#include "../include/config.h"
+#include "../include/file.h"
+#include "../include/globals.h"
+#include "../include/util.h"
+#include "../include/dat.h"
 
 File :: File ()
 {}

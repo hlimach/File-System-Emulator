@@ -1,8 +1,8 @@
-#include "headers/config.h"
-#include "headers/globals.h"
-#include "headers/dat.h"
-#include "headers/util.h"
-#include "headers/file.h"
+#include "../include/config.h"
+#include "../include/globals.h"
+#include "../include/dat.h"
+#include "../include/util.h"
+#include "../include/file.h"
 
 
 /* opens file stream whenever required to read or write to .dat file */

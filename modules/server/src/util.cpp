@@ -1,8 +1,8 @@
-#include "headers/config.h"
-#include "headers/util.h"
-#include "headers/globals.h"
-#include "headers/file.h"
-#include "headers/dat.h"
+#include "../include/config.h"
+#include "../include/util.h"
+#include "../include/globals.h"
+#include "../include/file.h"
+#include "../include/dat.h"
 
 /* user guide. */
 void 

@@ -1,8 +1,0 @@
-cr file1
-ls
-open file1.txt write
-wr
-this text is in file 1.
--1
-close
-end

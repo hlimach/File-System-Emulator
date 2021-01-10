@@ -1,5 +1,5 @@
-#include "headers/config.h"
-#include "headers/globals.h"
+#include "../include/config.h"
+#include "../include/globals.h"
 
 /* lockable object to prevent muultiple threads accessing shared data */
 mutex mtx;

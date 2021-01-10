@@ -1,11 +1,11 @@
-#include "headers/config.h"
-#include "headers/util.h"
-#include "headers/mem_struct.h"
-#include "headers/globals.h"
-#include "headers/dat.h"
-#include "headers/file.h"
-#include "headers/threads.h"
-#include "headers/server.h"
+#include "../include/config.h"
+#include "../include/util.h"
+#include "../include/mem_struct.h"
+#include "../include/globals.h"
+#include "../include/dat.h"
+#include "../include/file.h"
+#include "../include/threads.h"
+#include "../include/server.h"
 
 
 int 

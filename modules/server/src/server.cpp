@@ -1,4 +1,4 @@
-#include "headers/server.h"
+#include "../include/server.h"
 
 int 
 establishConn (struct sockaddr_in &address)
