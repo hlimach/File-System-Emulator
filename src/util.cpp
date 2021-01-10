@@ -412,139 +412,483 @@ getCommand (int threadNo)
 }
 
 
+void
+invalidCmdMsg()
+{
+	serverResponse += "Invalid command. Type help for user guide.\n";
+}
+
+
+int 
+getCmdIndex (vector<string> cmds, string cmd)
+{
+	int i;
+	for (i = 0; i < cmds.size(); i++)
+	{
+		if (cmds[i] == cmd)
+			return i;
+	}
+	return i;
+}
+
+
+void
+fileCmds1Call(int index, vector<string> tokens, int threadNo, bool &loop)
+{
+	switch (index)
+	{
+		/* wr */
+		case 0:
+			openedFiles.write(openedFiles.getInput(threadNo), true);
+			break;
+
+		/* rd */
+		case 1:
+			serverResponse += 
+				openedFiles.read(0, openedFiles.getFileSize()) + "\n";
+			break;
+
+		/* help */
+		case 2: 
+			help();
+			break;
+
+		/* close */
+		case 3:
+			serverResponse += "File closed.\n";
+			loop = false;
+			break;
+
+		/* end */
+		case 4: 
+			serverResponse += "Close file before ending program.\n";
+			break;
+
+		/* \a\a\a */
+		case 5: 
+			loop = false;
+			break;
+
+		default:
+			invalidCmdMsg();
+			break;
+	}
+}
+
+
+void
+fileCmds2Call(int index, vector<string> tokens, int threadNo)
+{
+	switch (index)
+	{
+		/* wrat */
+		case 0:
+			if (isNumber(tokens[1]))
+				openedFiles.writeAt(openedFiles.getInput(threadNo), 
+					stoi(tokens[1]) - 1);
+			else
+				invalidCmdMsg();
+			break;
+
+		/* chmod */
+		case 1:
+			openedFiles.changeMode(tokens[1]);
+			break;
+
+		/* trun */
+		case 2: 
+			if (isNumber(tokens[1]))
+				openedFiles.truncate(stoi(tokens[1]));
+			else
+				invalidCmdMsg();
+			break;
+
+		default:
+			invalidCmdMsg();
+			break;
+	}
+}
+
+
+void
+fileCmdProcessing(vector<string> tokens, int threadNo)
+{
+	openedFiles = File(tokens[1], tokens[2], true, threadNo);
+	bool inLoop = true;
+
+	vector<string> tokens1 = {"wr", "rd", "help", "close", "end", "\a\a\a"};
+	vector<string> tokens2 = {"wrat", "chmod", "trun"};
+	vector<string> tokens3 = {"rf"};
+	vector<string> tokens4 = {"mvin"};
+	
+	while (inLoop) 
+	{
+		vector<string> tokens = getCommand(threadNo);
+		int cmdLength = tokens.size();
+		int index;
+
+		switch (cmdLength)
+		{
+			case 1:
+				index = getCmdIndex(tokens1, tokens[0]);
+				fileCmds1Call(index, tokens, threadNo, inLoop);
+				break;
+
+			case 2:
+				index = getCmdIndex(tokens2, tokens[0]);
+				fileCmds2Call(index, tokens, threadNo);
+				break;
+
+			case 3:
+				index = getCmdIndex(tokens3, tokens[0]);
+
+				if(index == 0 && isNumber(tokens[1]) && isNumber(tokens[2]))
+					serverResponse += openedFiles.read(stoi(tokens[1]) - 1, 
+						stoi(tokens[2])) + "\n";
+				else
+					invalidCmdMsg();
+
+				break;
+
+			case 4:
+				index = getCmdIndex(tokens4, tokens[0]);
+
+				if(index == 0 && isNumber(tokens[1]) && isNumber(tokens[2]) 
+					&& isNumber(tokens[3]))
+						openedFiles.moveWithin(stoi(tokens[1]), stoi(tokens[2]), 
+							stoi(tokens[3]));
+				else
+					invalidCmdMsg();
+
+				break;
+
+			default:
+				invalidCmdMsg();
+				break;
+		}
+
+		// if (cmdLength == 1 && tokens[0] == "\a\a\a")
+		// 	inLoop = false;
+
+		// if (tokens.size() == 1 && tokens[0] == "wr")
+		// 	openedFiles.write(openedFiles.getInput(threadNo), true);
+
+		// else if (tokens.size() == 2 && tokens[0] == "wrat" && isNumber(tokens[1]))
+		// 	openedFiles.writeAt(openedFiles.getInput(threadNo), stoi(tokens[1]) - 1);
+
+		// else if (tokens.size() == 2 && tokens[0] == "chmod")
+		// 	openedFiles.changeMode(tokens[1]);
+
+		// else if (tokens.size() == 1 && tokens[0] == "rd")
+		// 	serverResponse += openedFiles.read(0, openedFiles.getFileSize()) + "\n";
+
+		// else if (tokens.size() == 3 && tokens[0] == "rf" && isNumber(tokens[1])
+		// 	 && isNumber(tokens[2]))
+		// 	serverResponse += openedFiles.read(stoi(tokens[1]) - 1, stoi(tokens[2])) + "\n";
+
+		// else if (tokens.size() == 2 && tokens[0] == "trun" && isNumber(tokens[1]))
+		// 	openedFiles.truncate(stoi(tokens[1]));
+
+		// else if (tokens.size() == 4 && tokens[0] == "mvin" && isNumber(tokens[1])
+		// 	 && isNumber(tokens[2]) && isNumber(tokens[3]))
+		// 	openedFiles.moveWithin(stoi(tokens[1]), stoi(tokens[2]), stoi(tokens[3]));
+
+		// else if (tokens.size() == 1 && tokens[0] == "end")
+		// 	serverResponse += "Close file before ending program.\n";	
+
+		// else if (tokens.size() == 1 && tokens[0] == "help")
+		// 	help();
+
+		// else if (tokens.size() == 1 && tokens[0] == "close") 
+		// {
+		// 	serverResponse += "File closed.\n";
+		// 	inLoop = false;
+		// }
+		// else
+		// 	serverResponse += "Invalid command. Type help for user guide.\n";
+	}
+
+	filePosDir[threadNo] = -1;
+}
+
+
+void
+cmds1Call (int index, vector<string> tokens, int threadNo, bool &loop)
+{
+	Folder *currentFolder;
+	switch (index)
+	{
+		/* ls */
+		case 0:
+			listDir(threadNo);
+			break;
+
+		/* map */
+		case 1:
+			printSpace(threadNo);
+			currentFolder = current[threadNo];
+			memMap(rootFolder, threadNo);
+			current[threadNo] = currentFolder;
+			break;
+
+		/* help */
+		case 2: 
+			help();
+			break;
+
+		/* rdat */
+		case 3:
+			serverResponse += "reading .dat file ...\n";
+			readDat();
+			serverResponse += "Complete\n";
+			printSpace(threadNo);
+			break;
+
+		/* end */
+		case 4: 
+			loop = false;
+			break;
+
+		/* \a\a\a */
+		case 5: 
+			loop = false;
+			cout << "user " + users[threadNo] + " crashed!" << endl;
+			serverResponse = "";
+			break;
+
+		default:
+			invalidCmdMsg();
+			break;
+	}
+}
+
+
+void
+cmds2Call(int index, vector<string> tokens, int threadNo)
+{
+	switch (index)
+	{
+		/* cd */
+		case 0:
+			changeDir(tokens[1], threadNo);
+			break;
+
+		/* cr */
+		case 1:
+			create(tokens[1], true, threadNo);
+			break;
+
+		/* del */
+		case 2: 
+			deleteFile(tokens[1], threadNo);
+			break;
+
+		/* mkdir */
+		case 3:
+			createFolder(tokens[1], true, threadNo);
+			break;
+
+		/* rmdir */
+		case 4: 
+			deleteFolder(tokens[1],threadNo);
+			break;
+
+		default:
+			invalidCmdMsg();
+			break;
+	}
+}
+
+
+void 
+cmds3Call(int index, vector<string> tokens, int threadNo)
+{
+	switch (index)
+	{
+		/* mv */
+		case 0:
+			move(tokens[1], tokens[2], threadNo);
+			break;
+
+		/* open */
+		case 1:
+			if (tokens[2] != "read" && tokens[2] != "write")
+				serverResponse += "Please specify input mode (read | write)\n";
+			else
+			{
+				filePosDir[threadNo] = getFileNo(tokens[1], threadNo);
+				tempFolder[threadNo] = current[threadNo];
+				
+				if (fileExists(tokens[1], threadNo)) 
+					fileCmdProcessing(tokens, threadNo);
+				else
+					serverResponse += "The file does not exist.\n";
+			}
+			break;
+
+		default:
+			invalidCmdMsg();
+			break;
+	}
+}
+
+
 /* ProcessCommand takes in commands vector as arugment, forwards the commands to their
    Respective functions, and returns boolean to main to update running status of 
    Program. */
 bool 
 processCommand (vector<string> tokens, int threadNo) 
 {
+	vector<string> tokens1 = {"ls", "map", "help", "rdat", "end", "\a\a\a"};
+	vector<string> tokens2 = {"cd", "cr", "del", "mkdir", "rmdir"};
+	vector<string> tokens3 = {"mv", "open"};
+
 	string filename;
 	bool loop = true;
+	int cmdLength = tokens.size();
+	int index;
 
-	if (tokens[0] == "open") 
+	switch (cmdLength)
 	{
+		case 1:
+			index = getCmdIndex(tokens1, tokens[0]);
+			cmds1Call(index, tokens, threadNo, loop);
+			break;
 
-		if (tokens.size() == 2 || (tokens[2] != "read" && tokens[2] != "write"))
-			serverResponse += "Please specify input mode (read|write)\n";
+		case 2:
+			index = getCmdIndex(tokens2, tokens[0]);
+			cmds2Call(index, tokens, threadNo);
+			break;
 
-		else if (tokens.size() == 3 && tokens[0] == "open" && (tokens[2] == "write"
-			 || tokens[2] == "read")) 
-		{
+		case 3:
+			index = getCmdIndex(tokens3, tokens[0]);
+			cmds3Call(index, tokens, threadNo);
+			break;
 
-			filePosDir[threadNo] = getFileNo(tokens[1],threadNo);
-			tempFolder[threadNo] = current[threadNo];
-			if (fileExists(tokens[1],threadNo)) 
-			{
-				
-				openedFiles = File(tokens[1], tokens[2], true, threadNo);
-				bool inLoop = true;
-				
-				while (inLoop) 
-				{
-					vector<string> tokens = getCommand(threadNo);
-
-					if (tokens.size() == 1 && tokens[0] == "wr")
-						openedFiles.write(openedFiles.getInput(threadNo), true);
-
-					else if (tokens.size() == 2 && tokens[0] == "wrat" && isNumber(tokens[1]))
-						openedFiles.writeAt(openedFiles.getInput(threadNo), stoi(tokens[1]) - 1);
-
-					else if (tokens.size() == 2 && tokens[0] == "chmod")
-						openedFiles.changeMode(tokens[1]);
-
-					else if (tokens.size() == 1 && tokens[0] == "rd")
-						serverResponse += openedFiles.read(0, openedFiles.getFileSize()) + "\n";
-
-					else if (tokens.size() == 3 && tokens[0] == "rf" && isNumber(tokens[1])
-						 && isNumber(tokens[2]))
-						serverResponse += openedFiles.read(stoi(tokens[1]) - 1, stoi(tokens[2])) + "\n";
-
-					else if (tokens.size() == 2 && tokens[0] == "trun" && isNumber(tokens[1]))
-						openedFiles.truncate(stoi(tokens[1]));
-
-					else if (tokens.size() == 4 && tokens[0] == "mvin" && isNumber(tokens[1])
-						 && isNumber(tokens[2]) && isNumber(tokens[3]))
-						openedFiles.moveWithin(stoi(tokens[1]), stoi(tokens[2]), stoi(tokens[3]));
-
-					else if (tokens.size() == 1 && tokens[0] == "end")
-						serverResponse += "Close file before ending program.\n";	
-
-					else if (tokens.size() == 1 && tokens[0] == "help")
-						help();
-
-					else if (tokens.size() == 1 && tokens[0] == "close") 
-					{
-						serverResponse += "File closed.\n";
-						inLoop = false;
-					}
-
-					else if (tokens.size() == 1 && tokens[0] == "\a\a\a")
-						inLoop = false;
-
-					else
-						serverResponse += "Invalid command. Type help for user guide.\n";
-				}
-
-				filePosDir[threadNo] = -1;
-			}
-			else
-			{
-				serverResponse += "The file does not exist.\n";
-				return loop;
-			}
-		}
+		default:
+			invalidCmdMsg();
+			break;
 	}
 
-	else if (tokens.size() == 1 && tokens[0] == "ls") 
-		listDir(threadNo);
-
-	else if (tokens.size() == 2 && tokens[0] == "cd")
-		changeDir(tokens[1],threadNo);
-	
-	else if (tokens.size() == 2 && tokens[0] == "cr")
-		create(tokens[1],true,threadNo);
-	
-	else if (tokens.size() == 3 && tokens[0] == "mv") 
-		move(tokens[1], tokens[2],threadNo);
-	
-	else if (tokens.size() == 2 && tokens[0] == "del")
-		deleteFile(tokens[1],threadNo);
-
-	else if (tokens.size() == 2 && tokens[0] == "rem")
-		deleteFolder(tokens[1],threadNo);	
-	
-	else if (tokens.size() == 2 && tokens[0] == "mkdir")
-		createFolder(tokens[1],true,threadNo);
-	
-	else if (tokens.size() == 1 && tokens[0] == "map"){
-		printSpace(threadNo);
-		Folder *currentFolder = current[threadNo];
-		memMap(rootFolder,threadNo);
-		current[threadNo] = currentFolder;
-	}
-
-	else if (tokens.size() == 1 && tokens[0] == "help")
-		help();
-
-	else if (tokens.size() == 1 && tokens[0] == "rdat") 
-	{
-		serverResponse += "reading .dat file ...\n";
-		readDat();
-		serverResponse += "Complete\n";
-		printSpace(threadNo);
-	}
-	
-	else if (tokens.size() == 1 && tokens[0] == "end") 
-		loop = false;
-	
-	else 
-		serverResponse += "Invalid command. Type help for user guide.\n";
-	
-	if(tokens.size() == 1 && tokens[0] == "\a\a\a")
-	{
-		loop = false;
-		cout << "user " + users[threadNo] + " crashed!" << endl;
-		serverResponse = "";
-	}
 	return loop;
+
+	// if (tokens[0] == "open") 
+	// {
+
+	// 	if (tokens.size() == 2 || (tokens[2] != "read" && tokens[2] != "write"))
+	// 		serverResponse += "Please specify input mode (read | write)\n";
+
+	// 	else if (tokens.size() == 3 && tokens[0] == "open" && (tokens[2] == "write"
+	// 		 || tokens[2] == "read")) 
+	// 	{
+
+	// 		filePosDir[threadNo] = getFileNo(tokens[1],threadNo);
+	// 		tempFolder[threadNo] = current[threadNo];
+	// 		if (fileExists(tokens[1],threadNo)) 
+	// 		{
+				
+	// 			openedFiles = File(tokens[1], tokens[2], true, threadNo);
+	// 			bool inLoop = true;
+				
+	// 			while (inLoop) 
+	// 			{
+	// 				vector<string> tokens = getCommand(threadNo);
+
+	// 				if (tokens.size() == 1 && tokens[0] == "wr")
+	// 					openedFiles.write(openedFiles.getInput(threadNo), true);
+
+	// 				else if (tokens.size() == 2 && tokens[0] == "wrat" && isNumber(tokens[1]))
+	// 					openedFiles.writeAt(openedFiles.getInput(threadNo), stoi(tokens[1]) - 1);
+
+	// 				else if (tokens.size() == 2 && tokens[0] == "chmod")
+	// 					openedFiles.changeMode(tokens[1]);
+
+	// 				else if (tokens.size() == 1 && tokens[0] == "rd")
+	// 					serverResponse += openedFiles.read(0, openedFiles.getFileSize()) + "\n";
+
+	// 				else if (tokens.size() == 3 && tokens[0] == "rf" && isNumber(tokens[1])
+	// 					 && isNumber(tokens[2]))
+	// 					serverResponse += openedFiles.read(stoi(tokens[1]) - 1, stoi(tokens[2])) + "\n";
+
+	// 				else if (tokens.size() == 2 && tokens[0] == "trun" && isNumber(tokens[1]))
+	// 					openedFiles.truncate(stoi(tokens[1]));
+
+	// 				else if (tokens.size() == 4 && tokens[0] == "mvin" && isNumber(tokens[1])
+	// 					 && isNumber(tokens[2]) && isNumber(tokens[3]))
+	// 					openedFiles.moveWithin(stoi(tokens[1]), stoi(tokens[2]), stoi(tokens[3]));
+
+	// 				else if (tokens.size() == 1 && tokens[0] == "end")
+	// 					serverResponse += "Close file before ending program.\n";	
+
+	// 				else if (tokens.size() == 1 && tokens[0] == "help")
+	// 					help();
+
+	// 				else if (tokens.size() == 1 && tokens[0] == "close") 
+	// 				{
+	// 					serverResponse += "File closed.\n";
+	// 					inLoop = false;
+	// 				}
+
+	// 				else if (tokens.size() == 1 && tokens[0] == "\a\a\a")
+	// 					inLoop = false;
+
+	// 				else
+	// 					serverResponse += "Invalid command. Type help for user guide.\n";
+	// 			}
+
+	// 			filePosDir[threadNo] = -1;
+	// 		}
+	// 		else
+	// 		{
+	// 			serverResponse += "The file does not exist.\n";
+	// 			return loop;
+	// 		}
+	// 	}
+	// }
+
+	// else if (tokens.size() == 1 && tokens[0] == "ls") 
+	// 	listDir(threadNo);
+
+	// else if (tokens.size() == 2 && tokens[0] == "cd")
+	// 	changeDir(tokens[1], threadNo);
+	
+	// else if (tokens.size() == 2 && tokens[0] == "cr")
+	// 	create(tokens[1], true, threadNo);
+	
+	// else if (tokens.size() == 3 && tokens[0] == "mv") 
+	// 	move(tokens[1], tokens[2], threadNo);
+	
+	// else if (tokens.size() == 2 && tokens[0] == "del")
+	// 	deleteFile(tokens[1],threadNo);
+
+	// else if (tokens.size() == 2 && tokens[0] == "rmdir")
+	// 	deleteFolder(tokens[1],threadNo);	
+	
+	// else if (tokens.size() == 2 && tokens[0] == "mkdir")
+	// 	createFolder(tokens[1],true,threadNo);
+	
+	// else if (tokens.size() == 1 && tokens[0] == "map"){
+	// 	printSpace(threadNo);
+	// 	Folder *currentFolder = current[threadNo];
+	// 	memMap(rootFolder, threadNo);
+	// 	current[threadNo] = currentFolder;
+	// }
+
+	// else if (tokens.size() == 1 && tokens[0] == "help")
+	// 	help();
+
+	// else if (tokens.size() == 1 && tokens[0] == "rdat") 
+	// {
+	// 	serverResponse += "reading .dat file ...\n";
+	// 	readDat();
+	// 	serverResponse += "Complete\n";
+	// 	printSpace(threadNo);
+	// }
+	
+	// else if (tokens.size() == 1 && tokens[0] == "end") 
+	// 	loop = false;
+	
+	// else 
+	// 	serverResponse += "Invalid command. Type help for user guide.\n";
+	
 }

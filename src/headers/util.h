@@ -20,6 +20,14 @@ void listFiles (Folder*);
 void memMap (Folder*, int);
 void sendResponse (int);
 vector<string> getCommand (int);
+void invalidCmdMsg();
+int getCmdIndex (vector<string>, string);
+void fileCmds1Call(int index, vector<string>, int, bool&);
+void fileCmds2Call(int index, vector<string>, int);
+void fileCmdProcessing(vector<string>, int);
+void cmds1Call (int index, vector<string>, int, bool&);
+void cmds2Call(int index, vector<string>, int);
+void cmds3Call(int index, vector<string>, int);
 bool processCommand (vector<string>, int);
 
 #endif
