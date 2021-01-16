@@ -9,12 +9,14 @@ FileNode :: FileNode ()
 {}
 
 FileNode :: FileNode(string fileName)
-: name(fileName), pgTblPtr(NULL)
-{}
+: name(fileName), pgTblPtr(NULL), numReaders(0), fileQuePtr(0)
+{
+	sem_init(&writer_sema, 0, 1);
+}
 
 
 Folder :: Folder(string name)
-: dirName(name), parent(NULL)
+: dirName(name), parent(NULL), NumUsers(0)
 {}
 
 
@@ -36,11 +38,13 @@ traverseTree (int i, vector<string> tokens, bool change, int threadNo)
                 serverResponse += "Parent of root does not exist.\n";
                 return false;
             }
+			if(change)
+				tempFolder[threadNo]->NumUsers--;
             tempFolder[threadNo] = tempFolder[threadNo]->parent;
         }
         else
         {
-            bool folderFound = folderExists(tokens[i],threadNo);
+            bool folderFound = folderExists(tokens[i],threadNo,change);
             if (!folderFound)
             {
                 return false;
@@ -71,7 +75,7 @@ createFolder (string path,bool updatedat, int threadNo)
 		/* If the path exists, a folder of the same name does not already exist, and
 		   The name of the folder is neither '.' nor '..', then a folder at the 
 		   Specified path is successfully created. */
-		if (createable && !folderExists(tokens.back(),threadNo) && (tokens.back() != "." ||
+		if (createable && !folderExists(tokens.back(),threadNo,false) && (tokens.back() != "." ||
 			 tokens.back() != "..")) 
 		{
 			tempFolder[threadNo]->subdir.push_back(new Folder(tokens.back()));
@@ -174,13 +178,13 @@ deleteFile (string filename, int threadNo)
 				short int pageNums = delFile.getPageCount();
 
 				for (int i = 2; i <= pageNums + 1; i++)
-					freeList.push(*(pageTable + i));
+					pushStack(*(pageTable + i));
 
 				nextPageTableNum = delFile.getNextPageTableNum();
 
 			} while (nextPageTableNum != -1);
 
-			freeList.push(getPageNum((char *) current[threadNo]->files[getFileNo(filename,threadNo)]->
+			pushStack(getPageNum((char *) current[threadNo]->files[getFileNo(filename,threadNo)]->
 					 pgTblPtr));
 		}
 
@@ -282,6 +286,7 @@ void
 deleteFolder(string folderName, int threadNo)
 {
 	tempFolder[threadNo] = current[threadNo];
+	bool remove = true;
 
 	if (!folderExists)
 	{
@@ -289,7 +294,7 @@ deleteFolder(string folderName, int threadNo)
 		return;
 	}
 
-	removeDat(pathFromRoot(current[threadNo]) + "/" + folderName,false);
+	
 	Folder * temp = current[threadNo];
 
 	for (int i = 0; i < current[threadNo]->subdir.size();i++)
@@ -297,12 +302,27 @@ deleteFolder(string folderName, int threadNo)
 		if (current[threadNo]->subdir[i]->dirName == folderName)
 		{
 			current[threadNo] = current[threadNo]->subdir[i];
+
+			if(current[threadNo]->NumUsers > 0)
+				{
+					serverResponse += "Cant delete this folder because there are " + 
+										to_string(current[threadNo]->NumUsers) +
+										" users working in this folder.\n";
+					remove = false;
+					break;					
+				}
+
 			current[threadNo]->parent->subdir.erase(current[threadNo]->parent->subdir.begin()+i);
 			break;
 		}
 	}
 
-	removeChildren(current[threadNo],threadNo);
+	if(remove)
+	{
+		removeDat(pathFromRoot(current[threadNo]) + "/" + folderName,false);
+		removeChildren(current[threadNo],threadNo);
+	}
+
 	current[threadNo] = temp;
 	tempFolder[threadNo] = current[threadNo];
 

@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-std=c++17 -Wall -I. -Ofast
+CXXFLAGS=-std=c++17 -Wall -I.
 
 SRC_DIR = .
 

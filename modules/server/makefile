@@ -1,5 +1,5 @@
 CXX      := g++
-CXXFLAGS := -std=c++17 -Wall -Ofast
+CXXFLAGS := -std=c++17 -Wall -lpthread
 OBJ_DIR  := ./obj
 SRC_DIR  := ./src
 APP_DIR  := .

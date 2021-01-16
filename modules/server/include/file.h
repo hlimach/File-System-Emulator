@@ -7,13 +7,14 @@ class
 File 
 {
 private:
-	string filename, mode;
+	string filename;
 	short int* pageTable;
 	char* page;
 	int fileSize, threadNum;
 	bool printInfo;
 
 public:
+	string mode;
 	File();
 	File (string name, string md, bool printInf, int threadNo);
 

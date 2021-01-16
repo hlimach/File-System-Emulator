@@ -2,6 +2,7 @@
 #include "../include/util.h"
 #include "../include/globals.h"
 #include "../include/file.h"
+#include "../include/sema.h"
 #include "../include/dat.h"
 
 /* user guide. */
@@ -27,7 +28,7 @@ help ()
 
 	serverResponse += "close\t\tClose the opened file\t\t\t\t\t\tclose\n";
 	serverResponse += "del\t\tDelete a file at the specified path\t\t\t\tdel ./folder/foo\n";
-	serverResponse += "rem\t\tDelete all files and folders in specified folder\t\trem folder\n";
+	serverResponse += "rmdir\t\tDelete all files and folders in specified folder\t\trem folder\n";
 	serverResponse += "mv\t\tMove file from one location to another\t\t\t\tmv ./subf/filename ../sf/\n";
 	serverResponse += "map\t\tDisplay memory map\t\t\t\t\t\tmap\n";
 	serverResponse += "end\t\tTerminate program\t\t\t\t\t\ttend\n";
@@ -126,6 +127,32 @@ getFileNo (string name, int threadNo)
 }
 
 
+
+
+/* pushes the given argument in the freeList and making it mutually exclusive*/
+void
+pushStack(short int top)
+{
+	stackMtx.lock();
+	freeList.push(top);
+	stackMtx.unlock();
+}
+
+
+
+/* return the top of the freeList and making it mutually exclusive*/
+short int
+popStack()
+{
+	stackMtx.lock();
+	short int temp = freeList.top();
+	freeList.pop();
+	stackMtx.unlock();
+	return temp;
+}
+
+
+
 /* Function takes in the wanted files' name as argument accesses the temporary folders'
    File directory and iterates it fully returns true if it is found. */
 bool 
@@ -147,13 +174,15 @@ fileExists (string filename, int threadNo)
 /* Function folderExists takes in directory name as argument accesses the temporary 
    Folder's subdirectory and iterates it fully returns true if it is found. */
 bool 
-folderExists (string dirName, int threadNo) 
+folderExists (string dirName, int threadNo,bool change) 
 {
 	for (int j = 0; j < tempFolder[threadNo]->subdir.size(); j++) 
 	{
 		if (tempFolder[threadNo]->subdir[j]->dirName == dirName) 
 		{
 			tempFolder[threadNo] = tempFolder[threadNo]->subdir[j];
+			if(change)
+				tempFolder[threadNo]->NumUsers++;
 			return true;
 		}
 	}
@@ -231,7 +260,7 @@ locateFile (vector<string> tokens, bool destFile, int threadNo)
 			   Exited. */
 			if (i != tokens.size() - 1) 
 			{
-				bool checkFolder = folderExists(tokens[i],threadNo);
+				bool checkFolder = folderExists(tokens[i],threadNo,false);
 				if (!checkFolder) 
 				{
 					serverResponse += "Invalid path. A folder in the path does not exist.\n";
@@ -456,6 +485,15 @@ fileCmds1Call(int index, vector<string> tokens, int threadNo, bool &loop)
 		/* close */
 		case 3:
 			serverResponse += "File closed.\n";
+			if (openedFiles.mode == "read")
+			{
+				if(tempFile[threadNo]->numReaders == 1)
+					sem_post(&(tempFile[threadNo]->writer_sema));
+
+				tempFile[threadNo]->numReaders--;		
+			}
+			else
+				sem_post(&(tempFile[threadNo]->writer_sema));
 			loop = false;
 			break;
 
@@ -513,6 +551,7 @@ fileCmds2Call(int index, vector<string> tokens, int threadNo)
 void
 fileCmdProcessing(vector<string> tokens, int threadNo)
 {
+	enterFile(tempFile[threadNo],threadNo, tokens[2]);
 	openedFiles = File(tokens[1], tokens[2], true, threadNo);
 	bool inLoop = true;
 

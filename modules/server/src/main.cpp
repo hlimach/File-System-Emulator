@@ -46,6 +46,7 @@ main (int argc, const char* argv[])
 		filePosDir.push_back(-1);
 		fileFound.push_back(false);
 		found.push_back(false);
+		rootFolder->NumUsers++;
 
 		// Pushing this thread into vector and starting communication
         threads.push_back(thread(startProcess, i));

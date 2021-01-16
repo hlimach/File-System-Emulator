@@ -8,7 +8,7 @@
 /* opens file stream whenever required to read or write to .dat file */
 void
 openStream()
-{	mtx.lock();
+{	datMtx.lock();
 	datStream.open(DATPATH, ios::out | ios::in | ios::app );
 }
 
@@ -18,7 +18,7 @@ void
 closeStream()
 {
 	datStream.close();
-	mtx.unlock();
+	datMtx.unlock();
 }
 
 /* Whenever a new file or folder is created, this function is called so it appends

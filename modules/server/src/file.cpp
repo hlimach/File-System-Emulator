@@ -22,7 +22,7 @@ printFileInfo()
 {
 	if (printInfo)
 		serverResponse += "File opened: " + filename + ", mode: " + mode + ", size: " + 
-			to_string(fileSize) + " bytes.\n";
+			to_string(fileSize) + " bytes number of readers: " + to_string(tempFile[threadNum]->numReaders) + "\n" ;
 }
 
 
@@ -450,10 +450,7 @@ void File ::
 assignPages (int start, int last) 
 {
 	for (int i = start + 1; i <= last + 1; i++) 
-	{
-		*(pageTable + i) = freeList.top();
-		freeList.pop();
-	}
+		*(pageTable + i) = popStack();
 }
 
 
@@ -497,8 +494,7 @@ createPageTableAndWriteData (string input, int neededPages, int limit,
             if (neededPages != MAXENTRIES) 
             {
                 setByteLimit((short int) PAGESIZE);
-                setNextPageTableNum(freeList.top());
-                freeList.pop();
+                setNextPageTableNum(popStack());
             }
             else 
             {
@@ -557,8 +553,7 @@ write (string input, bool updatedat)
 	else if (pageTable == NULL) 
 	{
 		/* Assigns this file a new page table. */
-        short int pageTablePageNum = freeList.top();
-        freeList.pop();
+        short int pageTablePageNum = popStack();
         char* page = getPagePtr(pageTablePageNum);
         current[threadNum]->files[getFileNo(filename,threadNum)]->pgTblPtr = (short int*) page;
         pageTable = (short int*) page;
@@ -619,8 +614,7 @@ write (string input, bool updatedat)
             neededPages -= (MAXENTRIES - getPageCount());
             setByteLimit(PAGESIZE);
             setPageCount(MAXENTRIES);
-            setNextPageTableNum(freeList.top());
-            freeList.pop();
+            setNextPageTableNum(popStack());
             int pageTablePageNum = getNextPageTableNum();
             createPageTableAndWriteData(input, neededPages, limit, byteCount, 
             	 pageTablePageNum);
@@ -715,7 +709,7 @@ truncate (int size)
            Page table are added back to free list. */
         pageTable = (short int*) getPagePtr(nextPageTableNum);
         for (int i = pageNumOfGivenB + 2; i <= getPageCount() + 1; i++)
-            freeList.push(*(pageTable + i));
+            pushStack(*(pageTable + i));
 
         /* This page tables' limit, page count, and next page table number are
            Updated according to its reduced size. Next page table number is set
@@ -733,9 +727,9 @@ truncate (int size)
             pageTable = (short int*) getPagePtr(nextPageTableNum);
 
             for (int i = 2; i <= getPageCount() + 1; i++)
-                freeList.push(*(pageTable + i));
+                pushStack(*(pageTable + i));
 
-            freeList.push(nextPageTableNum);
+            pushStack(nextPageTableNum);
             nextPageTableNum = getNextPageTableNum();
         }
 

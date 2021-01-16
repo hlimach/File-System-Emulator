@@ -2,7 +2,9 @@
 #include "../include/globals.h"
 
 /* lockable object to prevent muultiple threads accessing shared data */
-mutex mtx;
+mutex datMtx;
+mutex stackMtx;
+mutex queMtx;
 
 /* Points to the starting location of the allocated memory. */
 const char* start;

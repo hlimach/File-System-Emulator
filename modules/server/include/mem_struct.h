@@ -9,6 +9,11 @@ FileNode
 public:
 	string name;
 	short int* pgTblPtr;
+	int numReaders;
+	vector<vector <int>> fileQue;
+	int fileQuePtr;
+	sem_t writer_sema;
+
 
 	/* Pointer pgTblPtr points to this files' page table, but is assigned NULL upon 
 	   Creation, and will only point to one once data is written into this file. */
@@ -28,6 +33,7 @@ public:
 	vector<Folder*> subdir;
 	vector<FileNode*> files;
 	Folder* parent;
+	int NumUsers;
 
 	Folder (string name);
 };
