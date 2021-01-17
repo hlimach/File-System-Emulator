@@ -6,7 +6,6 @@
 
 extern mutex datMtx;
 extern mutex stackMtx;
-extern mutex queMtx;
 extern const char* start;
 extern stack <short int> freeList;
 extern Folder* rootFolder;

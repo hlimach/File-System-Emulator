@@ -9,7 +9,7 @@ FileNode :: FileNode ()
 {}
 
 FileNode :: FileNode(string fileName)
-: name(fileName), pgTblPtr(NULL), numReaders(0), fileQuePtr(0)
+: name(fileName), pgTblPtr(NULL), numReaders(0)
 {
 	sem_init(&writer_sema, 0, 1);
 }

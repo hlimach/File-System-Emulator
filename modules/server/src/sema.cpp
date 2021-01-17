@@ -19,9 +19,9 @@ enque(FileNode* fNode,int threadNo, string mode)
         temp.push_back(0);
     
    
-    queMtx.lock(); 
+    fNode->queMtx.lock(); 
     fNode->fileQue.push_back(temp);
-    queMtx.unlock();
+    fNode->queMtx.unlock();
 
 }
 
@@ -42,7 +42,10 @@ dque(FileNode* fNode)
         sem_wait(&fNode->writer_sema);
     }
     
+    fNode->queMtx.lock();
     fNode->fileQue.erase(fNode->fileQue.begin());
+    fNode->queMtx.unlock();
+
 }
 
 
@@ -55,7 +58,16 @@ enterFile(FileNode* fNode, int threadNo, string mode)
     cout << threadNo << ": 2" << endl; 
 
     // fNode->fileQue.front().front() returns the threadNo of top element
-    while(fNode->fileQue[0][0] != threadNo);
+    while(1)
+    {
+        fNode->queMtx.lock();
+        if (fNode->fileQue[0][0] == threadNo)
+            {
+                fNode->queMtx.unlock();
+                break;
+            }
+        fNode->queMtx.unlock();
+    }
     cout << threadNo << ": 3" << endl; 
 
     dque(fNode);      

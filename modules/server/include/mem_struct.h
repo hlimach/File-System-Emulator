@@ -11,8 +11,9 @@ public:
 	short int* pgTblPtr;
 	int numReaders;
 	vector<vector <int>> fileQue;
-	int fileQuePtr;
 	sem_t writer_sema;
+	mutex queMtx;
+
 
 
 	/* Pointer pgTblPtr points to this files' page table, but is assigned NULL upon 
