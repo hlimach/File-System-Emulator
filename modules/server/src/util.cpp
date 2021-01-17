@@ -485,15 +485,7 @@ fileCmds1Call(int index, vector<string> tokens, int threadNo, bool &loop)
 		/* close */
 		case 3:
 			serverResponse += "File closed.\n";
-			if (openedFiles.mode == "read")
-			{
-				if(tempFile[threadNo]->numReaders == 1)
-					sem_post(&(tempFile[threadNo]->writer_sema));
-
-				tempFile[threadNo]->numReaders--;		
-			}
-			else
-				sem_post(&(tempFile[threadNo]->writer_sema));
+			leaveFile(tempFile[threadNo],openedFiles.mode);
 			loop = false;
 			break;
 
@@ -553,6 +545,8 @@ fileCmdProcessing(vector<string> tokens, int threadNo)
 {
 	enterFile(tempFile[threadNo],threadNo, tokens[2]);
 	openedFiles = File(tokens[1], tokens[2], true, threadNo);
+    cout << threadNo << ": 5" << endl; 
+	
 	bool inLoop = true;
 
 	vector<string> tokens1 = {"wr", "rd", "help", "close", "end", "\a\a\a"};

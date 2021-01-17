@@ -7,5 +7,7 @@
 void enque(FileNode*, int, string);
 void dque(FileNode*, int);
 void enterFile(FileNode*, int, string);
+void leaveFile(FileNode*, string);
+
 
 #endif
