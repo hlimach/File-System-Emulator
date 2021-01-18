@@ -8,10 +8,27 @@
 #include "../include/server.h"
 
 
+void 
+signalHandler (int signum) 
+{
+	cout << " signal received." << endl << endl;
+	cout << "Initiating server shut down protocol..." << endl;
+
+	//sem_close(writer_sema);
+	//sem_unlink("writer_sema");
+	free((char*)start);
+
+	cout << "Server shutdown protocol complete." << endl;
+
+	exit(signum);  
+}
+
+
 int 
 main (int argc, const char* argv[]) 
 {
-	int new_socket; 
+	// Attach signal handler to SIGINT for proper shutdown
+	signal(SIGINT, signalHandler);  
 	struct sockaddr_in address; 
 	start = (char*) malloc(MEMSIZE);
 
@@ -31,6 +48,7 @@ main (int argc, const char* argv[])
     }
 
 	cout << "Connection established! ready for users..." << endl;
+	cout << "To shut down server, press CTRL+C (^C)" << endl << endl;
     
 	int i = 0;
 
@@ -53,7 +71,5 @@ main (int argc, const char* argv[])
 		i++;
 	}
 
-	cout << " 100" << endl;
-	//free((char*)start);
 	return 0;
 }

@@ -1,24 +1,26 @@
 CXX      := g++
-CXXFLAGS := -std=c++17 -Wall -lpthread
+CXXFLAGS := -std=c++17 -Wall -Ofast -pthread
 OBJ_DIR  := ./obj
 SRC_DIR  := ./src
 APP_DIR  := .
 TARGET   := server
-INCLUDE  := -Iinclude/
+INC      := -Iinclude/
 SRC      := $(wildcard src/*.cpp)
 OBJECTS  := $(SRC:%.cpp=$(OBJ_DIR)/%.o)
-DEPENDENCIES := $(OBJECTS:.o=.d)
-#OBJECTS  := $(notdir $(SRC:/%.cpp=$(OBJ_DIR)/%.o))
+OBJS     := $(addprefix $(OBJ_DIR)/,$(notdir $(OBJECTS)))
 
-$(OBJ_DIR)/%.o: %.cpp
-	@mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) $(INCLUDE) -c $< -MMD -o $@
+# Makes object files for corresponding .cpp file
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
+	$(CXX) $(CXXFLAGS) $(INC) -c $< -o $@
 
-$(APP_DIR)/$(TARGET): $(OBJECTS)
-	@mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) -o $(APP_DIR)/$(TARGET) $^
+# Makes target using object files
+$(APP_DIR)/$(TARGET): $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^
+	@echo "\nSuccessful! To run server, type ./server"
 
--include $(DEPENDENCIES)
+# Makes object directory if it doesn't exist
+$(OBJ_DIR):
+	mkdir $(OBJDIR)
 
 clean:
 	rm -rf $(OBJ_DIR)/*

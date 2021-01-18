@@ -11,10 +11,8 @@ public:
 	short int* pgTblPtr;
 	int numReaders;
 	vector<vector <int>> fileQue;
-	sem_t writer_sema;
+	sem_t *writer_sema;
 	mutex queMtx;
-
-
 
 	/* Pointer pgTblPtr points to this files' page table, but is assigned NULL upon 
 	   Creation, and will only point to one once data is written into this file. */

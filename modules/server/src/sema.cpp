@@ -4,10 +4,9 @@
 #include "../include/mem_struct.h"
 
 
-
 /* insert thread number and 1/0 to a vector and push it in fileQue*/
 void
-enque(FileNode* fNode,int threadNo, string mode)
+enque(FileNode* fNode, int threadNo, string mode)
 {
     vector<int> temp;
     temp.push_back(threadNo);
@@ -17,12 +16,10 @@ enque(FileNode* fNode,int threadNo, string mode)
     
     else
         temp.push_back(0);
-    
    
     fNode->queMtx.lock(); 
     fNode->fileQue.push_back(temp);
     fNode->queMtx.unlock();
-
 }
 
 
@@ -33,19 +30,18 @@ dque(FileNode* fNode)
     if(fNode->fileQue.front()[1] == 0)
     {
         if(fNode->numReaders == 0)
-            sem_wait(&fNode->writer_sema);
+            sem_wait(fNode->writer_sema);
 
         fNode->numReaders++;
     }
     else
     {
-        sem_wait(&fNode->writer_sema);
+        sem_wait(fNode->writer_sema);
     }
     
     fNode->queMtx.lock();
     fNode->fileQue.erase(fNode->fileQue.begin());
     fNode->queMtx.unlock();
-
 }
 
 
@@ -72,8 +68,7 @@ enterFile(FileNode* fNode, int threadNo, string mode)
 
     dque(fNode);      
     cout << threadNo << ": 4" << endl;
-    cout << "queue size: " << fNode->fileQue.size() << endl; 
-
+    cout << "queue size: " << fNode->fileQue.size() << endl;
 }
 
 
@@ -85,10 +80,10 @@ leaveFile(FileNode* fNode,string mode)
     if (mode == "read")
 	{
 		if(fNode->numReaders == 1)
-			sem_post(&(fNode->writer_sema));
+			sem_post(fNode->writer_sema);
 
 		fNode->numReaders--;		
 	}
 	else
-		sem_post(&(fNode->writer_sema));
+		sem_post(fNode->writer_sema);
 }

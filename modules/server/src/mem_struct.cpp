@@ -11,7 +11,10 @@ FileNode :: FileNode ()
 FileNode :: FileNode(string fileName)
 : name(fileName), pgTblPtr(NULL), numReaders(0)
 {
-	sem_init(&writer_sema, 0, 1);
+	//sem_init(&writer_sema, 0, 1);
+	sem_unlink("writer_sema");
+	writer_sema = sem_open("writer_sema", O_CREAT|O_EXCL, S_IRWXU, 1);
+	cout << "file node out" << endl;
 }
 
 
@@ -29,7 +32,7 @@ traverseTree (int i, vector<string> tokens, bool change, int threadNo)
 	if (change)
 		lim++;
 
-	for (i; i < lim; i++)
+	for (; i < lim; i++)
     {
         if (tokens[i] == "..")
         {
@@ -44,7 +47,7 @@ traverseTree (int i, vector<string> tokens, bool change, int threadNo)
         }
         else
         {
-            bool folderFound = folderExists(tokens[i],threadNo,change);
+            bool folderFound = folderExists(tokens[i], threadNo, change);
             if (!folderFound)
             {
                 return false;
@@ -75,8 +78,8 @@ createFolder (string path,bool updatedat, int threadNo)
 		/* If the path exists, a folder of the same name does not already exist, and
 		   The name of the folder is neither '.' nor '..', then a folder at the 
 		   Specified path is successfully created. */
-		if (createable && !folderExists(tokens.back(),threadNo,false) && (tokens.back() != "." ||
-			 tokens.back() != "..")) 
+		if (createable && !folderExists(tokens.back(), threadNo, false) && 
+			(tokens.back() != "." || tokens.back() != "..")) 
 		{
 			tempFolder[threadNo]->subdir.push_back(new Folder(tokens.back()));
 			tempFolder[threadNo]->subdir.back()->parent = tempFolder[threadNo];
@@ -88,7 +91,6 @@ createFolder (string path,bool updatedat, int threadNo)
 
 	if (updatedat)
 		enterDat(pathFromRoot(current[threadNo]), false, path);
-
 }
 
 
@@ -130,17 +132,19 @@ changeDir (string path, int threadNo)
 void 
 create (string filename,bool updatedat, int threadNo) 
 {
+	cout << "create file in" << endl;
 	filename += ".txt";
 
-	if (!fileExists(filename,threadNo)) 
+	if (!fileExists(filename, threadNo)) 
 	{
 		current[threadNo]->files.push_back(new FileNode(filename));
-		
+		cout << "pushed" << endl;
 		if (updatedat)
 			enterDat(pathFromRoot(current[threadNo]), true, filename);
 	}
 	else
 		serverResponse += "A file of same name already exists.\n";
+	cout << "create file out" << endl;
 }
 
 
@@ -288,7 +292,7 @@ deleteFolder(string folderName, int threadNo)
 	tempFolder[threadNo] = current[threadNo];
 	bool remove = true;
 
-	if (!folderExists)
+	if (!folderExists(folderName, threadNo, false))
 	{
 		serverResponse += "The folder does not exist in current directory\n";
 		return;

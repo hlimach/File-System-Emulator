@@ -8,8 +8,8 @@ File :: File ()
 {}
 
 File :: File (string name, string md, bool printInf, int threadNo) 
-: threadNum(threadNo),filename(name), pageTable(current[threadNo]->files[getFileNo(filename,threadNo)]->pgTblPtr),
-	mode(md), page(NULL), printInfo(printInf)
+: threadNum(threadNo), filename(name), mode(md), page(NULL), printInfo(printInf),
+	pageTable(current[threadNo]->files[getFileNo(name, threadNo)]->pgTblPtr)
 {
 	fileSize = getFileSize();
 	printFileInfo();
