@@ -49,9 +49,7 @@ dque(FileNode* fNode)
 void
 enterFile(FileNode* fNode, int threadNo, string mode)
 {
-    cout << threadNo << ": 1" << endl; 
     enque(fNode, threadNo,mode);
-    cout << threadNo << ": 2" << endl; 
 
     // fNode->fileQue.front().front() returns the threadNo of top element
     while(1)
@@ -64,25 +62,24 @@ enterFile(FileNode* fNode, int threadNo, string mode)
             }
         fNode->queMtx.unlock();
     }
-    cout << threadNo << ": 3" << endl; 
 
-    dque(fNode);      
-    cout << threadNo << ": 4" << endl;
-    cout << "queue size: " << fNode->fileQue.size() << endl;
+    dque(fNode);
 }
 
 
 /* calls sem_post while closing file when its the last reader of the set 
    or any writer */
 void
-leaveFile(FileNode* fNode,string mode)
+leaveFile(FileNode* fNode, string mode)
 {
     if (mode == "read")
 	{
+        fNode->queMtx.lock();
 		if(fNode->numReaders == 1)
 			sem_post(fNode->writer_sema);
 
-		fNode->numReaders--;		
+		fNode->numReaders--;	
+        fNode->queMtx.unlock();
 	}
 	else
 		sem_post(fNode->writer_sema);

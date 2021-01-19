@@ -115,20 +115,11 @@ writeFile()
 }
 
 
-int 
-main() 
-{ 
-	// Obtain username and ip address from client
-	std::string user = "";
-	std::cout << "Welcome!" << std::endl;
-	std::cout << "Enter username: (20 characters or less, cannot contain spaces)"
-		 << std::endl;
-	std::cin >> user;
-	
-	std::string ipAddr;
+/* Prompt user to enter IP address */
+void
+getIPAddr(std::string &ipAddr)
+{
 	bool isIP = true;
-	bool fileOpened = false;
-	
 	// Prompt for IP Address until a proper one is input
 	do
 	{
@@ -140,13 +131,28 @@ main()
 			std::cout << "Invalid IP provided." << std::endl;
 
 	} while (isIP == false);
+}
+
+
+int 
+main() 
+{ 
+	// Obtain username and ip address from client
+	std::string user = "";
+	std::cout << "Welcome!" << std::endl;
+	std::cout << "Enter username: (20 characters or less, cannot contain spaces)"
+		 << std::endl;
+	std::cin >> user;
+	
+	std::string ipAddr;
+	bool fileOpened = false;
+	getIPAddr(ipAddr);
 
 	std::cout << "Sending over IP " << ipAddr << std::endl;
 	int sock = connectToServer(ipAddr);
 
 	// First message sent to server is the username
 	sendMessage(sock, user);
-	
 
 	// Buffer created for response receival
     char buffer[BUFFER] = {0};
@@ -162,7 +168,7 @@ main()
 	    do 
 		{
 			bzero(buffer, BUFFER);
-	        if (read(sock, buffer, BUFFER) == 0)
+	        if (read(sock, buffer, BUFFER) <= 0)
 	        {
 	        	std::cout << "Server unresponsive. Please try again later." << std::endl;
 	        	return -1;
@@ -170,11 +176,10 @@ main()
 	        else
 	        {
 	        	std::string check = buffer;
-	        	if (check.size() > BUFFER )
+	        	if (check.size() > BUFFER)
 	        		check = check.substr(0, BUFFER);
 	        	response += check;
 	        }
-
         } while (response.substr(response.size() - 2, 2) != "#$");
 
 		// set flag to true when file is opened and appropriate response is recieved
@@ -184,6 +189,14 @@ main()
 		// set flag to false when file is closed and appropriate response is recieved
 		if(fileOpened == true && response.substr(0, 13) == "File closed.\n")
 			fileOpened = false;	
+
+		// In case server is shut down, the client instance is also terminated
+		// if(buffer[0] == '~' && buffer[1] == '~')
+		// {
+		// 	std::cout << "Server Down." << std::endl;
+		// 	std::cout << "Please try again later." << std::endl;
+		// 	break;
+		// }
 
         // Server returns %^ for for file writing function permissions
         if (buffer[0] == '%' && buffer[1] == '^')
@@ -217,7 +230,7 @@ main()
 
         } while (msgSize != 0);
         
-        // If message send is end, it means client wants to terminate
+        // If message sent is end, it means client wants to terminate
         if (msg == "end#$" && fileOpened == false)
             break;
 

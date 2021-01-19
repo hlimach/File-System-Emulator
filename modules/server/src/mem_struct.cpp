@@ -14,7 +14,6 @@ FileNode :: FileNode(string fileName)
 	//sem_init(&writer_sema, 0, 1);
 	sem_unlink("writer_sema");
 	writer_sema = sem_open("writer_sema", O_CREAT|O_EXCL, S_IRWXU, 1);
-	cout << "file node out" << endl;
 }
 
 
@@ -38,7 +37,7 @@ traverseTree (int i, vector<string> tokens, bool change, int threadNo)
         {
             if (tempFolder[threadNo]->parent == NULL)
             {
-                serverResponse += "Parent of root does not exist.\n";
+                serverResponse[threadNo] += "Parent of root does not exist.\n";
                 return false;
             }
 			if(change)
@@ -61,7 +60,7 @@ traverseTree (int i, vector<string> tokens, bool change, int threadNo)
 /* Fucntion createFolder accepts argument path for folder creation traverses the tree
    From current path, and if the path exists it creates a node for subdirectory. */
 void 
-createFolder (string path,bool updatedat, int threadNo) 
+createFolder (string path, bool updatedat, int threadNo) 
 {
 	bool createable = true;
 	tempFolder[threadNo] = current[threadNo];
@@ -69,7 +68,7 @@ createFolder (string path,bool updatedat, int threadNo)
 
 	if (tokens.size() == 0) 
 	{
-		serverResponse += "Invalid path entered.\n";
+		serverResponse[threadNo] += "Invalid path entered.\n";
 		return;
 	}
 	else {
@@ -85,7 +84,7 @@ createFolder (string path,bool updatedat, int threadNo)
 			tempFolder[threadNo]->subdir.back()->parent = tempFolder[threadNo];
 		}
 		else
-			serverResponse += "Error: cannot create directory in specified path.\n";
+			serverResponse[threadNo] += "Error: cannot create directory in specified path.\n";
 	}
 	tempFolder[threadNo] = current[threadNo];
 
@@ -105,7 +104,7 @@ changeDir (string path, int threadNo)
 
 	if (tokens.size() == 0) 
 	{
-		serverResponse += "Invalid path entered.\n";
+		serverResponse[threadNo] += "Invalid path entered.\n";
 		return;
 	}
 	else 
@@ -122,7 +121,7 @@ changeDir (string path, int threadNo)
 		if (changable)
 			current[threadNo] = tempFolder[threadNo];
 		else
-			serverResponse += "Error: cannot change directory to specified path.\n";
+			serverResponse[threadNo] += "Error: cannot change directory to specified path.\n";
 	}
 }
 
@@ -130,21 +129,18 @@ changeDir (string path, int threadNo)
 /* Creates a file node at the current working directory and pushes it into its' files
    List. This does not assign any pages. */
 void 
-create (string filename,bool updatedat, int threadNo) 
+create (string filename, bool updatedat, int threadNo) 
 {
-	cout << "create file in" << endl;
 	filename += ".txt";
 
 	if (!fileExists(filename, threadNo)) 
 	{
 		current[threadNo]->files.push_back(new FileNode(filename));
-		cout << "pushed" << endl;
 		if (updatedat)
 			enterDat(pathFromRoot(current[threadNo]), true, filename);
 	}
 	else
-		serverResponse += "A file of same name already exists.\n";
-	cout << "create file out" << endl;
+		serverResponse[threadNo] += "A file of same name already exists.\n";
 }
 
 
@@ -157,7 +153,7 @@ deleteFile (string filename, int threadNo)
 	tempFolder[threadNo] = current[threadNo];
 	if (!fileExists(filename,threadNo)) 
 	{
-		serverResponse += "Error: file does not exist\n";
+		serverResponse[threadNo] += "Error: file does not exist\n";
 		return;
 	}
 	else 
@@ -255,7 +251,7 @@ move (string srcPath, string destPath, int threadNo)
 	}
 	else 
 	{
-		serverResponse += "To move within a file, please open the file first.\n";
+		serverResponse[threadNo] += "To move within a file, please open the file first.\n";
 		return;
 	}
 }
@@ -294,7 +290,7 @@ deleteFolder(string folderName, int threadNo)
 
 	if (!folderExists(folderName, threadNo, false))
 	{
-		serverResponse += "The folder does not exist in current directory\n";
+		serverResponse[threadNo] += "The folder does not exist in current directory\n";
 		return;
 	}
 
@@ -309,7 +305,7 @@ deleteFolder(string folderName, int threadNo)
 
 			if(current[threadNo]->NumUsers > 0)
 				{
-					serverResponse += "Cant delete this folder because there are " + 
+					serverResponse[threadNo] += "Cant delete this folder because there are " + 
 										to_string(current[threadNo]->NumUsers) +
 										" users working in this folder.\n";
 					remove = false;

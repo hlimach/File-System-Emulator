@@ -5,7 +5,7 @@
 #include "mem_struct.h"
 
 char* convertMessage (string, int);
-void help ();
+void help (int);
 vector<string> tokenize (string, char);
 void printSpace(int);
 int getPageNum (char*);
@@ -22,7 +22,7 @@ void listFiles (Folder*);
 void memMap (Folder*, int);
 void sendResponse (int);
 vector<string> getCommand (int);
-void invalidCmdMsg();
+void invalidCmdMsg(int);
 int getCmdIndex (vector<string>, string);
 void fileCmds1Call(int index, vector<string>, int, bool&);
 void fileCmds2Call(int index, vector<string>, int);

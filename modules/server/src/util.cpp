@@ -7,32 +7,32 @@
 
 /* user guide. */
 void 
-help () 
+help (int threadNo) 
 {
-	serverResponse += "-------------------------------------------User Guide-------------------------------------------\n";
-	serverResponse += "Command\t\tDescription\t\t\t\t\t\t\tSyntax\n";
-	serverResponse += "mkdir\t\tMake new directory in given path\t\t\t\tmkdir ../folder/subf/DirName\n";
-	serverResponse += "ls\t\tList files in current directory\t\t\t\t\tls\n";
-	serverResponse += "cd\t\tChange directory to given path\t\t\t\t\tcd ../folder/subf/\n";
-	serverResponse += "cr\t\tCreate a new file at current working directory\t\t\tcr foo\n";
-	serverResponse += "open\t\tOpen a specific file at current working directory\t\topen foo read|write\n";
+	serverResponse[threadNo] += "-------------------------------------------User Guide-------------------------------------------\n";
+	serverResponse[threadNo] += "Command\t\tDescription\t\t\t\t\t\t\tSyntax\n";
+	serverResponse[threadNo] += "mkdir\t\tMake new directory in given path\t\t\t\tmkdir ../folder/subf/DirName\n";
+	serverResponse[threadNo] += "ls\t\tList files in current directory\t\t\t\t\tls\n";
+	serverResponse[threadNo] += "cd\t\tChange directory to given path\t\t\t\t\tcd ../folder/subf/\n";
+	serverResponse[threadNo] += "cr\t\tCreate a new file at current working directory\t\t\tcr foo\n";
+	serverResponse[threadNo] += "open\t\tOpen a specific file at current working directory\t\topen foo read|write\n";
 
-	serverResponse += "wr\t\tWrite by appending to opened file\t\t\t\twr\n";
-	serverResponse += "wrat\t\tWrite starting from given byte in opened file\t\t\twrat 207\n";
-	serverResponse += "trun\t\tReduce opened file to given size\t\t\t\ttrun 1280\n";
-	serverResponse += "mvin\t\tMove from 'start' byte of 'size' to byte 'to' (ints)\t\tmvin start size to\n";
-	serverResponse += "rf\t\tReads from given start upto given number of characters\t\trf 312 50\n";
-	serverResponse += "rd\t\tReturns entire content of opened file\t\t\t\trd\n";
-	serverResponse += "chmod\t\tChanges mode of opened file\t\t\t\t\tchmod read|write\n";
+	serverResponse[threadNo] += "wr\t\tWrite by appending to opened file\t\t\t\twr\n";
+	serverResponse[threadNo] += "wrat\t\tWrite starting from given byte in opened file\t\t\twrat 207\n";
+	serverResponse[threadNo] += "trun\t\tReduce opened file to given size\t\t\t\ttrun 1280\n";
+	serverResponse[threadNo] += "mvin\t\tMove from 'start' byte of 'size' to byte 'to' (ints)\t\tmvin start size to\n";
+	serverResponse[threadNo] += "rf\t\tReads from given start upto given number of characters\t\trf 312 50\n";
+	serverResponse[threadNo] += "rd\t\tReturns entire content of opened file\t\t\t\trd\n";
+	serverResponse[threadNo] += "chmod\t\tChanges mode of opened file\t\t\t\t\tchmod read|write\n";
 
 
-	serverResponse += "close\t\tClose the opened file\t\t\t\t\t\tclose\n";
-	serverResponse += "del\t\tDelete a file at the specified path\t\t\t\tdel ./folder/foo\n";
-	serverResponse += "rmdir\t\tDelete all files and folders in specified folder\t\trem folder\n";
-	serverResponse += "mv\t\tMove file from one location to another\t\t\t\tmv ./subf/filename ../sf/\n";
-	serverResponse += "map\t\tDisplay memory map\t\t\t\t\t\tmap\n";
-	serverResponse += "end\t\tTerminate program\t\t\t\t\t\ttend\n";
-	serverResponse += "rdat\t\tRead and existing .dat file generated using this program\trdat\n";
+	serverResponse[threadNo] += "close\t\tClose the opened file\t\t\t\t\t\tclose\n";
+	serverResponse[threadNo] += "del\t\tDelete a file at the specified path\t\t\t\tdel ./folder/foo\n";
+	serverResponse[threadNo] += "rmdir\t\tDelete all files and folders in specified folder\t\trem folder\n";
+	serverResponse[threadNo] += "mv\t\tMove file from one location to another\t\t\t\tmv ./subf/filename ../sf/\n";
+	serverResponse[threadNo] += "map\t\tDisplay memory map\t\t\t\t\t\tmap\n";
+	serverResponse[threadNo] += "end\t\tTerminate program\t\t\t\t\t\ttend\n";
+	serverResponse[threadNo] += "rdat\t\tRead and existing .dat file generated using this program\trdat\n";
 }
 
 
@@ -75,7 +75,7 @@ convertMessage (string message, int length)
 void
 printSpace(int threadNo)
 {
-	serverResponse += "Memory available: " + to_string(freeList.size() * PAGESIZE) + "/" + 
+	serverResponse[threadNo] += "Memory available: " + to_string(freeList.size() * PAGESIZE) + "/" + 
 			to_string(MEMSIZE) + " bytes\n";
 }
 
@@ -196,18 +196,18 @@ listDir (int threadNo)
 {
 	if (current[threadNo]->subdir.size() == 0 && current[threadNo]->files.size() == 0) 
 	{
-		serverResponse += "Directory is empty.\n";
+		serverResponse[threadNo] += "Directory is empty.\n";
 		return;
 	}
 	else 
 	{
 		for (int i = 0; i < current[threadNo]->subdir.size(); i++)
-			serverResponse += current[threadNo]->subdir[i]->dirName + "\t";
+			serverResponse[threadNo] += current[threadNo]->subdir[i]->dirName + "\t";
 
 		for (int i = 0; i < current[threadNo]->files.size(); i++)
-			serverResponse += current[threadNo]->files[i]->name + "\t";
+			serverResponse[threadNo] += current[threadNo]->files[i]->name + "\t";
 
-		serverResponse += "\n";
+		serverResponse[threadNo] += "\n";
 	}
 }
 
@@ -244,7 +244,7 @@ locateFile (vector<string> tokens, bool destFile, int threadNo)
 		{
 			if (tempFolder[threadNo]->parent == NULL) 
 			{
-				serverResponse += "Parent of root does not exist.\n";
+				serverResponse[threadNo] += "Parent of root does not exist.\n";
 				found[threadNo] = false;
 				return;
 			}
@@ -260,7 +260,7 @@ locateFile (vector<string> tokens, bool destFile, int threadNo)
 				bool checkFolder = folderExists(tokens[i],threadNo,false);
 				if (!checkFolder) 
 				{
-					serverResponse += "Invalid path. A folder in the path does not exist.\n";
+					serverResponse[threadNo] += "Invalid path. A folder in the path does not exist.\n";
 					found[threadNo] = false;
 					return;
 				}
@@ -278,15 +278,15 @@ locateFile (vector<string> tokens, bool destFile, int threadNo)
 				}
 				/* In case it is a destination file and it does not exist yet. */
 				else if (destFile) {
-					serverResponse += "Creating destination file...\n";
-					serverResponse += "New file created.\n";
+					serverResponse[threadNo] += "Creating destination file...\n";
+					serverResponse[threadNo] += "New file created.\n";
 					tempFile[threadNo] = NULL;
 					found[threadNo] = true;
 					return;
 				}
 				/* In case it is a source file and it does not exist. */
 				else if (!destFile) {
-					serverResponse += "The specified file does not exist.\n";
+					serverResponse[threadNo] += "The specified file does not exist.\n";
 					found[threadNo] = false;
 					return;
 				}
@@ -349,7 +349,7 @@ listFiles (Folder* dir, int threadNo)
 		}	
 	}
 
-	serverResponse += disp;
+	serverResponse[threadNo] += disp;
 }
 
 
@@ -375,17 +375,16 @@ void
 sendResponse (int threadNo) 
 {
 	char *msgPtr;
-	serverResponse += users[threadNo] + "$ " + pathFromRoot(current[threadNo]) + ">#$";
-    int resSize = serverResponse.size(), itr = 1;
+	serverResponse[threadNo] += users[threadNo] + "$ " + pathFromRoot(current[threadNo]) + ">#$";
+    int resSize = serverResponse[threadNo].size(), itr = 1;
     string chunk;
 
     // If response larger than buffer, it is sent in packets (chunks)
 	do
 	{
-
 		if (resSize > BUFFER)
 		{
-			chunk = serverResponse.substr(BUFFER * (itr - 1), BUFFER);
+			chunk = serverResponse[threadNo].substr(BUFFER * (itr - 1), BUFFER);
 			itr++;
 			resSize -= BUFFER;
 			msgPtr = convertMessage(chunk, BUFFER);
@@ -393,14 +392,14 @@ sendResponse (int threadNo)
 		}
 		else
 		{
-			chunk = serverResponse.substr(BUFFER * (itr - 1), resSize);
+			chunk = serverResponse[threadNo].substr(BUFFER * (itr - 1), resSize);
 			msgPtr = convertMessage(chunk, chunk.size());
 			send(sockets[threadNo], msgPtr, strlen(msgPtr), 0);
 			resSize = 0;
 		}
 	} while (resSize != 0);
 		
-    serverResponse = "";
+    serverResponse[threadNo] = "";
 	free(msgPtr);
 	return;
 }
@@ -439,9 +438,9 @@ getCommand (int threadNo)
 
 
 void
-invalidCmdMsg()
+invalidCmdMsg(int threadNo)
 {
-	serverResponse += "Invalid command. Type help for user guide.\n";
+	serverResponse[threadNo] += "Invalid command. Type help for user guide.\n";
 }
 
 
@@ -470,25 +469,25 @@ fileCmds1Call(int index, vector<string> tokens, int threadNo, bool &loop)
 
 		/* rd */
 		case 1:
-			serverResponse += 
+			serverResponse[threadNo] += 
 				openedFiles.read(0, openedFiles.getFileSize()) + "\n";
 			break;
 
 		/* help */
 		case 2: 
-			help();
+			help(threadNo);
 			break;
 
 		/* close */
 		case 3:
-			serverResponse += "File closed.\n";
-			leaveFile(tempFile[threadNo],openedFiles.mode);
+			serverResponse[threadNo] += "File closed.\n";
+			leaveFile(tempFile[threadNo], openedFiles.mode);
 			loop = false;
 			break;
 
 		/* end */
 		case 4: 
-			serverResponse += "Close file before ending program.\n";
+			serverResponse[threadNo] += "Close file before ending program.\n";
 			break;
 
 		/* \a\a\a */
@@ -497,7 +496,7 @@ fileCmds1Call(int index, vector<string> tokens, int threadNo, bool &loop)
 			break;
 
 		default:
-			invalidCmdMsg();
+			invalidCmdMsg(threadNo);
 			break;
 	}
 }
@@ -514,7 +513,7 @@ fileCmds2Call(int index, vector<string> tokens, int threadNo)
 				openedFiles.writeAt(openedFiles.getInput(threadNo), 
 					stoi(tokens[1]) - 1);
 			else
-				invalidCmdMsg();
+				invalidCmdMsg(threadNo);
 			break;
 
 		/* chmod */
@@ -527,11 +526,11 @@ fileCmds2Call(int index, vector<string> tokens, int threadNo)
 			if (isNumber(tokens[1]))
 				openedFiles.truncate(stoi(tokens[1]));
 			else
-				invalidCmdMsg();
+				invalidCmdMsg(threadNo);
 			break;
 
 		default:
-			invalidCmdMsg();
+			invalidCmdMsg(threadNo);
 			break;
 	}
 }
@@ -540,10 +539,9 @@ fileCmds2Call(int index, vector<string> tokens, int threadNo)
 void
 fileCmdProcessing(vector<string> tokens, int threadNo)
 {
-	enterFile(tempFile[threadNo],threadNo, tokens[2]);
+	enterFile(tempFile[threadNo], threadNo, tokens[2]);
+
 	openedFiles = File(tokens[1], tokens[2], true, threadNo);
-    cout << threadNo << ": 5" << endl; 
-	
 	bool inLoop = true;
 
 	vector<string> tokens1 = {"wr", "rd", "help", "close", "end", "\a\a\a"};
@@ -573,10 +571,10 @@ fileCmdProcessing(vector<string> tokens, int threadNo)
 				index = getCmdIndex(tokens3, tokens[0]);
 
 				if(index == 0 && isNumber(tokens[1]) && isNumber(tokens[2]))
-					serverResponse += openedFiles.read(stoi(tokens[1]) - 1, 
+					serverResponse[threadNo] += openedFiles.read(stoi(tokens[1]) - 1, 
 						stoi(tokens[2])) + "\n";
 				else
-					invalidCmdMsg();
+					invalidCmdMsg(threadNo);
 
 				break;
 
@@ -588,12 +586,12 @@ fileCmdProcessing(vector<string> tokens, int threadNo)
 						openedFiles.moveWithin(stoi(tokens[1]), stoi(tokens[2]), 
 							stoi(tokens[3]));
 				else
-					invalidCmdMsg();
+					invalidCmdMsg(threadNo);
 
 				break;
 
 			default:
-				invalidCmdMsg();
+				invalidCmdMsg(threadNo);
 				break;
 		}
 	}
@@ -622,14 +620,14 @@ cmds1Call (int index, vector<string> tokens, int threadNo, bool &loop)
 
 		/* help */
 		case 2: 
-			help();
+			help(threadNo);
 			break;
 
 		/* rdat */
 		case 3:
-			serverResponse += "reading .dat file ...\n";
+			serverResponse[threadNo] += "reading .dat file ...\n";
 			readDat();
-			serverResponse += "Complete\n";
+			serverResponse[threadNo] += "Complete\n";
 			printSpace(threadNo);
 			break;
 
@@ -642,11 +640,11 @@ cmds1Call (int index, vector<string> tokens, int threadNo, bool &loop)
 		case 5: 
 			loop = false;
 			cout << "user " + users[threadNo] + " crashed!" << endl;
-			serverResponse = "";
+			serverResponse[threadNo] = "";
 			break;
 
 		default:
-			invalidCmdMsg();
+			invalidCmdMsg(threadNo);
 			break;
 	}
 }
@@ -683,7 +681,7 @@ cmds2Call(int index, vector<string> tokens, int threadNo)
 			break;
 
 		default:
-			invalidCmdMsg();
+			invalidCmdMsg(threadNo);
 			break;
 	}
 }
@@ -702,7 +700,7 @@ cmds3Call(int index, vector<string> tokens, int threadNo)
 		/* open */
 		case 1:
 			if (tokens[2] != "read" && tokens[2] != "write")
-				serverResponse += "Please specify input mode (read | write)\n";
+				serverResponse[threadNo] += "Please specify input mode (read | write)\n";
 			else
 			{
 				filePosDir[threadNo] = getFileNo(tokens[1], threadNo);
@@ -711,12 +709,12 @@ cmds3Call(int index, vector<string> tokens, int threadNo)
 				if (fileExists(tokens[1], threadNo)) 
 					fileCmdProcessing(tokens, threadNo);
 				else
-					serverResponse += "The file does not exist.\n";
+					serverResponse[threadNo] += "The file does not exist.\n";
 			}
 			break;
 
 		default:
-			invalidCmdMsg();
+			invalidCmdMsg(threadNo);
 			break;
 	}
 }
@@ -755,7 +753,7 @@ processCommand (vector<string> tokens, int threadNo)
 			break;
 
 		default:
-			invalidCmdMsg();
+			invalidCmdMsg(threadNo);
 			break;
 	}
 

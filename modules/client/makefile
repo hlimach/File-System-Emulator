@@ -9,4 +9,5 @@ $(TARGET): $(SRC)
 	@echo "\nSuccessful! To run client, type ./client"
 
 clean:
-	rm -f $(TARGET)
+	@rm -f $(TARGET)
+	@echo "\nClean up successful."

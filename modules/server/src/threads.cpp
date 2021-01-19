@@ -29,8 +29,8 @@ startProcess (int i)
 		}
 		cout << "user " + user + " left" << endl;
 	}
-	catch (...) 
+	catch (exception &exc) 
 	{
-		cout << "user " + user + " left" << endl;
+		std::cerr << exc.what();
 	}
 }

@@ -19,7 +19,7 @@ extern vector <FileNode*> tempFile;
 extern File openedFiles;
 extern vector <int> filePosDir;
 extern vector <bool> fileFound, found;
-extern string serverResponse;
+extern vector <string> serverResponse;
 
 
 #endif

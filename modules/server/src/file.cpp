@@ -3,6 +3,7 @@
 #include "../include/globals.h"
 #include "../include/util.h"
 #include "../include/dat.h"
+#include "../include/sema.h"
 
 File :: File ()
 {}
@@ -21,8 +22,8 @@ void File ::
 printFileInfo()
 {
 	if (printInfo)
-		serverResponse += "File opened: " + filename + ", mode: " + mode + ", size: " + 
-			to_string(fileSize) + " bytes number of readers: " + to_string(tempFile[threadNum]->numReaders) + "\n" ;
+		serverResponse[threadNum] += "File opened: " + filename + ", mode: " + 
+			mode + ", size: " + to_string(fileSize) + "\n";
 }
 
 
@@ -141,16 +142,20 @@ getFileSize ()
 void File ::
 changeMode (string md) 
 {
-	if (md == "read" || md == "write") 
+	if (mode != md)
 	{
-		mode = md;
-		if(printInfo){
-			serverResponse += "File opened: " + filename + ", mode: " + mode + 
-				", size: " + to_string(fileSize) + " bytes.\n";
+		if ((md == "read" || md == "write")) 
+		{
+			leaveFile(tempFile[threadNum], mode);
+			enterFile(tempFile[threadNum], threadNum, md);
+			mode = md;
+			printFileInfo();
 		}
+		else
+			serverResponse[threadNum] += "Please enter a valid mode (read|write).\n";
 	}
 	else
-		serverResponse += "Please enter a valid mode (read|write).\n";
+		serverResponse[threadNum] += "File already opened in " + md + " mode.\n";
 }
 
 
@@ -281,17 +286,17 @@ read (int startFrom, int readUpTo)
 	resetPageTblPtr();
     if (mode != "read") 
     {
-        serverResponse += "Please open file in \"read\" mode for this function.\n";
+        serverResponse[threadNum] += "Please open file in \"read\" mode for this function.\n";
         return "";
     }
     else if (pageTable == NULL) 
     {
-        serverResponse += "The file has no content to display.\n";
+        serverResponse[threadNum] += "The file has no content to display.\n";
         return "";
     }
     else if ((readUpTo - startFrom > fileSize) || (startFrom + readUpTo > fileSize) || (startFrom < 0)) 
 	{
-		serverResponse += "Out of bounds. Given limit exceeds total file limit at "
+		serverResponse[threadNum] += "Out of bounds. Given limit exceeds total file limit at "
 			 + to_string(fileSize) + " bytes.\n";
 		return "";
 	}
@@ -389,9 +394,9 @@ callUpdateDat ()
 {
 	bool prevPrintInfo = printInfo;
 	printInfo = false;
-	changeMode("read");
+	mode = "read";
 	updateDat(pathFromRoot(current[threadNum]) + "/" +filename);
-	changeMode("write");
+	mode = "write";
 	printInfo = prevPrintInfo; 
 }
 
@@ -403,16 +408,16 @@ getInput (int threadNo)
 {
 	if (mode != "write") 
 	{
-		serverResponse += "Please open file in \"write\" mode for this function.\n";
+		serverResponse[threadNum] += "Please open file in \"write\" mode for this function.\n";
 		return "";
 	} 
 	else 
 	{
 		// File writing permission characters sent to client
-		serverResponse = "%^#$";
-		char* op = convertMessage(serverResponse, serverResponse.size());
+		serverResponse[threadNum] = "%^#$";
+		char* op = convertMessage(serverResponse[threadNum], serverResponse[threadNum].size());
 		::send(sockets[threadNo], op, strlen(op), 0);
-		serverResponse = "";
+		serverResponse[threadNum] = "";
 		
 		// Buffer created for incoming text receival
 		string input = "";
@@ -426,7 +431,7 @@ getInput (int threadNo)
 			{
 				cout << "user " + users[threadNo] + " crashed" << endl;
 	        	input = "";
-				serverResponse = "";
+				serverResponse[threadNum] = "";
 			}
 			else
 	        {
@@ -544,8 +549,8 @@ write (string input, bool updatedat)
 	
 	else if (input.size() > (freeList.size() * PAGESIZE)) 
     {
-        serverResponse += "Not enough memory available. ";
-		serverResponse += "Please reduce input size or delete other files.\n";
+        serverResponse[threadNum] += "Not enough memory available. ";
+		serverResponse[threadNum] += "Please reduce input size or delete other files.\n";
         return;
     }
 
@@ -626,7 +631,7 @@ write (string input, bool updatedat)
 		callUpdateDat();
 	
 	if (printInfo)
-		serverResponse += "Updated file size: " + to_string(fileSize) + "\n";
+		serverResponse[threadNum] += "Updated file size: " + to_string(fileSize) + "\n";
 }
 
 
@@ -640,13 +645,13 @@ writeAt (string data, int writeAt)
 
 	else  if (pageTable == NULL) 
 	{
-		serverResponse += "Invalid command. Cannot call 'Write At' on an empty file.\n";
+		serverResponse[threadNum] += "Invalid command. Cannot call 'Write At' on an empty file.\n";
 		return;
 	}
 
 	else if (writeAt > fileSize || writeAt < 0) 
 	{
-		serverResponse += "Out of bounds. Given byte is greater than file size of " 
+		serverResponse[threadNum] += "Out of bounds. Given byte is greater than file size of " 
 			+ to_string(fileSize) + " bytes.\n";
 		return;
 	}
@@ -671,12 +676,12 @@ truncate (int size)
 {
 	if (mode != "write") 
 	{
-		serverResponse += "Please open file in \"write\" mode for this function\n";
+		serverResponse[threadNum] += "Please open file in \"write\" mode for this function\n";
 		return;
 	}
 	else if (size > fileSize) 
 	{
-		serverResponse +=  "Out of bounds. Given byte is greater than file size of "
+		serverResponse[threadNum] +=  "Out of bounds. Given byte is greater than file size of "
 			 + to_string(fileSize) + " bytes.\n";
 		return;
 	}
@@ -736,7 +741,7 @@ truncate (int size)
         fileSize = getFileSize();
 
         if (printInfo)
-            serverResponse += "File size reduced to " + to_string(fileSize) + " bytes.\n";
+            serverResponse[threadNum] += "File size reduced to " + to_string(fileSize) + " bytes.\n";
     }
 	callUpdateDat();
 }
@@ -752,22 +757,22 @@ moveWithin (int from, int size, int to)
 
 	if ((to > from && to < from + size) || to < 0 || from < 0 || size < 0) 
 	{
-		serverResponse += "Invalid byte arguments.\n";
+		serverResponse[threadNum] += "Invalid byte arguments.\n";
 		return;
 	}
 	else if (mode != "write") 
 	{
-		serverResponse += "Please open file in \"write\" mode.\n";
+		serverResponse[threadNum] += "Please open file in \"write\" mode.\n";
 		return;
 	}
 	else if (pageTable == NULL) 
 	{
-		serverResponse += "Invalid command. Cannot call 'Write At' on an empty file.\n";
+		serverResponse[threadNum] += "Invalid command. Cannot call 'Write At' on an empty file.\n";
 		return;
 	}
 	else if (from + size > fileSize) 
 	{
-		serverResponse += "Out of bounds. Specified chunk exceeds out of file size of "
+		serverResponse[threadNum] += "Out of bounds. Specified chunk exceeds out of file size of "
 			  + to_string(fileSize) + " bytes.\n";
 		return;
 	}

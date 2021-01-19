@@ -42,4 +42,4 @@ vector <int> filePosDir;
 vector <bool> fileFound, found;
 
 /* Global string to which will be sent from server to client*/
-string serverResponse;
+vector <string> serverResponse;

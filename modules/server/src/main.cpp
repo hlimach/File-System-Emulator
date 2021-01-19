@@ -7,7 +7,6 @@
 #include "../include/threads.h"
 #include "../include/server.h"
 
-
 void 
 signalHandler (int signum) 
 {
@@ -20,7 +19,7 @@ signalHandler (int signum)
 
 	cout << "Server shutdown protocol complete." << endl;
 
-	exit(signum);  
+	exit(signum);	
 }
 
 
@@ -58,6 +57,7 @@ main (int argc, const char* argv[])
 	{
 		// Pushing this socket, current and temp folder, temp file
         sockets.push_back(getSocket(address, server_fd));
+        serverResponse.push_back("");
 		current.push_back(rootFolder);
 		tempFolder.push_back(rootFolder);
 		tempFile.push_back(new FileNode());
