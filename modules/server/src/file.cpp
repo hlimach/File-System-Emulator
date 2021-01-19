@@ -685,6 +685,11 @@ truncate (int size)
 			 + to_string(fileSize) + " bytes.\n";
 		return;
 	}
+	else if (size == 0)
+	{
+		serverResponse[threadNum] += "Close file to delete it.\n"; 
+		return;
+	}
 	else
 	{
 		short int reduceTo = size;
@@ -695,7 +700,7 @@ truncate (int size)
         int pageNumOfGivenByte;
         calcLimit(pageNumOfGivenByte, reduceTo, size, PAGESIZE);
         short int pageNumOfGivenB = (short int) pageNumOfGivenByte;
-        
+
         /* Calculate the page table number in all the page tables where this page
            Will be located. */
         int whichPageTable;
@@ -704,6 +709,7 @@ truncate (int size)
         /* Gets current page table number, and iterates until the page table with
            The desired page is reached. */
         int nextPageTableNum = getPageNum((char *) pageTable);
+        cout << "nextPageTableNum: " << nextPageTableNum << endl;
         for (int i = 1; i < whichPageTable; i++)
         {
             pageTable = (short int*) getPagePtr(nextPageTableNum);

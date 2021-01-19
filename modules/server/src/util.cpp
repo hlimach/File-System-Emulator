@@ -127,8 +127,6 @@ getFileNo (string name, int threadNo)
 }
 
 
-
-
 /* pushes the given argument in the freeList and making it mutually exclusive*/
 void
 pushStack(short int top)
@@ -137,7 +135,6 @@ pushStack(short int top)
 	freeList.push(top);
 	stackMtx.unlock();
 }
-
 
 
 /* return the top of the freeList and making it mutually exclusive*/
@@ -150,7 +147,6 @@ popStack()
 	stackMtx.unlock();
 	return temp;
 }
-
 
 
 /* Function takes in the wanted files' name as argument accesses the temporary folders'
@@ -336,7 +332,7 @@ listFiles (Folder* dir, int threadNo)
             pgtbles = pgtbles.substr(0, pgtbles.size() - 2);
             limit = to_string(openFile.getByteLimit());
 
-            disp += "Name: " + name + "\n\tPage numers: " + pgnums + 
+            disp += "Name: " + name + "\n\tPage numbers: " + pgnums + 
 				"\n\tPage Tables: " + pgtbles + "\n\tLimit on last page: "
             	 + limit + "\n\tTotal file size: " + 
             	 to_string(openFile.getFileSize()) + "\n\tPath: " + pathFromRoot(dir) 
@@ -360,13 +356,13 @@ memMap (Folder* dir, int threadNo)
 {	
 	tempFolder[threadNo] = dir;
 	current[threadNo] = dir;
-	listFiles(dir,threadNo);
+	listFiles(dir, threadNo);
 
 	if (dir->subdir.size() == 0)
 		return;
 
 	for (int i = 0; i < dir->subdir.size(); i++)
-		memMap(dir->subdir[i],threadNo);
+		memMap(dir->subdir[i], threadNo);
 }
 
 
@@ -492,6 +488,7 @@ fileCmds1Call(int index, vector<string> tokens, int threadNo, bool &loop)
 
 		/* \a\a\a */
 		case 5: 
+			leaveFile(tempFile[threadNo], openedFiles.mode);
 			loop = false;
 			break;
 
@@ -677,7 +674,7 @@ cmds2Call(int index, vector<string> tokens, int threadNo)
 
 		/* rmdir */
 		case 4: 
-			deleteFolder(tokens[1],threadNo);
+			deleteFolder(tokens[1], threadNo);
 			break;
 
 		default:

@@ -160,7 +160,7 @@ deleteFile (string filename, int threadNo)
 	{
 		/* Get page table pointer of this file, and open the file. */
 		short int* pageTable = current[threadNo]->files[getFileNo(filename,threadNo)]->pgTblPtr;
-		File delFile(filename, "read", false,threadNo);
+		File delFile(filename, "read", false, threadNo);
 
 		/* If the file is not empty, then start deletion process. */
 		if (pageTable != NULL) 

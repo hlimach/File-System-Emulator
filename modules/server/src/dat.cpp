@@ -9,7 +9,7 @@
 void
 openStream()
 {	datMtx.lock();
-	datStream.open(DATPATH, ios::out | ios::in | ios::app );
+	datStream.open(DATPATH, ios::out | ios::in | ios::app);
 }
 
 
