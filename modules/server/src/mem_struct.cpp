@@ -9,11 +9,11 @@ FileNode :: FileNode ()
 {}
 
 FileNode :: FileNode(string fileName)
-: name(fileName), pgTblPtr(NULL), numReaders(0)
+: name(fileName), pgTblPtr(NULL), numReaders(0), active(false)
 {
-	//sem_init(&writer_sema, 0, 1);
-	sem_unlink("writer_sema");
-	writer_sema = sem_open("writer_sema", O_CREAT|O_EXCL, S_IRWXU, 1);
+	sem_init(&writer_sema, 0, 1);
+	//sem_unlink("writer_sema");
+	//writer_sema = sem_open("writer_sema", O_CREAT|O_EXCL, S_IRWXU, 1);
 }
 
 
@@ -25,7 +25,7 @@ Folder :: Folder(string name)
 /* Traverses tree according to given path. If a folder within the path is not found, 
    The loop is exited, and the boolean found is set to false. */
 bool
-traverseTree (int i, vector<string> tokens, bool change, int threadNo)
+traverseTree (int i, vector<string> tokens, bool change, int threadNo, bool user)
 {
 	int lim = tokens.size() - 1;
 	if (change)
@@ -40,13 +40,14 @@ traverseTree (int i, vector<string> tokens, bool change, int threadNo)
                 serverResponse[threadNo] += "Parent of root does not exist.\n";
                 return false;
             }
-			if(change)
+			if(change && user)
 				tempFolder[threadNo]->NumUsers--;
+
             tempFolder[threadNo] = tempFolder[threadNo]->parent;
         }
         else
         {
-            bool folderFound = folderExists(tokens[i], threadNo, change);
+            bool folderFound = folderExists(tokens[i], threadNo, change, user);
             if (!folderFound)
             {
                 return false;
@@ -72,12 +73,12 @@ createFolder (string path, bool updatedat, int threadNo)
 		return;
 	}
 	else {
-		createable = traverseTree(0, tokens, false,threadNo);
+		createable = traverseTree(0, tokens, false, threadNo, false);
 
 		/* If the path exists, a folder of the same name does not already exist, and
 		   The name of the folder is neither '.' nor '..', then a folder at the 
 		   Specified path is successfully created. */
-		if (createable && !folderExists(tokens.back(), threadNo, false) && 
+		if (createable && !folderExists(tokens.back(), threadNo, false, false) && 
 			(tokens.back() != "." || tokens.back() != "..")) 
 		{
 			tempFolder[threadNo]->subdir.push_back(new Folder(tokens.back()));
@@ -97,7 +98,7 @@ createFolder (string path, bool updatedat, int threadNo)
    Directory and if path exists updates the current working directory to specified 
    Path. */
 void 
-changeDir (string path, int threadNo) 
+changeDir (string path, int threadNo, bool user) 
 {
 	bool changable = true;
 	vector<string> tokens = tokenize(path, '/');
@@ -116,7 +117,7 @@ changeDir (string path, int threadNo)
 		if (tokens[0] == ".")
 			i = 0;
 
-		changable = traverseTree(i, tokens, true,threadNo);
+		changable = traverseTree(i, tokens, true, threadNo, user);
 
 		if (changable)
 			current[threadNo] = tempFolder[threadNo];
@@ -149,6 +150,7 @@ create (string filename, bool updatedat, int threadNo)
 void 
 deleteFile (string filename, int threadNo) 
 {
+
 	/* If a file of the given name does not exist in current working directory. */
 	tempFolder[threadNo] = current[threadNo];
 	if (!fileExists(filename,threadNo)) 
@@ -158,6 +160,11 @@ deleteFile (string filename, int threadNo)
 	}
 	else 
 	{
+		if(tempFile[threadNo]->active)
+		{
+			serverResponse[threadNo] += "The file is currently in use and cannot be deleted!\n";
+			return;
+		}
 		/* Get page table pointer of this file, and open the file. */
 		short int* pageTable = current[threadNo]->files[getFileNo(filename,threadNo)]->pgTblPtr;
 		File delFile(filename, "read", false, threadNo);
@@ -288,7 +295,7 @@ deleteFolder(string folderName, int threadNo)
 	tempFolder[threadNo] = current[threadNo];
 	bool remove = true;
 
-	if (!folderExists(folderName, threadNo, false))
+	if (!folderExists(folderName, threadNo, false, false))
 	{
 		serverResponse[threadNo] += "The folder does not exist in current directory\n";
 		return;
@@ -319,11 +326,20 @@ deleteFolder(string folderName, int threadNo)
 
 	if(remove)
 	{
-		removeDat(pathFromRoot(current[threadNo]) + "/" + folderName,false);
+		removeDat(pathFromRoot(temp) + "/" + folderName,false);
 		removeChildren(current[threadNo],threadNo);
 	}
 
 	current[threadNo] = temp;
 	tempFolder[threadNo] = current[threadNo];
 
+}
+
+
+/* redirect the thread to the root */
+void
+toRoot(int threadNo)
+{
+	while(current[threadNo]->dirName != "root")
+		changeDir("..", threadNo, true);
 }

@@ -32,7 +32,6 @@ help (int threadNo)
 	serverResponse[threadNo] += "mv\t\tMove file from one location to another\t\t\t\tmv ./subf/filename ../sf/\n";
 	serverResponse[threadNo] += "map\t\tDisplay memory map\t\t\t\t\t\tmap\n";
 	serverResponse[threadNo] += "end\t\tTerminate program\t\t\t\t\t\ttend\n";
-	serverResponse[threadNo] += "rdat\t\tRead and existing .dat file generated using this program\trdat\n";
 }
 
 
@@ -170,14 +169,14 @@ fileExists (string filename, int threadNo)
 /* Function folderExists takes in directory name as argument accesses the temporary 
    Folder's subdirectory and iterates it fully returns true if it is found. */
 bool 
-folderExists (string dirName, int threadNo, bool change) 
+folderExists (string dirName, int threadNo, bool change, bool user) 
 {
 	for (int j = 0; j < tempFolder[threadNo]->subdir.size(); j++) 
 	{
 		if (tempFolder[threadNo]->subdir[j]->dirName == dirName) 
 		{
 			tempFolder[threadNo] = tempFolder[threadNo]->subdir[j];
-			if(change)
+			if(change && user)
 				tempFolder[threadNo]->NumUsers++;
 			return true;
 		}
@@ -253,7 +252,7 @@ locateFile (vector<string> tokens, bool destFile, int threadNo)
 			   Exited. */
 			if (i != tokens.size() - 1) 
 			{
-				bool checkFolder = folderExists(tokens[i],threadNo,false);
+				bool checkFolder = folderExists(tokens[i], threadNo, false, false);
 				if (!checkFolder) 
 				{
 					serverResponse[threadNo] += "Invalid path. A folder in the path does not exist.\n";
@@ -489,6 +488,7 @@ fileCmds1Call(int index, vector<string> tokens, int threadNo, bool &loop)
 		/* \a\a\a */
 		case 5: 
 			leaveFile(tempFile[threadNo], openedFiles.mode);
+			toRoot(threadNo);
 			loop = false;
 			break;
 
@@ -620,21 +620,15 @@ cmds1Call (int index, vector<string> tokens, int threadNo, bool &loop)
 			help(threadNo);
 			break;
 
-		/* rdat */
-		case 3:
-			serverResponse[threadNo] += "reading .dat file ...\n";
-			readDat();
-			serverResponse[threadNo] += "Complete\n";
-			printSpace(threadNo);
-			break;
-
 		/* end */
-		case 4: 
+		case 3: 
 			loop = false;
+			toRoot(threadNo);
 			break;
 
 		/* \a\a\a */
-		case 5: 
+		case 4:
+			toRoot(threadNo);
 			loop = false;
 			cout << "user " + users[threadNo] + " crashed!" << endl;
 			serverResponse[threadNo] = "";
@@ -654,7 +648,7 @@ cmds2Call(int index, vector<string> tokens, int threadNo)
 	{
 		/* cd */
 		case 0:
-			changeDir(tokens[1], threadNo);
+			changeDir(tokens[1], threadNo, true);
 			break;
 
 		/* cr */
@@ -723,7 +717,7 @@ cmds3Call(int index, vector<string> tokens, int threadNo)
 bool 
 processCommand (vector<string> tokens, int threadNo) 
 {
-	vector<string> tokens1 = {"ls", "map", "help", "rdat", "end", "\a\a\a"};
+	vector<string> tokens1 = {"ls", "map", "help", "end", "\a\a\a"};
 	vector<string> tokens2 = {"cd", "cr", "del", "mkdir", "rmdir"};
 	vector<string> tokens3 = {"mv", "open"};
 

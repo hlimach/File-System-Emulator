@@ -438,7 +438,7 @@ getInput (int threadNo)
 			else
 	        {
 	        	string check = buffer;
-	        	if (check.size() == BUFFER + 1)
+	        	if (check.size() > BUFFER)
 	        		check = check.substr(0, BUFFER);
 	        	input += check;
 	        }
@@ -687,7 +687,7 @@ truncate (int size)
 			 + to_string(fileSize) + " bytes.\n";
 		return;
 	}
-	else if (size == 0)
+	else if (size <= 0)
 	{
 		serverResponse[threadNum] += "Close file to delete it.\n"; 
 		return;

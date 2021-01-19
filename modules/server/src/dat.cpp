@@ -8,7 +8,7 @@
 /* opens file stream whenever required to read or write to .dat file */
 void
 openStream()
-{	
+{
 	datMtx.lock();
 	datStream.open(DATPATH, ios::out | ios::in | ios::app);
 
@@ -32,10 +32,10 @@ enterDat (string path, bool file, string name)
 {
 	string data = "";
 	if(file)
-		data = "F\t" + path + "/" + name; 
+		data = "F\t" + path + "/" + name;
 	else
-		data = "D\t" + path + "/" + name; 
-	
+		data = "D\t" + path + "/" + name;
+
 	openStream();
 	datStream << data << endl;
 	closeStream();
@@ -61,7 +61,7 @@ moveDat (string oldPath, string newPath)
 		prevText += line + "\n";
 	}
 	getline (datStream, line);
-	
+
 	if (line[0] == '\a')
 	{
 		data += line + "\n";
@@ -104,8 +104,8 @@ removeDat (string path, bool file)
 
 		prevText += line + "\n";
 	}
-	
-	if (datStream.eof()) 
+
+	if (datStream.eof())
 	{
 		overWriteDat.open(DATPATH);
 		overWriteDat << prevText;
@@ -115,7 +115,7 @@ removeDat (string path, bool file)
 	}
 
 	getline(datStream,line);
-	
+
 	if (file)
 	{
 		if (line[0] == '\a'){
@@ -131,9 +131,15 @@ removeDat (string path, bool file)
 
 	while (getline(datStream, line))
 		endText+=line+"\n";
-	
+
+	endText = endText.substr(0, endText.length() - 1);
+
 	overWriteDat.open(DATPATH);
-	overWriteDat << prevText + endText.substr(0, endText.length() - 1);
+
+	// if (endText[endText.size() - 1] == '\a')
+	// 	endText = endText.substr(0, endText.length() - 1);
+
+	overWriteDat << prevText + endText;
 	overWriteDat.close();
 	closeStream();
 }
@@ -141,8 +147,8 @@ removeDat (string path, bool file)
 
 /* Reads the given .dat file, reloads the entire memory structure and writes into
    Files as given in the file. */
-void 
-readDat () 
+void
+readDat ()
 {
 	vector<string> fileFolder;
 	string line, fileName, content, path;
@@ -157,17 +163,17 @@ readDat ()
 		freeList.push(i);
 
 
-	while (getline(datStream, line)) 
+	while (getline(datStream, line))
 	{
 		current[0] = rootFolder;
 
-		if (line[0] == 'D') 
+		if (line[0] == 'D')
 		{
 			path = line.substr(6, line.size() - 6);
 			createFolder(path, false, 0);
 			line = "";
 		}
-		else if (line[0] == 'F') 
+		else if (line[0] == 'F')
 		{
 			line = line.substr(6, line.size() - 6);
 			fileFolder = tokenize(line, '/');
@@ -182,12 +188,12 @@ readDat ()
 			line = "";
 
 			/* Serializing tokens of path to string */
-			if (fileFolder.size() != 0) 
+			if (fileFolder.size() != 0)
 			{
-				for (int i = 0; i < fileFolder.size(); i++) 
+				for (int i = 0; i < fileFolder.size(); i++)
 					line += fileFolder[i] + "/";
-				
-				changeDir(line, 0);
+
+				changeDir(line, 0, false);
 			}
 
 			tempFolder[0] = current[0];
@@ -195,13 +201,13 @@ readDat ()
 			/* Create file in durectory */
 			create(fileName, false, 0);
 			line = "";
-		} 
+		}
 
 		/* Condition if data is to be written in file */
-		else if (line[0] == '\a') 
+		else if (line[0] == '\a')
 		{
 			/* Concatenate content until -1 is encountered again */
-			while (getline(datStream, line)) 
+			while (getline(datStream, line))
 			{
 				if (line[0] == '\a')
 					break;

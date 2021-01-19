@@ -30,13 +30,19 @@ dque(FileNode* fNode)
     if(fNode->fileQue.front()[1] == 0)
     {
         if(fNode->numReaders == 0)
-            sem_wait(fNode->writer_sema);
-
+        {
+            
+            sem_wait(&fNode->writer_sema);
+            fNode->active = true;
+            cout << "active" << fNode->active <<endl;
+        }
         fNode->numReaders++;
     }
     else
     {
-        sem_wait(fNode->writer_sema);
+        sem_wait(&fNode->writer_sema);
+        fNode->active = true;
+            cout << "active" << fNode->active <<endl;
     }
     
     fNode->queMtx.lock();
@@ -49,6 +55,9 @@ dque(FileNode* fNode)
 void
 enterFile(FileNode* fNode, int threadNo, string mode)
 {
+    fNode->active = true;
+    cout << "active" << fNode->active <<endl;
+
     enque(fNode, threadNo,mode);
 
     // fNode->fileQue.front().front() returns the threadNo of top element
@@ -76,11 +85,20 @@ leaveFile(FileNode* fNode, string mode)
 	{
         fNode->queMtx.lock();
 		if(fNode->numReaders == 1)
-			sem_post(fNode->writer_sema);
+        {
+			sem_post(&fNode->writer_sema);
+            fNode->active = false;
+            cout << "inactive" << fNode->active <<endl;
 
+        }
 		fNode->numReaders--;	
         fNode->queMtx.unlock();
 	}
 	else
-		sem_post(fNode->writer_sema);
+    {
+		sem_post(&fNode->writer_sema);
+        fNode->active = false;
+            cout << "inactive" << fNode->active <<endl;
+
+    }
 }

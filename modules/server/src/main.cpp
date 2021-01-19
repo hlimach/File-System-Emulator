@@ -45,6 +45,22 @@ main (int argc, const char* argv[])
         cout << "conn failed" << endl;
         return 0;
     }
+	
+	current.push_back(rootFolder);
+	tempFolder.push_back(rootFolder);
+	tempFile.push_back(new FileNode());
+	filePosDir.push_back(-1);
+	fileFound.push_back(false);
+	found.push_back(false);
+
+	readDat();
+	
+	current.erase(current.begin());
+	tempFolder.erase(tempFolder.begin());
+	tempFile.erase(tempFile.begin());
+	filePosDir.erase(filePosDir.begin());
+	fileFound.erase(fileFound.begin());
+	found.erase(found.begin());
 
 	cout << "Connection established! ready for users..." << endl;
 	cout << "To shut down server, press CTRL+C (^C)" << endl << endl;

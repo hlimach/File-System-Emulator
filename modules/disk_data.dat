@@ -1,5 +1,17 @@
-
+D	root/folder1
+D	root/folder2
+F	root/file1.txt
 
-yaaaa habbibib
+this is sample text for file1
 
-F	root/a.txt
+F	root/folder1/file2.txt
+
+Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec qu
+
+F	root/folder2/file3.txt
+D	root/folder2/subfolder
+F	root/folder2/subfolder/file4.txt
+
+this is random text
+in file4
+

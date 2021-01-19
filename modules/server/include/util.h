@@ -14,7 +14,7 @@ int getFileNo (string, int);
 void pushStack(short int);
 short int popStack();
 bool fileExists (string, int);
-bool folderExists (string, int,bool);
+bool folderExists (string, int, bool, bool);
 void listDir (int);
 bool isNumber (string);
 void locateFile (vector<string>, bool, int);
