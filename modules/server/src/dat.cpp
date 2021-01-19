@@ -8,8 +8,12 @@
 /* opens file stream whenever required to read or write to .dat file */
 void
 openStream()
-{	datMtx.lock();
+{	
+	datMtx.lock();
 	datStream.open(DATPATH, ios::out | ios::in | ios::app);
+
+	if(!datStream.is_open())
+    	cout << "Error opening " << DATPATH << ".\n";
 }
 
 

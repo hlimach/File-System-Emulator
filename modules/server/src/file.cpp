@@ -341,6 +341,7 @@ updateDat (string path)
 	//read top text untill file is found
 	while (getline(datStream, line))
 	{	
+		cout << "line: " << line << endl;
 		if (line[0] == 'F')
 			if (line.substr(2, line.size() - 2) == path)
 				break;
@@ -348,11 +349,12 @@ updateDat (string path)
 		topText += line + "\n";
 	}
 
-	topText += line +"\n";
+	topText += line + "\n";
+
+	cout << "topText" << topText << endl;
 
 	if (fileSize != 0)
 		data = "\a\n" + read(0, fileSize) + "\n\a\n";
-	
 
 	if (datStream.eof())
 	{		
@@ -364,13 +366,13 @@ updateDat (string path)
 	}
 
 	//skip the data stored in that file if any
-	getline(datStream,line);
+	getline(datStream, line);
 	if (line[0] == '\a')
 	{
 		do
 		{
-			getline(datStream,line);
-		} while(line[0]!='\a');
+			getline(datStream, line);
+		} while(line[0] != '\a');
 
 		getline(datStream,line);
 	}
@@ -395,7 +397,7 @@ callUpdateDat ()
 	bool prevPrintInfo = printInfo;
 	printInfo = false;
 	mode = "read";
-	updateDat(pathFromRoot(current[threadNum]) + "/" +filename);
+	updateDat(pathFromRoot(current[threadNum]) + "/" + filename);
 	mode = "write";
 	printInfo = prevPrintInfo; 
 }
@@ -709,7 +711,6 @@ truncate (int size)
         /* Gets current page table number, and iterates until the page table with
            The desired page is reached. */
         int nextPageTableNum = getPageNum((char *) pageTable);
-        cout << "nextPageTableNum: " << nextPageTableNum << endl;
         for (int i = 1; i < whichPageTable; i++)
         {
             pageTable = (short int*) getPagePtr(nextPageTableNum);
